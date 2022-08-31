@@ -224,13 +224,6 @@ void bg_param_set_unit_db(bg_param_t *param)
 
 void bg_param_set_process(bg_param_t *param)
 {
-  bg_param_argv_t *cur;
-
-  if (1<param->argv.max-param->argv.min) {
-    for (cur=param->argv.min;cur<param->argv.max;++cur)
-      ++cur->lift;
-  }
-
   ff_printer_clear(&param->printer);
   param->process=1;
   param->count.max=param->count.cur;
@@ -241,13 +234,15 @@ static int bg_param_loop_inner(bg_param_t *param, ffchar_t const *argv)
 {
   int err=-1;
 
-  if (param->process) {
-    ///////////////////////////////////////////////////////////////////////////
-    if (bg_root_create(&param->root,param)<0) {
-      DMESSAGE("creating root");
-      goto e_root;
-    }
+  /////////////////////////////////////////////////////////////////////////////
+  if (bg_root_create(&param->root,param)<0) {
+    DMESSAGE("creating root");
+    goto e_root;
+  }
 
+  param->tos=&param->root;
+
+  if (param->process) {
     ///////////////////////////////////////////////////////////////////////////
     if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
       DMESSAGE("prefix");
@@ -275,8 +270,7 @@ static int bg_param_loop_inner(bg_param_t *param, ffchar_t const *argv)
 e_suffix:
 e_loop:
 e_prefix:
-  if (param->process)
-    param->root.vmt->destroy(&param->root);
+  param->root.vmt->destroy(&param->root);
 e_root:
   return err;
 }
@@ -284,8 +278,6 @@ e_root:
 int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 {
   int err=-1;
-
-  param->tos=&param->root;
 
   for (param->argv.cur=param->argv.min;param->argv.cur<param->argv.max;
       ++param->argv.cur) {

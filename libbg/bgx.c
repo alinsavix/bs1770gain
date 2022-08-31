@@ -423,7 +423,6 @@ static int strcmpex(const char **s1, const char **s2, int ch)
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
-#define BG_PARAM_STRUCT_INITIALIZER
 // https://stackoverflow.com/questions/190543/how-can-i-change-the-width-of-a-windows-console-window
 // https://docs.microsoft.com/en-us/windows/console/window-and-screen-buffer-size
 // David Tran: Logging Function Entry and Exit in C
@@ -1212,9 +1211,9 @@ int main(int argc, char *const *argv)
         " Good luck!\n",stderr);
 #else // ] [
     DVMESSAGE("Attmpting to dynamically load FFmpeg shared objects by means"
-		    " of an out-dated libc: expecting %s, found %s",BG_GNU_LIBC_VERSION,
-				gnu_get_libc_version());
-		goto e_libc;
+        " of an out-dated libc: expecting %s, found %s",BG_GNU_LIBC_VERSION,
+        gnu_get_libc_version());
+    goto e_libc;
 #endif // ]
   }
 #endif // ]
