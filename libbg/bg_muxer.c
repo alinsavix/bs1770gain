@@ -926,7 +926,11 @@ static enum AVCodecID bg_muxer_codec_id(const void *data,
   const bg_param_t *param=tree->param;
   FF_CONST AVCodec *codec;
   
+#if defined (BG_COMPILE_TIME_EXPR) // [
+  if (*param->codec.name) {
+#else // ] [
   if (param->codec.name&&*param->codec.name) {
+#endif // ]
     codec=avcodec_find_encoder_by_name(param->codec.name);
 
     if (!codec) {

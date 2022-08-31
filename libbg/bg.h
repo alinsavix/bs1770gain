@@ -29,6 +29,7 @@
 //#define BG_PRINT_PARAM_CLASSIC
 //#define BG_UNIT_LRA
 
+#define BG_COMPILE_TIME_EXPR
 #define BG_SAMPLES_COUNT
 #define BG_SERGEY_XML_FIX
 #define BG_PARAM_QUIET
