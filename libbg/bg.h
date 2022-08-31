@@ -25,6 +25,7 @@
 #include <config.h>
 #endif // ]
 #include <stdio.h>
+#include <semaphore.h>
 #include <pbutil_priv.h>
 #include <ff.h>
 #include <lib1770.h>
@@ -37,6 +38,10 @@ extern "C" {
 ///////////////////////////////////////////////////////////////////////////////
 //#define BG_LIST
 #define BG_TEMP_PREFIX FFL(".")
+#define BG_PARAM_QUIET
+#if defined (BG_PARAM_QUIET) // [
+//#define BG_PARAM_PARALLEL
+#endif // ]
 #define BG_CLOCK
 //#define BG_PARAM_SLEEP
 //#define BG_BWF_TAGS
@@ -574,6 +579,17 @@ struct bg_param {
     int64_t duration;
   } interval;
 
+#if defined (BG_PARAM_QUIET) // [
+  int quiet;
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+  int parallel;
+#if defined (_WIN32) // [
+  HANDLE hSem;
+#else // ] [
+  sem_t sem;
+#endif // ]
+#endif // ]
 #if defined (BG_PARAM_SLEEP) // [
   int sleep;
 #endif // ]

@@ -139,6 +139,12 @@ int bg_param_create(bg_param_t *param)
   param->ext.video=FFL("mkv");
   param->interval.begin=-1ll;
   param->interval.duration=-1ll;
+#if defined (BG_PARAM_QUIET) // [
+  param->quiet=0;
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+  param->parallel=0;
+#endif // ]
 #if defined (BG_PARAM_SLEEP) // [
   param->sleep=0;
 #endif // ]

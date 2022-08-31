@@ -38,6 +38,11 @@ static void bg_print_xml_encoding(bg_param_t *param, int bits)
 {
   FILE *f=param->result.f;
 
+#if defined (BG_PARAM_QUIET) // [
+  if (param->quiet)
+    goto success;
+#endif // ]
+
 #if defined (WIN32) // [
   if (stdin==f||stdout==f) {
 #endif // ]
@@ -49,6 +54,10 @@ static void bg_print_xml_encoding(bg_param_t *param, int bits)
     fwprintf(f,L"<?xml version=\"1.0\" encoding=\"UTF-%d\""
         " standalone=\"no\"?>\n",bits);
   }
+#endif // ]
+#if defined (BG_PARAM_QUIET) // [
+success:
+  return;
 #endif // ]
 }
 
@@ -89,6 +98,11 @@ static int bg_print_xml_head(bg_tree_t *tree, int depth, FILE *f)
   bg_param_t *param=tree->param;
   bg_track_t *track=&tree->track;
   
+#if defined (BG_PARAM_QUIET) // [
+  if (tree->param->quiet)
+    goto success;
+#endif // ]
+
   switch (tree->vmt->type) {
   case BG_TREE_TYPE_TRACK:
     bg_print_xml_indent(depth,f);
@@ -138,7 +152,9 @@ static int bg_print_xml_head(bg_tree_t *tree, int depth, FILE *f)
 
   /////////////////////////////////////////////////////////////////////////////
   fflush(f);
-
+#if defined (BG_PARAM_QUIET) // [
+success:
+#endif // ]
   return 0;
 //cleanup:
 e_type:
@@ -236,6 +252,11 @@ static int bg_print_xml_tail(bg_tree_t *tree, int depth, FILE *f)
   bg_flags_agg_t agg;
   bg_print_conf_t *c;
 
+#if defined (BG_PARAM_QUIET) // [
+  if (param->quiet)
+    goto success;
+#endif // ]
+
   if (BG_TREE_TYPE_TRACK==tree->vmt->type||!param->suppress.hierarchy) {
     for (agg=1,c=bg_print_conf;agg<BG_FLAGS_AGG_MAX;agg<<=1,++c) {
       if (!(agg&tree->param->flags.aggregate)) {
@@ -301,7 +322,9 @@ static int bg_print_xml_tail(bg_tree_t *tree, int depth, FILE *f)
 
   /////////////////////////////////////////////////////////////////////////////
   fflush(f);
-
+#if defined (BG_PARAM_QUIET) // [
+success:
+#endif // ]
   return 0;
 //cleanup:
 e_type:

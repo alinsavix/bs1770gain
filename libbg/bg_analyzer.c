@@ -254,20 +254,32 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
       goto e_muxer;
     }
 
+#if defined (BG_PARAM_QUIET) // [
+    if (!param->quiet&&!param->suppress.progress) {
+#else // ] [
     if (!param->suppress.progress) {
+#endif // ]
       if (&bg_print_xml_vmt==param->print.vmt)
         fputs("<!-- ",stdout);
 
       fputs("begin remuxing ...\n",stdout);
       fflush(stdout);
+#if ! defined (BG_PARAM_QUIET) // [
     }
+#else // ] [
+    }
+#endif // ]
 
     if (tree->vmt->accept(tree,&muxer)<0) {
       DMESSAGE("muxing");
       goto e_muxer_accept;
     }
 
+#if defined (BG_PARAM_QUIET) // [
+    if (!param->quiet&&!param->suppress.progress) {
+#else // ] [
     if (!param->suppress.progress) {
+#endif // ]
       fputs("end remuxing.",stdout);
 
       if (&bg_print_xml_vmt==param->print.vmt)
@@ -275,7 +287,11 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
 
       fputc('\n',stdout);
       fflush(stdout);
+#if ! defined (BG_PARAM_QUIET) // [
     }
+#else // ] [
+    }
+#endif // ]
   }
 
   /////////////////////////////////////////////////////////////////////////////

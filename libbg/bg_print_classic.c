@@ -145,6 +145,11 @@ static int bg_print_classic_head(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
 {
   bg_track_t *track;
 
+#if defined (BG_PARAM_QUIET) // [
+  if (tree->param->quiet)
+    goto success;
+#endif // ]
+
   switch (tree->vmt->type) {
   case BG_TREE_TYPE_FILE:
     // nothing to do.
@@ -195,7 +200,9 @@ static int bg_print_classic_head(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
 
   /////////////////////////////////////////////////////////////////////////////
   fflush(f);
-
+#if defined (BG_PARAM_QUIET) // [
+success:
+#endif // ]
   return 0;
 e_type:
   return -1;
@@ -210,6 +217,11 @@ static int bg_print_classic_tail(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
   //   of the involved labels.
   bg_flags_agg_t agg;
   bg_print_conf_t *c;
+
+#if defined (BG_PARAM_QUIET) // [
+  if (tree->param->quiet)
+    goto success;
+#endif // ]
 
   if (width<=0) {
     DWARNING("width");
@@ -234,7 +246,9 @@ static int bg_print_classic_tail(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
 
   /////////////////////////////////////////////////////////////////////////////
   fflush(f);
-
+#if defined (BG_PARAM_QUIET) // [
+success:
+#endif // ]
   return 0;
 e_width:
   return -1;
