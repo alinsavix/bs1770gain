@@ -75,7 +75,7 @@ static void ff_dynload_list_append(ff_dynload_node_t *node,
   node->prev=ff_dynload_tail;
 #if defined (PBU_DEBUG) // [
   node->id=id;
-FFVWRITELN("\"%s\"",id);
+//FFVWRITELN("\"%s\"",id);
 #endif // ]
 
   ff_dynload_tail=node;
@@ -1464,7 +1464,7 @@ static int load(void *hLib, const char *sym, void *p)
     *fp=FFDLSYM(hLib,sym);
 
     if (!*fp) {
-      FFVMESSAGE("loading %s",sym);
+      _DMESSAGEV("loading %s",sym);
       return -1;
     }
   }
@@ -1493,7 +1493,11 @@ static int avutil_load(void)
 
   if (!avutil.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVUTIL)) {
-      FFVMESSAGE("loading %s",AVUTIL);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",AVUTIL);
+#else // ] [
+      _DMESSAGEV("loading %s",AVUTIL);
+#endif // ]
       return -1;
     }
 
@@ -1501,7 +1505,11 @@ static int avutil_load(void)
     avutil.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
     if (!avutil.node.hLib&&!(avutil.node.hLib=FFDLOPEN(AVUTIL,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1528,7 +1536,11 @@ static int avcodec_load(void)
     return -1;
   else if (!avcodec.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVCODEC)) {
-      FFVMESSAGE("loading %s",AVCODEC);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",AVCODEC);
+#else // ] [
+      _DMESSAGEV("loading %s",AVCODEC);
+#endif // ]
       return -1;
     }
 
@@ -1536,7 +1548,11 @@ static int avcodec_load(void)
     avcodec.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
     if (!avcodec.node.hLib&&!(avcodec.node.hLib=FFDLOPEN(AVCODEC,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1563,7 +1579,11 @@ static int avformat_load(void)
     return -1;
   else if (!avformat.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVFORMAT)) {
-      FFVMESSAGE("loading %s",AVFORMAT);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",AVFORMAT);
+#else // ] [
+      _DMESSAGEV("loading %s",AVFORMAT);
+#endif // ]
       return -1;
     }
 
@@ -1571,7 +1591,11 @@ static int avformat_load(void)
     avformat.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
     if (!avformat.node.hLib&&!(avformat.node.hLib=FFDLOPEN(AVFORMAT,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1596,7 +1620,11 @@ static int swresample_load(void)
     return -1;
   else if (!swresample.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_SWRESAMPLE)) {
-      FFVMESSAGE("loading %s",SWRESAMPLE);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",SWRESAMPLE);
+#else // ] [
+      _DMESSAGEV("loading %s",SWRESAMPLE);
+#endif // ]
       return -1;
    }
 
@@ -1605,7 +1633,11 @@ static int swresample_load(void)
 
     if (!swresample.node.hLib
         &&!(swresample.node.hLib=FFDLOPEN(SWRESAMPLE,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1630,7 +1662,11 @@ static int swscale_load(void)
     return -1;
   else if (!swscale.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_SWSCALE)) {
-      FFVMESSAGE("loading %s",SWSCALE);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",SWSCALE);
+#else // ] [
+      _DMESSAGEV("loading %s",SWSCALE);
+#endif // ]
       return -1;
    }
 
@@ -1638,7 +1674,11 @@ static int swscale_load(void)
     swscale.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
     if (!swscale.node.hLib&&!(swscale.node.hLib=FFDLOPEN(SWSCALE,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1663,7 +1703,11 @@ static int postproc_load(void)
     return -1;
   else if (!postproc.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_POSTPROC)) {
-      FFVMESSAGE("loading %s",POSTPROC);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",POSTPROC);
+#else // ] [
+      _DMESSAGEV("loading %s",POSTPROC);
+#endif // ]
       return -1;
     }
 
@@ -1671,7 +1715,11 @@ static int postproc_load(void)
     postproc.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
     if (!postproc.node.hLib&&!(postproc.node.hLib=FFDLOPEN(POSTPROC,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1706,7 +1754,11 @@ static int avfilter_load(void)
     return -1;
   else if (!avfilter.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVFILTER)) {
-      FFVMESSAGE("loading %s",AVFILTER);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",AVFILTER);
+#else // ] [
+      _DMESSAGEV("loading %s",AVFILTER);
+#endif // ]
       return -1;
     }
 
@@ -1714,7 +1766,11 @@ static int avfilter_load(void)
     avfilter.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
     if (!avfilter.node.hLib&&!(avfilter.node.hLib=FFDLOPEN(AVFILTER,DLOPEN_FLAG))) {
-      FFVMESSAGE("loading %s",path);
+#if defined (_WIN32) // [
+      _DMESSAGEV("loading %S",path);
+#else // ] [
+      _DMESSAGEV("loading %s",path);
+#endif // ]
       return -1;
     }
 
@@ -1840,7 +1896,7 @@ static int ff_dynload_relative(const ffchar_t *dirname)
 	proc_pidpath(getpid(),pp,path+(sizeof path)-pp);
 	len=strlen(pp);
 	//pp+=strlen(pp);
-DVWRITELN("\"%s\"",path);
+_DWRITELNV("\"%s\"",path);
 #else // ] [
   sprintf(process_path,"/proc/%d/exe",getpid());
 
@@ -1878,7 +1934,7 @@ DVWRITELN("\"%s\"",path);
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (__APPLE__) // [
-DVWRITELN("\"%s\"",path);
+_DWRITELNV("\"%s\"",path);
 #endif // ]
   code=0;
 exit:
@@ -1928,9 +1984,9 @@ int ff_dynload(const ffchar_t *dirname)
 
   if (code<0) {
 #if defined (_WIN32) // [
-    DVMESSAGEW(L"setting dirname \"%s\"",dirname);
+    _DMESSAGEV("setting dirname \"%S\"",dirname);
 #else // ] [
-    DVMESSAGE("setting dirname \"%s\"",dirname);
+    _DMESSAGEV("setting dirname \"%s\"",dirname);
 #endif // ]
     goto exit;
   }
@@ -1946,7 +2002,7 @@ void ff_unload(void)
 {
 #if defined (FF_DYNLOAD_FREE_LIST) // [
   while (ff_dynload_tail) {
-FFVWRITELN("\"%s\"",ff_dynload_tail->id);
+//FFVWRITELN("\"%s\"",ff_dynload_tail->id);
 #if defined (_WIN32) // [
     FreeLibrary(ff_dynload_tail->hLib);
 #else // ] [

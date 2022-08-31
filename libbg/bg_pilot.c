@@ -33,7 +33,7 @@ int bg_pilot_create(bg_pilot_t *pilot, size_t size, bg_pilot_callback_t *cb,
   pilot->min=malloc(size*sizeof pilot->min[0]);
   
   if (!pilot->min) {
-    DMESSAGE("allocating");
+    _DMESSAGE("allocating");
     goto e_malloc;
   }
 
@@ -59,7 +59,7 @@ static int bg_pilot_realloc(bg_pilot_t *pilot)
   size<<=1;
 
   if (!size) {
-    DMESSAGE("overflow");
+    _DMESSAGE("overflow");
     goto e_overflow;
   }
 
@@ -67,7 +67,7 @@ static int bg_pilot_realloc(bg_pilot_t *pilot)
   min=realloc(pilot->min,size*sizeof min[0]);
 
   if (!min) {
-    DMESSAGE("reallocating");
+    _DMESSAGE("reallocating");
     goto e_realloc;
   }
 
@@ -135,13 +135,13 @@ static int bg_pilot_push(bg_pilot_t *pilot, const ffchar_t *path)
 
   /////////////////////////////////////////////////////////////////////////////
   if (!size) {
-    DMESSAGE("size");
+    _DMESSAGE("size");
     goto e_size;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (pilot->max==pilot->nxt&&bg_pilot_realloc(pilot)<0) {
-    DMESSAGE("reallocating");
+    _DMESSAGE("reallocating");
     goto e_realloc;
   }
 
@@ -152,7 +152,7 @@ static int bg_pilot_push(bg_pilot_t *pilot, const ffchar_t *path)
   cur->path=pp=malloc(size*sizeof cur->path[0]);
 
   if (!cur->path) {
-    DMESSAGE("allocatig path");
+    _DMESSAGE("allocatig path");
     goto e_path;
   }
 
@@ -179,7 +179,7 @@ static int bg_pilot_push(bg_pilot_t *pilot, const ffchar_t *path)
   mask=mp=malloc(size*sizeof mask[0]);
 
   if (!mask) {
-    DMESSAGE("allocating directory mask");
+    _DMESSAGE("allocating directory mask");
     goto e_mask;
   }
 
@@ -194,13 +194,13 @@ static int bg_pilot_push(bg_pilot_t *pilot, const ffchar_t *path)
 
   if (INVALID_HANDLE_VALUE==hFind) {
     if (bg_pilot_hist_leaf_create(cur)<0) {
-      DMESSAGE("creating leaf");
+      _DMESSAGE("creating leaf");
       goto e_entry;
     }
   }
   else {
     if (bg_pilot_hist_branch_create(cur,hFind,&e)<0) {
-      DMESSAGE("creating branch");
+      _DMESSAGE("creating branch");
       goto e_entry;
     }
   }
@@ -225,13 +225,13 @@ static int bg_pilot_push(bg_pilot_t *pilot, const ffchar_t *path)
 
   if (dir) {
     if (bg_pilot_hist_branch_create(cur,dir)<0) {
-      DMESSAGE("creating branch");
+      _DMESSAGE("creating branch");
       goto e_entry;
     }
   }
   else {
     if (bg_pilot_hist_leaf_create(cur)<0) {
-      DMESSAGE("creating leaf");
+      _DMESSAGE("creating leaf");
       goto e_entry;
     }
   }
@@ -275,7 +275,7 @@ int bg_pilot_first(bg_pilot_t *pilot, const ffchar_t *path)
   /////////////////////////////////////////////////////////////////////////////
   do {
     if (bg_pilot_push(pilot,path)<0) {
-      DMESSAGE("pushing");
+      _DMESSAGE("pushing");
       goto e_push;
     }
 
@@ -304,7 +304,7 @@ int bg_pilot_next(bg_pilot_t *pilot, int size)
     if (entry) {
       do {
         if (bg_pilot_push(pilot,entry)<0) {
-          DMESSAGE("pushing");
+          _DMESSAGE("pushing");
           goto e_push;
         }
 
@@ -332,14 +332,14 @@ int bg_pilot_loop(bg_pilot_t *pilot, const ffchar_t *path)
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_pilot_first(pilot,path)<0) {
-    DMESSAGE("first");
+    _DMESSAGE("first");
     goto e_first;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   while (size<pilot->nxt-pilot->min) {
     if (bg_pilot_next(pilot,size)<0) {
-      DMESSAGE("next");
+      _DMESSAGE("next");
       goto e_next;
     }
   }

@@ -21,22 +21,13 @@
  */
 #include <bg.h>
 
-#if defined (_WIN32) // [
-static int bg_print_conf_len(bg_print_conf_t *c, bg_tree_t *tree)
-#else // ] [
 static int bg_print_conf_len(bg_print_conf_t *c, bg_tree_t *tree FFUNUSED)
-#endif // ]
 {
 #if defined (_WIN32) // [
-  FILE *f=tree->param->result.f;
-
-  // when not writing to the console/shell (i.e. to a file) we need to use
-  // wide otherwise narrow strings.
-  if (stdin!=f&&stdout!=f)
-    return wcslen(c->w.label);
-  else
+  return wcslen(c->w.label);
+#else // ] [
+  return strlen(c->n.label);
 #endif // ]
-    return strlen(c->n.label);
 }
 
 static void bg_print_conf_tail(bg_print_conf_t *c, bg_tree_t *tree,
@@ -44,72 +35,57 @@ static void bg_print_conf_tail(bg_print_conf_t *c, bg_tree_t *tree,
 {
   enum { FORMAT_SIZE=128 };
 
-  union {
+  struct {
 #if defined (_WIN32) // [
-    // when not writing to the console/shell (i.e. to a file) we need to use
-    // the wide character format string representation.
     wchar_t w[FORMAT_SIZE];
-#endif // ]
-    // narrow character format string representation.
+#else // ] [
     char n[FORMAT_SIZE];
+#endif // ]
   } format;
 
 #if defined (_WIN32) // [
-  // when not writing to the console/shell (i.e. to a file) we need to use
-  // wide otherwise narrow character strings.
-  if (stdin!=f&&stdout!=f)
-    _snwprintf(format.w,FORMAT_SIZE,c->w.format.classic,width);
-  else
+  _snwprintf(format.w,FORMAT_SIZE,c->w.format.classic,width);
+#else // ] [
+  snprintf(format.n,FORMAT_SIZE,c->n.format.classic,width);
 #endif // ]
-    snprintf(format.n,FORMAT_SIZE,c->n.format.classic,width);
 
   switch (c->argc) {
   case 1:
     if (c->argv[0]) {
 #if defined (_WIN32) // [
-      // when not writing to the console/shell (i.e. to a file) we need to
-      // use wide otherwise narrow character strings.
-      if (stdin!=f&&stdout!=f)
-        fwprintf(f,format.w,c->w.label,c->argv[0](tree),c->w.unit(tree));
-      else
+      fwprintf(f,format.w,c->w.label,c->argv[0](tree),c->n.unit(tree));
+#else // ] [
+      fprintf(f,format.n,c->n.label,c->argv[0](tree),c->n.unit(tree));
 #endif // ]
-        fprintf(f,format.n,c->n.label,c->argv[0](tree),c->n.unit(tree));
     }
     else
-      DWARNING("argv[0]");
+      _DWARNING("argv[0]");
 
     break;
   case 2:
     if (c->argv[0]&&c->argv[1]) {
 #if defined (_WIN32) // [
-      // when not writing to the console/shell (i.e. to a file) we need to
-      // use wide otherwise narrow character strings.
-      if (stdin!=f&&stdout!=f) {
-        fwprintf(f,format.w,c->w.label,c->argv[0](tree),c->w.unit(tree),
-            c->argv[1](tree),c->w.unit(tree));
-      }
-      else {
-#endif // ]
-        fprintf(f,format.n,c->n.label,c->argv[0](tree),c->n.unit(tree),
-            c->argv[1](tree),c->n.unit(tree));
-#if defined (_WIN32) // [
-      }
+      fwprintf(f,format.w,c->n.label,c->argv[0](tree),c->n.unit(tree),
+          c->argv[1](tree),c->n.unit(tree));
+#else // ] [
+      fprintf(f,format.n,c->n.label,c->argv[0](tree),c->n.unit(tree),
+          c->argv[1](tree),c->n.unit(tree));
 #endif // ]
     }
     else
-      DWARNING("argv[0]/argv[1]");
+      _DWARNING("argv[0]/argv[1]");
 
     break;
   default:
-    DWARNING("argc");
+    _DWARNING("argc");
     break;
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static void bg_print_classic_encoding(bg_param_t *param FFUNUSED,
-    int bits FFUNUSED)
+static void bg_print_classic_encoding(bg_param_t *param, int bits)
 {
+  param->result.bits=bits;
 }
 
 static int bg_print_classic_width(bg_tree_t *tree)
@@ -127,11 +103,11 @@ static int bg_print_classic_width(bg_tree_t *tree)
     }
     else if (agg!=c->aggregate) {
       // wrong order.
-      DWARNING("aggregate mismatch");
+      _DWARNING("aggregate mismatch");
       continue;
     }
     else if ((len=bg_print_conf_len(c,tree))<0) {
-      DWARNING("getting length");
+      _DWARNING("getting length");
       continue;
     }
     else if (width<len)
@@ -156,45 +132,22 @@ static int bg_print_classic_head(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
     break;
   case BG_TREE_TYPE_TRACK:
     track=&tree->track;
-
-#if defined (_WIN32) // [
-    if (stdout!=f) {
-      // when writing to a file we resort to wide string representation.
-      fwprintf(f,L"[%lu/%lu] %s\n",track->root.id,tree->param->count.max,
-          bg_tree_in_basanamew(tree));
-    }
-    else {
-      // when writing to the console we resort to narrow string representation.
-#endif // ]
-      fprintf(f,"[%lu/%lu] %s\n",track->root.id,tree->param->count.max,
-          bg_tree_in_basanamen(tree));
-#if defined (_WIN32) // [
-    }
-#endif // ]
+    _FPRINTFV(f,"[%lu/%lu] %s\n",track->root.id,tree->param->count.max,
+        bg_tree_in_basename(tree));
 
     break;
   case BG_TREE_TYPE_ALBUM:
-    if (!tree->param->suppress.hierarchy) {
-#if defined (_WIN32) // [
-      fwprintf(f,L"[ALBUM] %s\n",bg_tree_in_basanamew(tree));
-#else // ] [
-      fprintf(f,"[ALBUM] %s\n",bg_tree_in_basanamen(tree));
-#endif // ]
-    }
+    if (!tree->param->suppress.hierarchy)
+      _FPRINTFV(f,"[ALBUM] %s\n",bg_tree_in_basename(tree));
 
     break;
   case BG_TREE_TYPE_ROOT:
-    if (!tree->param->suppress.hierarchy) {
-#if defined (_WIN32) // [
-      fputws(L"[COLLECTION]\n",f);
-#else // ] [
-      fputs("[COLLECTION]\n",f);
-#endif // ]
-    }
+    if (!tree->param->suppress.hierarchy)
+      _FPRINTF(f,"[COLLECTION]\n");
 
     break;
   default:
-    DVMESSAGE("tree type %d unexpected",tree->vmt->type);
+    _DMESSAGEV("tree type %d unexpected",tree->vmt->type);
     goto e_type;
   }
 
@@ -224,7 +177,7 @@ static int bg_print_classic_tail(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
 #endif // ]
 
   if (width<=0) {
-    DWARNING("width");
+    _DWARNING("width");
     goto e_width;
   }
 
@@ -236,7 +189,7 @@ static int bg_print_classic_tail(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
       }
       else if (agg!=c->aggregate) {
         // wrong order.
-        DWARNING("aggregate mismatch");
+        _DWARNING("aggregate mismatch");
         continue;
       }
       else

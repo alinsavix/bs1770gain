@@ -35,6 +35,7 @@ extern "C" {
 ///////////////////////////////////////////////////////////////////////////////
 //#define PBU_DEBUG
 #define PBU_LIST_RING
+#define PBU_CONSOLE_UTF8
 
 ///////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // {
@@ -45,6 +46,91 @@ extern "C" {
 
 #define _PBU_STR(s) #s
 #define PBU_STR(s) _PBU_STR(s)
+
+///////////////////////////////////////////////////////////////////////////////
+#if defined (_WIN32) // [
+#define PBU_PRIs "S"
+
+#define _FPRINTF(f,format) (\
+  fwprintf(f,L##format),\
+  fflush(f)\
+)
+#define _FPRINTFV(f,format,...) (\
+  fwprintf(f,L##format,__VA_ARGS__),\
+  fflush(f)\
+)
+#define _DMESSAGE(format) (\
+  fwprintf(stderr,L"Error: " L##format L" (%s:%s:%s)\n",\
+    pbu_basename(__FILE__),PBU_STR(__LINE__),__func__),\
+  fflush(stderr)\
+)
+#define _DMESSAGEV(format,...) (\
+  fwprintf(stderr,L"Error: " L##format L" (%s:%s:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),PBU_STR(__LINE__),__func__),\
+  fflush(stderr)\
+)
+#define _DWARNING(format) (\
+  fwprintf(stderr,L"Warning: " L##format L" (%s:%s:%s)\n", \
+    pbu_basename(__FILE__),PBU_STR(__LINE__),__func__),\
+  fflush(stderr)\
+)
+#define _DWARNINGV(format,...) (\
+  fwprintf(stderr,L"Warning: " L##format L" (%s:%s:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),PBU_STR(__LINE__),__func__),\
+  fflush(stderr)\
+)
+
+#define _SNPRINTF(s,size,format,...) snwprintf(s,size,L##format,__VA_ARGS__)
+#else // ] [
+#define PBU_PRIs "s"
+
+#define _FPRINTF(f,format) fprintf(f,format)
+#define _FPRINTFV(f,format,...) fprintf(f,format,__VA_ARGS__)
+#define _DMESSAGE(format) fprintf(stderr,\
+    "Error: " format " (%s:%s:%s)\n",\
+    pbu_basename(__FILE__),PBU_STR(__LINE__),__func__)
+#define _DMESSAGEV(format,...) fprintf(stderr,\
+    "Error: " format " (%s:%s:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),PBU_STR(__LINE__),__func__)
+#define _DWARNING(format) fprintf(stderr,\
+    "Warning: " format " (%s:%s:%s)\n", \
+    pbu_basename(__FILE__),PBU_STR(__LINE__),__func__)
+#define _DWARNINGV(format,...) fprintf(stderr,\
+    "Warning: " format " (%s:%s:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),PBU_STR(__LINE__),__func__)
+
+#define _SNPRINTF(s,size,format,...) snprintf(s,size,format,__VA_ARGS__)
+#endif // ]
+
+#if ! defined (DEBUG) && ! defined (PBU_DEBUG) // [
+#define _DMARKLN()
+#define _DWRITELN(f,format)
+#define _DWRITELNV(f,format,...)
+#elif defined (_WIN32) // ] [
+#define _DMARKLN() {\
+  fwprintf(stderr,L"%s:%d:%s\n",pbu_basename(__FILE__),__LINE__,__func__);\
+  fflush(stderr);\
+}
+#define _DWRITELN(format) {\
+  fwprintf(stderr,L##format L" (%s:%d:%s)\n",\
+    pbu_basename(__FILE__),__LINE__,__func__);\
+  fflush(stderr);\
+}
+#define _DWRITELNV(format,...) {\
+  fwprintf(stderr,L##format L" (%s:%d:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),__LINE__,__func__);\
+  fflush(stderr);\
+}
+#else // ] [
+#define _DMARKLN() fprintf(stderr,"%s:%d:%s\n",\
+    pbu_basename(__FILE__),__LINE__,__func__)
+#define _DWRITELN(format) fprintf(stderr,\
+    format " (%s:%d:%s)\n",\
+    pbu_basename(__FILE__),__LINE__,__func__)
+#define _DWRITELNV(format,...) fprintf(stderr,\
+    format " (%s:%d:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),__LINE__,__func__)
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 //#define PBU_MALLOC_DEBUG
@@ -104,6 +190,7 @@ extern "C" {
 #endif // }
 
 ///////////////////////////////////////////////////////////////////////////////
+#if ! defined (PBU_PRINT_MACROS) // [
 #define PBU_ERROR(m) "Error: " m "."
 #define PBU_WARNING(m) "Warning: " m "."
 #define PBU_DMESSAGE(m) \
@@ -185,14 +272,6 @@ extern "C" {
   #else // ] [
     #define PBU_DERROR(x,y)
   #endif // ]
-#if 0 // [
-  #define PBU_DMESSAGE(m)
-  #define PBU_DVMESSAGE(m,...)
-#if defined (_WIN32) // [
-  #define PBU_DMESSAGEW(m)
-  #define PBU_DVMESSAGEW(m,...)
-#endif // ]
-#endif // ]
   ////
   #define PBU_DDPUTS(debug,cs)
   #define PBU_DDPRINTF(debug,cs,...)
@@ -206,6 +285,7 @@ extern "C" {
   #endif // ]
   #define PBU_DDMESSAGE(debug,m)
   #define PBU_DDMESSAGEV(debug,m,...)
+#endif // ]
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////

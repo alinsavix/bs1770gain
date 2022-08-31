@@ -39,7 +39,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
 
   ////////////////////////////////////////////////////////////////////////////
 	if ((iparam&&ocodecpar)||(!iparam&&!ocodecpar)) {
-		DMESSAGE("unexpected arguments");
+		_DMESSAGE("unexpected arguments");
 		goto e_args;
 	}
 
@@ -50,7 +50,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
     codec=avcodec_find_encoder(ocodecpar->codec_id);
 
     if (!codec) {
-      DVMESSAGE("audio encoder \"%s\" not available",
+      _DMESSAGEV("audio encoder \"%s\" not available",
           avcodec_get_name(ocodecpar->codec_id));
       goto e_codec;
     }
@@ -61,7 +61,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
     codec=avcodec_find_decoder(codecpar->codec_id);
 
     if (!codec) {
-      DVMESSAGE("audio decoder \"%s\" not available",
+      _DMESSAGEV("audio decoder \"%s\" not available",
           avcodec_get_name(codecpar->codec_id));
       goto e_codec;
     }
@@ -71,7 +71,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
   audio->ctx=avcodec_alloc_context3(codec);
 
   if (!audio->ctx) {
-    DMESSAGE("allocating codec context");
+    _DMESSAGE("allocating codec context");
     goto e_context;
   }
 
@@ -210,7 +210,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
     err=avcodec_parameters_to_context(audio->ctx,codecpar);
 
     if (err<0) {
-      DVMESSAGE("copying codec parameters: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("copying codec parameters: %s (%d)",av_err2str(err),err);
       goto e_copy1;
     }
 
@@ -226,7 +226,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
       err=av_dict_set(&opt,"drc_scale",value,0);
 
       if (err<0) {
-        DVMESSAGE("setting drc_scale: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("setting drc_scale: %s (%d)",av_err2str(err),err);
         goto e_copy1;
       }
     }
@@ -237,7 +237,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
   av_dict_free(&opt);
 
   if (err<0) {
-    DVMESSAGE("copening codec context: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("copening codec context: %s (%d)",av_err2str(err),err);
     goto e_open;
   }
 
@@ -249,7 +249,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
     audio->ctx->channel_layout=iparam->request.channel_layout;
 #else // ] [
     if (!audio->ctx->channels) {
-    	DMESSAGE("missing input #channels");
+    	_DMESSAGE("missing input #channels");
     	goto e_channels;
 		}
 
@@ -269,7 +269,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
     err=avcodec_parameters_from_context(codecpar,audio->ctx);
 
     if (err<0) {
-      DVMESSAGE("copying codec parameters: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("copying codec parameters: %s (%d)",av_err2str(err),err);
       goto e_copy2;
     }
 #if 0 // [

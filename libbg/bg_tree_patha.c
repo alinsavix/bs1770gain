@@ -30,7 +30,7 @@ int bg_tree_patha_create(bg_tree_patha_t *p, const wchar_t *path,
     p->path=bg_wcs2str(path,codepage);
 
     if (!p->path) {
-      DMESSAGE("creating utf-8 representation of path");
+      _DMESSAGE("creating utf-8 representation of path");
       goto epath;
     }
 

@@ -27,7 +27,7 @@ int bg_tree_source_create(bg_tree_path_t *tp, const ffchar_t *path)
     tp->path=FFSTRDUP(path);
 
     if (!tp->path) {
-      DMESSAGE("duplicating path");
+      _DMESSAGE("duplicating path");
       goto e_path;
     }
 

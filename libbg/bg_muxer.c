@@ -30,8 +30,8 @@
 #include <bg.h>
 
 ///////////////////////////////////////////////////////////////////////////////
-static bg_visitor_vmt_t bg_muxer_vmt;
 static ff_output_callback_t bg_output_callback;
+static bg_visitor_vmt_t bg_muxer_vmt;
 
 ///////////////////////////////////////////////////////////////////////////////
 int bg_muxer_create(bg_visitor_t *vis)
@@ -76,7 +76,15 @@ static int bg_muxer_copy_file(ffchar_t *source, ffchar_t *target)
   fd.source=open(source,O_RDONLY);
 
   if (fd.source<0) {
-    DVMESSAGE("opening source \"%s\"",source);
+#if 0 // [
+#if defined (_WIN32) // [
+    _DMESSAGEV("opening source \"%S\"",source);
+#else // ] [
+    _DMESSAGEV("opening source \"%s\"",source);
+#endif // ]
+#else // ] [
+    _DMESSAGEV("opening source \"%" PBU_PRIs "\"",source);
+#endif // ]
     goto e_source;
   }
 
@@ -84,7 +92,15 @@ static int bg_muxer_copy_file(ffchar_t *source, ffchar_t *target)
   fd.target=open(target,O_WRONLY|O_CREAT|O_EXCL,0666);
 
   if (fd.target<0) {
-    DVMESSAGE("opening target \"%s\"",target);
+#if 0 // [
+#if defined (_WIN32) // [
+    _DMESSAGEV("opening target \"%S\"",target);
+#else // ] [
+    _DMESSAGEV("opening target \"%s\"",target);
+#endif // ]
+#else // ] [
+    _DMESSAGEV("opening target \"%" PBU_PRIs "\"",target);
+#endif // ]
     goto e_target;
   }
 
@@ -100,7 +116,7 @@ static int bg_muxer_copy_file(ffchar_t *source, ffchar_t *target)
       written=write(fd.target,bp,size);
 
       if (written<=0) {
-        DMESSAGE("copying");
+        _DMESSAGE("copying");
         goto e_copy;
       }
 
@@ -136,13 +152,13 @@ static int bg_muxer_file(bg_tree_t *tree, FFUNUSED bg_visitor_t *vis)
   // file annotation is created in each case.
   if (param->output.dirname||param->overwrite) {
     if (tree->vmt->annotation.create(tree)<0) {
-      DMESSAGE("annotating");
+      _DMESSAGE("annotating");
       goto e_annotate;
     }
   }
 
   if (bg_muxer_copy_file(tree->source.path,tree->temp.path)<0) {
-    DMESSAGE("copying");
+    _DMESSAGE("copying");
     goto e_copy;
   }
 
@@ -166,12 +182,17 @@ static int bg_muxer_dispatch_file(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   int err=-1;
 
   if (tree->param->nthreads) {
+#if defined (BG_PARAM_SCRIPT) // [
+    bg_param_threads_visitor_run(&tree->param->threads,tree->param->script,
+        vis,tree,bg_muxer_file);
+#else // ] [
     bg_param_threads_visitor_run(&tree->param->threads,vis,tree,
         bg_muxer_file);
+#endif // ]
     err=0;
-	}
-	else
-  	err=bg_muxer_file(tree,vis);
+  }
+  else
+    err=bg_muxer_file(tree,vis);
 
   return err;
 #else // ] [
@@ -186,13 +207,13 @@ static int bg_muxer_dispatch_file(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   // file annotation is created in each case.
   if (param->output.dirname||param->overwrite) {
     if (tree->vmt->annotation.create(tree)<0) {
-      DMESSAGE("annotating");
+      _DMESSAGE("annotating");
       goto e_annotate;
     }
   }
 
   if (bg_muxer_copy_file(tree->source.path,tree->temp.path)<0) {
-    DMESSAGE("copying");
+    _DMESSAGE("copying");
     goto e_copy;
   }
 
@@ -232,42 +253,51 @@ static int bg_muxer_track(bg_tree_t *tree, bg_visitor_t *vis)
   ++vis->depth; // [
 
   /////////////////////////////////////////////////////////////////////////////
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
 #if defined (FF_FLAC_HACK) // [
   if (ff_input_open_muxer(&track->input,&hack)<0) {
-    DMESSAGE("re-opening input");
+    _DMESSAGE("re-opening input");
     goto e_input;
   }
 #else // ] [
   if (ff_input_open_muxer(&track->input)<0) {
-    DMESSAGE("re-opening input");
+    _DMESSAGE("re-opening input");
     goto e_input;
   }
 #endif // ]
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
   /////////////////////////////////////////////////////////////////////////////
   // track annotation is created in each case.
   if (param->output.dirname||param->overwrite) {
     if (tree->vmt->annotation.create(tree)<0) {
-      DMESSAGE("annotating");
+      _DMESSAGE("annotating");
       goto e_annotate;
     }
   }
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
   /////////////////////////////////////////////////////////////////////////////
 #if defined (BG_PARAM_QUIET) // [
   if (!param->quiet) {
 #endif // ]
-    fprintf(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
-        bg_tree_out_basanamen(tree));
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    if (param->skip_scan)
+      _FPRINTFV(stdout,"%s\n",bg_tree_out_basename(tree));
+    else {
+#endif // ]
+      _FPRINTFV(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
+          bg_tree_out_basename(tree));
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    }
+#endif // ]
+
     fflush(stdout);
 #if defined (BG_PARAM_QUIET) // [
   }
 #endif // ]
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
   /////////////////////////////////////////////////////////////////////////////
 #if defined (FF_FLAC_HACK) // [
   // as it seems it is impossible to pass through a partial flac stream
@@ -278,17 +308,17 @@ static int bg_muxer_track(bg_tree_t *tree, bg_visitor_t *vis)
   sample_fmt=hack?codecpar->format:AV_SAMPLE_FMT_NONE;
 
   if (ff_output_create(&output,&bg_output_callback,tree,sample_fmt)<0) {
-    DMESSAGE("creating output");
+    _DMESSAGE("creating output");
     goto e_output;
   }
 #else // ] [
   if (ff_output_streams_create(&output)<0) {
-    DMESSAGE("creating output streams");
+    _DMESSAGE("creating output streams");
     goto e_output_streams;
   }
 #endif // ]
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
   /////////////////////////////////////////////////////////////////////////////
 #if defined (FF_FLAC_HACK) // [
   apply=apply&&!hack;
@@ -311,38 +341,39 @@ static int bg_muxer_track(bg_tree_t *tree, bg_visitor_t *vis)
     snprintf(filter,sizeof filter,"volume=%1.2f",volume);
   }
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
+//_DWRITELNV("\"%s\"",filter);
   ///////////////////////////////////////////////////////////////////////////
   if (ff_muxer_create(&muxer,&track->input,&output,apply?filter:NULL)<0) {
-    DMESSAGE("creating muxer");
+    _DMESSAGE("creating muxer");
     goto e_muxer;
   }
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
   /////////////////////////////////////////////////////////////////////////////
   if (ff_muxer_loop(&muxer)<0) {
-    DMESSAGE("re-encoder looping");
+    _DMESSAGE("re-encoder looping");
     goto e_loop;
   }
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
   /////////////////////////////////////////////////////////////////////////////
   err=0;
 //cleanup:
 e_loop:
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
   ff_muxer_destroy(&muxer);
 e_muxer:
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
   ff_output_destroy(&output);
 e_output:
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
   if (err)
     ff_rm(tree->temp.path);
   else {
     // before moving/renaming the newley created file we first must have
     // closed the muxer/output/input!!!
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%" PBU_PRIs "\"",tree->source.path);
     ff_input_close(&track->input);
 
 #if defined (BG_PARAM_SLEEP) // [
@@ -355,23 +386,23 @@ e_output:
     }
 #endif // ]
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
     err=ff_mv(tree->temp.path,tree->target.path);
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
 
     if (err<0)
-      DMESSAGE("moving");
+      _DMESSAGE("moving");
   }
 
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
   if (param->output.dirname||param->overwrite)
     tree->vmt->annotation.destroy(tree);
 e_annotate:
-//DVWRITELN("\"%s\"",tree->source.path);
+//_DWRITELNV("\"%s\"",tree->source.path);
   ff_input_close(&track->input);
 e_input:
   --vis->depth; // ]
-//DVWRITELN("\"%s\" err:%d",tree->source.path,err);
+//_DWRITELNV("\"%s\" err:%d",tree->source.path,err);
   return err;
 }
 #endif // ]
@@ -381,12 +412,25 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   int err=-1;
 #if defined (BG_PARAM_THREADS) // [
   if (tree->param->nthreads) {
+#if defined (BG_PARAM_SCRIPT) // [
+    bg_param_threads_visitor_run(&tree->param->threads,tree->param->script,
+        vis,tree,bg_muxer_track);
+#else // ] [
     bg_param_threads_visitor_run(&tree->param->threads,vis,tree,
         bg_muxer_track);
+#endif // ]
     err=0;
   }
-  else
-    err=bg_muxer_track(tree,vis);
+  else {
+#if defined (BG_PARAM_SCRIPT) // [
+    if (tree->param->script)
+      err=bg_process_tree_run_script(tree);
+    else
+#endif // ]
+      err=bg_muxer_track(tree,vis);
+
+    return err;
+  }
 #else // ] [
   bg_track_t *track=&tree->track;
   bg_tree_t *parent=tree->parent;
@@ -406,12 +450,12 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   /////////////////////////////////////////////////////////////////////////////
 #if defined (FF_FLAC_HACK) // [
   if (ff_input_open_muxer(&track->input,&hack)<0) {
-    DMESSAGE("re-opening input");
+    _DMESSAGE("re-opening input");
     goto e_input;
   }
 #else // ] [
   if (ff_input_open_muxer(&track->input)<0) {
-    DMESSAGE("re-opening input");
+    _DMESSAGE("re-opening input");
     goto e_input;
   }
 #endif // ]
@@ -420,7 +464,7 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   // track annotation is created in each case.
   if (param->output.dirname||param->overwrite) {
     if (tree->vmt->annotation.create(tree)<0) {
-      DMESSAGE("annotating");
+      _DMESSAGE("annotating");
       goto e_annotate;
     }
   }
@@ -429,8 +473,17 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
 #if defined (BG_PARAM_QUIET) // [
   if (!param->quiet) {
 #endif // ]
-    fprintf(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
-        bg_tree_out_basanamen(tree));
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    if (param->skip_scan)
+      fprintf(stdout,"%s\n",bg_tree_out_basename(tree));
+    else {
+#endif // ]
+      fprintf(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
+          bg_tree_out_basename(tree));
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    }
+#endif // ]
+
     fflush(stdout);
 #if defined (BG_PARAM_QUIET) // [
   }
@@ -446,12 +499,12 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   sample_fmt=hack?codecpar->format:AV_SAMPLE_FMT_NONE;
 
   if (ff_output_create(&output,&bg_output_callback,tree,sample_fmt)<0) {
-    DMESSAGE("creating output");
+    _DMESSAGE("creating output");
     goto e_output;
   }
 #else // ] [
   if (ff_output_streams_create(&output)<0) {
-    DMESSAGE("creating output streams");
+    _DMESSAGE("creating output streams");
     goto e_output_streams;
   }
 #endif // ]
@@ -480,13 +533,13 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
 
   ///////////////////////////////////////////////////////////////////////////
   if (ff_muxer_create(&muxer,&track->input,&output,apply?filter:NULL)<0) {
-    DMESSAGE("creating muxer");
+    _DMESSAGE("creating muxer");
     goto e_muxer;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_muxer_loop(&muxer)<0) {
-    DMESSAGE("re-encoder looping");
+    _DMESSAGE("re-encoder looping");
     goto e_loop;
   }
 
@@ -518,7 +571,7 @@ e_output:
     err=ff_mv(tree->temp.path,tree->target.path);
 
     if (err<0)
-      DMESSAGE("moving");
+      _DMESSAGE("moving");
   }
 
   if (param->output.dirname||param->overwrite)
@@ -538,18 +591,22 @@ static int bg_muxer_dispatch_album(bg_visitor_t *vis, bg_tree_t *tree)
 #if defined (BG_PARAM_THREADS) // [
   /////////////////////////////////////////////////////////////////////////////
   tree->helper.nchildren=tree->album.nchildren.cur;
-DVWRITELN(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
+_DWRITELNV(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   for (cur=tree->album.first;cur;cur=cur->next) {
+#if 0 // [
 #if defined (_WIN32) // [
-DVWRITELN("    * \"%s\"",cur->utf8.path);
+_DWRITELNV("    * \"%S\"",cur->source.path);
 #else // ] [
-DVWRITELN("    * \"%s\"",cur->source.path);
+_DWRITELNV("    * \"%s\"",cur->source.path);
+#endif // ]
+#else // ] [
+_DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
 #endif // ]
     if (cur->vmt->accept(cur,vis)<0) {
-      DMESSAGE("child accepting muxer");
+      _DMESSAGE("child accepting muxer");
       goto e_child;
     }
   }
@@ -564,11 +621,13 @@ DVWRITELN("    * \"%s\"",cur->source.path);
 
     bg_sync_unlock(&tree->helper.sync); // }
 
+#if defined (BG_VISITOR_NOTIFY_PARENT) // [
     if (tree->parent) {
       bg_sync_lock(&tree->helper.sync); // {
       bg_sync_signal(&tree->helper.sync);
       bg_sync_unlock(&tree->helper.sync); // }
     }
+#endif // ]
   }
 #endif // ]
 
@@ -587,7 +646,7 @@ static int bg_muxer_dispatch_root(bg_visitor_t *vis, bg_tree_t *tree)
   /////////////////////////////////////////////////////////////////////////////
   for (cur=tree->album.first;cur;cur=cur->next) {
     if (cur->vmt->accept(cur,vis)<0) {
-      DMESSAGE("accepting visitor");
+      _DMESSAGE("accepting visitor");
       goto e_child;
     }
   }
@@ -674,13 +733,13 @@ static void bg_tag(void *data, bg_bits_t *bits, const char *key,
   double gain;
 
   if (!key) {
-    DMESSAGE("missing key");
+    _DMESSAGE("missing key");
     return;
   }
 
   if (STRNCASECMP(param->tag.pfx,key,len)) {
     if (!ivalue) {
-      DMESSAGE("missing value");
+      _DMESSAGE("missing value");
       return;
     }
 
@@ -865,17 +924,17 @@ static enum AVCodecID bg_muxer_codec_id(const void *data,
     codec=avcodec_find_encoder_by_name(param->codec.name);
 
     if (!codec) {
-      DVWARNING("audio codec \"%s\" does not exist;"
+      _DWARNINGV("audio codec \"%s\" does not exist;"
           " falling back to \"FLAC\"",param->codec.name);
       return AV_CODEC_ID_FLAC;
     }
     else if (codec->id<AV_CODEC_ID_FIRST_AUDIO) {
-      DVWARNING("codec \"%s\" is not an audio codec;"
+      _DWARNINGV("codec \"%s\" is not an audio codec;"
           " falling back to \"FLAC\"",param->codec.name);
       return AV_CODEC_ID_FLAC;
     }
     else if (AV_CODEC_ID_FIRST_SUBTITLE<=codec->id) {
-      DVWARNING("codec \"%s\" is not an audio codec;"
+      _DWARNINGV("codec \"%s\" is not an audio codec;"
           " falling back to \"FLAC\"",param->codec.name);
       return AV_CODEC_ID_FLAC;
     }

@@ -33,12 +33,20 @@ int ff_mv(const ffchar_t *source, const ffchar_t *target)
 
     switch (dwError) {
     case ERROR_ALREADY_EXISTS:
-      DVMESSAGEW(L"moving \"%s\" to \"%s\" (ERROR_ALREADY_EXISTS)",
+#if defined (_WIN32) // [
+      _DMESSAGEV("moving \"%S\" to \"%S\" (ERROR_ALREADY_EXISTS)",
           source,target);
+#else // ] [
+      _DMESSAGEV("moving \"%s\" to \"%s\" (ERROR_ALREADY_EXISTS)",
+          source,target);
+#endif // ]
       break;
     default:
-      DVMESSAGEW(L"moving \"%s\" to \"%s\" (%lu)",
-          source,target,dwError);
+#if defined (_WIN32) // [
+      _DMESSAGEV("moving \"%S\" to \"%S\" (%lu)",source,target,dwError);
+#else // ] [
+      _DMESSAGEV("moving \"%s\" to \"%s\" (%lu)",source,target,dwError);
+#endif // ]
       break;
     }
 
@@ -48,7 +56,11 @@ int ff_mv(const ffchar_t *source, const ffchar_t *target)
   remove(target);
 
   if (rename(source,target)<0) {
-    DVMESSAGE("moving \"%s\" to \"%s\"",source,target);
+#if defined (_WIN32) // [
+    _DMESSAGEV("moving \"%S\" to \"%S\"",source,target);
+#else // ] [
+    _DMESSAGEV("moving \"%s\" to \"%s\"",source,target);
+#endif // ]
     goto e_rename;
   }
 #endif // ]

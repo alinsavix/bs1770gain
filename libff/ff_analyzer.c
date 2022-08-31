@@ -40,7 +40,7 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
 
   /////////////////////////////////////////////////////////////////////////////
   if (in->ai<0) {
-    DMESSAGE("input not initialized");
+    _DMESSAGE("input not initialized");
     goto e_args;
   }
 
@@ -48,19 +48,19 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   icodecpar=in->fmt.ctx->streams[in->ai]->codecpar;
 
   if (!icodecpar->channel_layout) {
-    DMESSAGE("missing input channel layout");
+    _DMESSAGE("missing input channel layout");
     goto e_args;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (!channel_layout) {
-    DMESSAGE("missing output channel layout");
+    _DMESSAGE("missing output channel layout");
     goto e_args;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (!in->audio.ctx) {
-    DMESSAGE("audio decoder not opened");
+    _DMESSAGE("audio decoder not opened");
     goto e_args;
   }
 
@@ -81,12 +81,12 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
     ocodecpar=avcodec_parameters_alloc();
 
     if (!ocodecpar) {
-      DMESSAGE("ocodecpar");
+      _DMESSAGE("ocodecpar");
       goto e_normalizer_ocodecpar;
     }
 
     if (avcodec_parameters_copy(ocodecpar,icodecpar)<0) {
-      DMESSAGE("copying codecpar");
+      _DMESSAGE("copying codecpar");
       avcodec_parameters_free(&ocodecpar);
       goto e_normalizer_ocodecpar_copy;
     }
@@ -98,14 +98,14 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
 
     ///////////////////////////////////////////////////////////////////////////
     if (ff_resampler_create(&a->normalizer,ocodecpar,icodecpar)<0) {
-      DMESSAGE("creating normalizer");
+      _DMESSAGE("creating normalizer");
       avcodec_parameters_free(&ocodecpar);
       goto e_normalizer;
     }
 
     ///////////////////////////////////////////////////////////////////////////
     if (create&&create(data,ocodecpar)<0) {
-      DMESSAGE("creating statistics");
+      _DMESSAGE("creating statistics");
       avcodec_parameters_free(&ocodecpar);
       goto e_stats;
     }
@@ -120,13 +120,13 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
 
     ///////////////////////////////////////////////////////////////////////////
     if (ff_resampler_create(&a->normalizer,&ocodecpar,icodecpar)<0) {
-      DMESSAGE("creating normalizer");
+      _DMESSAGE("creating normalizer");
       goto e_normalizer;
     }
 
     ///////////////////////////////////////////////////////////////////////////
     if (create&&create(data,&ocodecpar)<0) {
-      DMESSAGE("creating statistics");
+      _DMESSAGE("creating statistics");
       goto e_stats;
     }
 #endif // ]
@@ -137,7 +137,7 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
 
     ///////////////////////////////////////////////////////////////////////////
     if (create&&create(data,icodecpar)<0) {
-      DMESSAGE("creating statistics");
+      _DMESSAGE("creating statistics");
       goto e_stats;
     }
   }
@@ -146,7 +146,7 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   a->pkt=av_packet_alloc();
 
   if (!a->pkt) {
-    DMESSAGE("allocating packet");
+    _DMESSAGE("allocating packet");
     goto e_packet;
   }
 
@@ -154,7 +154,7 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   a->frame=av_frame_alloc();
 
   if (!a->frame) {
-    DMESSAGE("allocating frame");
+    _DMESSAGE("allocating frame");
     goto e_frame;
   }
 
@@ -171,12 +171,12 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
     ocodecpar=avcodec_parameters_alloc();
 
     if (!ocodecpar) {
-      DMESSAGE("ocodecpar");
+      _DMESSAGE("ocodecpar");
       goto e_upsampler_ocodecpar;
     }
 
     if (avcodec_parameters_copy(ocodecpar,icodecpar)<0) {
-      DMESSAGE("copying codecpar");
+      _DMESSAGE("copying codecpar");
       avcodec_parameters_free(&ocodecpar);
       goto e_upsampler_ocodecpar_copy;
     }
@@ -185,7 +185,7 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
     ocodecpar->format=AV_SAMPLE_FMT_DBLP;
 
     if (ff_resampler_create(&a->upsampler,ocodecpar,icodecpar)<0) {
-      DMESSAGE("creating upsampler");
+      _DMESSAGE("creating upsampler");
       avcodec_parameters_free(&ocodecpar);
       goto e_upsampler;
     }
@@ -197,7 +197,7 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
     ocodecpar.format=AV_SAMPLE_FMT_DBLP;
 
     if (ff_resampler_create(&a->upsampler,&ocodecpar,icodecpar)<0) {
-      DMESSAGE("creating upsampler");
+      _DMESSAGE("creating upsampler");
       goto e_upsampler;
     }
 #endif // ]
@@ -264,7 +264,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
     err=resampler_apply(&a->normalizer,frame);
 
     if (err<0) {
-      DVMESSAGE("applying normalizer: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("applying normalizer: %s (%d)",av_err2str(err),err);
       goto exit;
     }
 
@@ -273,7 +273,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
       err=add(data,0,a->normalizer.frame);
 
       if (err<0) {
-        DVMESSAGE("adding normalized statistics: %s (%d)",
+        _DMESSAGEV("adding normalized statistics: %s (%d)",
             av_err2str(err),err);
         goto exit;
       }
@@ -283,7 +283,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
         err=add(data,0,NULL);
 
         if (err<0) {
-          DVMESSAGE("flushing normalized statistics: %s (%d)",
+          _DMESSAGEV("flushing normalized statistics: %s (%d)",
               av_err2str(err),err);
           goto exit;
         }
@@ -295,7 +295,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
     err=add(data,0,frame);
 
     if (err<0) {
-      DVMESSAGE("adding statistics: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("adding statistics: %s (%d)",av_err2str(err),err);
       goto exit;
     }
   }
@@ -305,7 +305,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
     err=resampler_apply(&a->upsampler,frame);
 
     if (err<0) {
-      DVMESSAGE("applying upsampler: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("applying upsampler: %s (%d)",av_err2str(err),err);
       goto exit;
     }
 
@@ -314,7 +314,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
       err=add(data,1,a->upsampler.frame);
 
       if (err<0) {
-        DVMESSAGE("adding upsampled statistics: %s (%d)",
+        _DMESSAGEV("adding upsampled statistics: %s (%d)",
             av_err2str(err),err);
         goto exit;
       }
@@ -325,7 +325,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
         err=add(data,1,NULL);
 
         if (err<0) {
-          DVMESSAGE("flushing upsampled statistics: %s (%d)",
+          _DMESSAGEV("flushing upsampled statistics: %s (%d)",
               av_err2str(err),err);
           goto exit;
         }
@@ -364,7 +364,7 @@ static int ff_analyzer_send_packet(ff_analyzer_t *a, AVPacket *pkt)
         a->state=FF_ANALYZER_DECODER_RECEIVE_FRAME;
         continue;
       default:
-        DVMESSAGE("sending packet: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("sending packet: %s (%d)",av_err2str(err),err);
         return err;
       }
     case FF_ANALYZER_DECODER_RECEIVE_FRAME:
@@ -379,7 +379,7 @@ static int ff_analyzer_send_packet(ff_analyzer_t *a, AVPacket *pkt)
 #endif // ]
 
         if (err<0) {
-          DVMESSAGE("processing frame: %s (%d)",av_err2str(err),err);
+          _DMESSAGEV("processing frame: %s (%d)",av_err2str(err),err);
           goto e_loop;
         }
 
@@ -389,7 +389,7 @@ static int ff_analyzer_send_packet(ff_analyzer_t *a, AVPacket *pkt)
         err=ff_analyzer_process_frame(a,NULL);
 
         if (err<0) {
-          DVMESSAGE("processing frame: %s (%d)",av_err2str(err),err);
+          _DMESSAGEV("processing frame: %s (%d)",av_err2str(err),err);
           goto e_loop;
         }
 
@@ -402,11 +402,11 @@ static int ff_analyzer_send_packet(ff_analyzer_t *a, AVPacket *pkt)
         a->state=FF_ANALYZER_DECODER_SEND_PACKET;
         return err;
       default:
-        DVMESSAGE("receiving frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("receiving frame: %s (%d)",av_err2str(err),err);
         return err;
       }
     default:
-      DMESSAGE("unexpected state");
+      _DMESSAGE("unexpected state");
       goto e_loop;
     }
   }
@@ -470,10 +470,10 @@ Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_
 Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\11_another_day.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
 Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\13_money_don_t_matter.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
 Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\14_rhythm_of_life.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
-      DVMESSAGE("decoding frame: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("decoding frame: %s (%d)",av_err2str(err),err);
       goto e_loop;
 #else // ] [
-      DVWARNING("decoding frame: %s (%d:\"%s\")",av_err2str(err),err,
+      _DWARNINGV("decoding frame: %s (%d:\"%s\")",av_err2str(err),err,
           a->in->cb.in->path(a->in->cb.data));
       goto eof;
 #endif // ]
@@ -485,7 +485,7 @@ eof:
   err=ff_analyzer_send_packet(a,NULL);
 
   if (err<0&&FF_ANALYZER_DECODER_SEND_PACKET<a->state) {
-    DVMESSAGE("decoding frame: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("decoding frame: %s (%d)",av_err2str(err),err);
     goto e_loop;
   }
 

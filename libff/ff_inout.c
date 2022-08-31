@@ -34,7 +34,7 @@ static int ff_input_seek(ff_inout_t *in, int64_t seek)
 
   if (0ll<seek) {
     if (in->fmt.ctx->duration<=seek) {
-      DMESSAGE("attemt to seek out of range");
+      _DMESSAGE("attemt to seek out of range");
       goto e_seek;
     }
 
@@ -56,7 +56,7 @@ static int ff_input_seek(ff_inout_t *in, int64_t seek)
 #endif // ]
 
     if (err<0) {
-      DVMESSAGE("seeking: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("seeking: %s (%d)",av_err2str(err),err);
       goto e_seek;
     }
   }
@@ -91,7 +91,7 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
 
   if (err<0) {
     if (warn)
-      DVWARNING("opening input \"%s\": %s (%d)",path,av_err2str(err),err);
+      _DWARNINGV("opening input \"%s\": %s (%d)",path,av_err2str(err),err);
 
     goto e_context;
   }
@@ -107,7 +107,7 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
 
   if (err<0) {
     if (warn) {
-      DVMESSAGE("finding stream info \"%s\": %s (%d)",path,
+      _DMESSAGEV("finding stream info \"%s\": %s (%d)",path,
           av_err2str(err),err);
     }
 
@@ -117,12 +117,12 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
   /////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
   if (csv&&ff_csv2avdict(path,pathw,'\t',&in->fmt.ctx->metadata,0)<0) {
-    DMESSAGE("reading csv file");
+    _DMESSAGE("reading csv file");
     goto e_csv;
   }
 #else // ] [
   if (csv&&ff_csv2avdict(path,'\t',&in->fmt.ctx->metadata,0)<0) {
-    DMESSAGE("reading csv file");
+    _DMESSAGE("reading csv file");
     goto e_csv;
   }
 #endif // ]
@@ -160,11 +160,11 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
     switch (istream->codecpar->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
       if (istream->codecpar->channels<=0) {
-        DVWARNING("channel underflow: %d",istream->codecpar->channels);
+        _DWARNINGV("channel underflow: %d",istream->codecpar->channels);
         continue;
       }
       else if (AV_NUM_DATA_POINTERS<istream->codecpar->channels) {
-        DVWARNING("channel overflow: %d",istream->codecpar->channels);
+        _DWARNINGV("channel overflow: %d",istream->codecpar->channels);
         continue;
       }
       else if (in->ai<0&&istream->codecpar->channels) {
@@ -194,7 +194,7 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
   }
 
   if (in->ai<0) {
-    DVWARNING("missing valid audio stream in \"%s\"",path);
+    _DWARNINGV("missing valid audio stream in \"%s\"",path);
     goto e_no_audio;
   }
 
@@ -202,13 +202,13 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
   if (!decode)
     in->audio.ctx=NULL;
   else if (ff_audio_create(&in->audio,in,decode,NULL)<0) {
-    DMESSAGE("creating audio decoder");
+    _DMESSAGE("creating audio decoder");
     goto e_audio;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_input_seek(in,seek)<0) {
-    DMESSAGE("seeking");
+    _DMESSAGE("seeking");
     goto e_seek;
   }
 
@@ -260,7 +260,7 @@ int ff_input_open_analyzer(ff_inout_t *in)
   err=avformat_open_input(&in->fmt.ctx,path,NULL,NULL);
 
   if (err<0) {
-    DVWARNING("opening input \"%s\": %s (%d)",path,av_err2str(err),err);
+    _DWARNINGV("opening input \"%s\": %s (%d)",path,av_err2str(err),err);
     goto e_context;
   }
 
@@ -271,19 +271,19 @@ int ff_input_open_analyzer(ff_inout_t *in)
   err=avformat_find_stream_info(in->fmt.ctx,NULL);
 
   if (err<0) {
-    DVMESSAGE("finding stream info: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("finding stream info: %s (%d)",av_err2str(err),err);
     goto e_find;
   }
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
   if (csv&&ff_csv2avdict(path,pathw,'\t',&in->fmt.ctx->metadata,0)<0) {
-    DMESSAGE("reading csv file");
+    _DMESSAGE("reading csv file");
     goto e_csv;
   }
 #else // ] [
   if (csv&&ff_csv2avdict(path,'\t',&in->fmt.ctx->metadata,0)<0) {
-    DMESSAGE("reading csv file");
+    _DMESSAGE("reading csv file");
     goto e_csv;
   }
 #endif // ]
@@ -302,13 +302,13 @@ int ff_input_open_analyzer(ff_inout_t *in)
   if (!decode)
     in->audio.ctx=NULL;
   else if (ff_audio_create(&in->audio,in,decode,NULL)<0) {
-    DMESSAGE("creating audio decoder");
+    _DMESSAGE("creating audio decoder");
     goto e_audio;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_input_seek(in,seek)<0) {
-    DMESSAGE("seeking");
+    _DMESSAGE("seeking");
     goto e_seek;
   }
 
@@ -372,7 +372,7 @@ int ff_input_open_muxer(ff_inout_t *in)
 
   /////////////////////////////////////////////////////////////////////////////
   if (in->ai<0) {
-    DMESSAGE("audio index out of range");
+    _DMESSAGE("audio index out of range");
     goto e_range;
   }
 
@@ -381,7 +381,7 @@ int ff_input_open_muxer(ff_inout_t *in)
   err=avformat_open_input(&in->fmt.ctx,path,NULL,NULL);
 
   if (err<0) {
-    DVMESSAGE("opening input: %s (%d) \"%s\"",av_err2str(err),err,path);
+    _DMESSAGEV("opening input: %s (%d) \"%s\"",av_err2str(err),err,path);
     goto e_context;
   }
 
@@ -392,19 +392,19 @@ int ff_input_open_muxer(ff_inout_t *in)
   err=avformat_find_stream_info(in->fmt.ctx,NULL);
 
   if (err<0) {
-    DVMESSAGE("finding stream info: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("finding stream info: %s (%d)",av_err2str(err),err);
     goto e_find;
   }
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
   if (csv&&ff_csv2avdict(path,pathw,'\t',&in->fmt.ctx->metadata,0)<0) {
-    DMESSAGE("reading csv file");
+    _DMESSAGE("reading csv file");
     goto e_csv;
   }
 #else // ] [
   if (csv&&ff_csv2avdict(path,'\t',&in->fmt.ctx->metadata,0)<0) {
-    DMESSAGE("reading csv file");
+    _DMESSAGE("reading csv file");
     goto e_csv;
   }
 #endif // ]
@@ -434,7 +434,7 @@ int ff_input_open_muxer(ff_inout_t *in)
     in->audio.ctx=NULL;
   else {
     if (ff_audio_create(&in->audio,in,&d,NULL)<0) {
-      DMESSAGE("creating audio decoder");
+      _DMESSAGE("creating audio decoder");
       goto e_audio;
     }
   }
@@ -442,14 +442,14 @@ int ff_input_open_muxer(ff_inout_t *in)
   if (!decode||!transcode)
     in->audio.ctx=NULL;
   else if (ff_audio_create(&in->audio,in,decode,NULL)<0) {
-    DMESSAGE("creating audio decoder");
+    _DMESSAGE("creating audio decoder");
     goto e_audio;
   }
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_input_seek(in,begin)<0) {
-    DMESSAGE("seeking");
+    _DMESSAGE("seeking");
     goto e_seek;
   }
 
@@ -534,16 +534,11 @@ int ff_input_progress(ff_inout_t *in, AVPacket *pkt)
   if (duration<0) {
     if (!supress_progress) {
 #if defined (_WIN32) // [
-      if (stdout!=in->printer->f&&stderr!=in->printer->f) {
-        ff_printer_wprintf(in->printer,L"%I64d sec",
-            pkt->pts*stream->time_base.num/stream->time_base.den);
-      }
-      else {
-#endif // ]
-        ff_printer_printf(in->printer,"%" PRId64 " sec",
-            pkt->pts*stream->time_base.num/stream->time_base.den);
-#if defined (_WIN32) // [
-      }
+      ff_printer_printf(in->printer,L"%I64d sec",
+          pkt->pts*stream->time_base.num/stream->time_base.den);
+#else // ] [
+      ff_printer_printf(in->printer,"%" PRId64 " sec",
+          pkt->pts*stream->time_base.num/stream->time_base.den);
 #endif // ]
     }
 
@@ -557,18 +552,8 @@ int ff_input_progress(ff_inout_t *in, AVPacket *pkt)
 
   percent=0ll<pkt->pts&&0ll<duration?100.0*pkt->pts/duration:0.0;
 
-  if (!supress_progress) {
-#if defined (_WIN32) // [
-    if (stdout!=in->printer->f&&stderr!=in->printer->f) {
-      ff_printer_wprintf(in->printer,L"%.0f%%",percent);
-    }
-    else {
-#endif // ]
-      ff_printer_printf(in->printer,"%.0f%%",percent);
-#if defined (_WIN32) // [
-    }
-#endif // ]
-  }
+  if (!supress_progress)
+      _FF_PRINTER_PRINTF(in->printer,"%.0f%%",percent);
 
   return duration<=pkt->pts?-1:0;
 }
@@ -602,7 +587,7 @@ static int ff_output_add_vstream(ff_inout_t *out)
     ostream=avformat_new_stream(out->fmt.ctx,NULL);
 
     if (!ostream) {
-      DVMESSAGE("creating video output stream: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("creating video output stream: %s (%d)",av_err2str(err),err);
       goto e_video;
     }
 
@@ -610,7 +595,7 @@ static int ff_output_add_vstream(ff_inout_t *out)
     err=avcodec_parameters_copy(ostream->codecpar,istream->codecpar);
 
     if (err<0) {
-      DMESSAGE("copying codec parametrs");
+      _DMESSAGE("copying codec parametrs");
       goto e_video;
     }
 
@@ -623,7 +608,7 @@ static int ff_output_add_vstream(ff_inout_t *out)
   }
   else {
     // the video is lost.
-    DWARNING("unable to remux video stream");
+    _DWARNING("unable to remux video stream");
     in->vi=-1;
   }
 #endif // ]
@@ -669,7 +654,7 @@ static int ff_output_add_astream(ff_inout_t *out)
   ostream=avformat_new_stream(out->fmt.ctx,NULL);
 
   if (!ostream) {
-    DVMESSAGE("creating audio output stream: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("creating audio output stream: %s (%d)",av_err2str(err),err);
     goto e_audio;
   }
 
@@ -680,7 +665,7 @@ static int ff_output_add_astream(ff_inout_t *out)
     err=avcodec_parameters_copy(ostream->codecpar,istream->codecpar);
 
     if (err<0) {
-      DMESSAGE("copying codec parametrs");
+      _DMESSAGE("copying codec parametrs");
       goto e_audio;
     }
 
@@ -708,7 +693,7 @@ static int ff_output_add_astream(ff_inout_t *out)
     codecpar=avcodec_parameters_alloc();
 
     if (!codecpar) {
-      DMESSAGE("allocating codecpar");
+      _DMESSAGE("allocating codecpar");
       goto e_audio;
     }
 
@@ -716,7 +701,7 @@ static int ff_output_add_astream(ff_inout_t *out)
     codecpar=*istream->codecpar;
 #else // ] [
     if (avcodec_parameters_copy(codecpar,istream->codecpar)<0) {
-      DMESSAGE("copying codecpar");
+      _DMESSAGE("copying codecpar");
       goto e_audio;
     }
 #endif // ]
@@ -744,7 +729,7 @@ static int ff_output_add_astream(ff_inout_t *out)
     fflush(stderr);
 
     if (err<0) {
-      DVMESSAGE("creating audio encoder: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("creating audio encoder: %s (%d)",av_err2str(err),err);
       goto e_audio;
     }
   }
@@ -789,7 +774,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
   err=avformat_alloc_output_context2(&out->fmt.ctx,NULL,NULL,path);
 
   if (err<0) {
-    DVMESSAGE("allocating output context \"%s\": %s (%d)",path,
+    _DMESSAGEV("allocating output context \"%s\": %s (%d)",path,
         av_err2str(err),err);
     goto e_format;
   }
@@ -799,7 +784,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
     err=ff_output_add_vstream(out);
     
     if (err<0) {
-      DMESSAGE("creating video output stream");
+      _DMESSAGE("creating video output stream");
       goto e_video1;
     }
   }
@@ -813,7 +798,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
 #endif // ]
     
     if (err<0) {
-      DMESSAGE("creating audio output stream");
+      _DMESSAGE("creating audio output stream");
       goto e_audio;
     }
   }
@@ -822,7 +807,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
     err=ff_output_add_vstream(out);
 
     if (err<0) {
-      DMESSAGE("creating video output stream");
+      _DMESSAGE("creating video output stream");
       goto e_video2;
     }
   }
@@ -842,7 +827,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
     err=avio_open(&out->fmt.ctx->pb,path,AVIO_FLAG_WRITE);
 
     if (err<0) {
-      DVMESSAGE("open output file \"%s\": %s (%d)",path,av_err2str(err),err);
+      _DMESSAGEV("open output file \"%s\": %s (%d)",path,av_err2str(err),err);
       goto e_open;
     }
   }
@@ -871,7 +856,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
   err=avformat_write_header(out->fmt.ctx,NULL);
 
   if (err<0) {
-    DVMESSAGE("writing header \"%s\": %s (%d)",path,av_err2str(err),err);
+    _DMESSAGEV("writing header \"%s\": %s (%d)",path,av_err2str(err),err);
     goto e_header;
   }
 

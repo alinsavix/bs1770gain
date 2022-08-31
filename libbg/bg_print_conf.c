@@ -22,20 +22,20 @@
 #include <bg.h>
 
 ///////////////////////////////////////////////////////////////////////////////
-static double bg_print_conf_norm(bg_tree_t *tree)
+double bg_print_conf_norm(bg_tree_t *tree)
 {
   return tree->param->preamp+tree->param->norm;
 }
 
 ////////
-static double bg_print_conf_momentary_mean(bg_tree_t *tree)
+double bg_print_conf_momentary_mean(bg_tree_t *tree)
 {
 
   return lib1770_stats_get_mean(tree->stats.momentary,
       tree->param->momentary.mean.gate);
 }
 
-static double bg_print_conf_momentary_mean_relative(bg_tree_t *tree)
+double bg_print_conf_momentary_mean_relative(bg_tree_t *tree)
 {
   double norm=bg_print_conf_norm(tree);
   double mean=bg_print_conf_momentary_mean(tree);
@@ -44,12 +44,12 @@ static double bg_print_conf_momentary_mean_relative(bg_tree_t *tree)
 }
 
 ////////
-static double bg_print_conf_momentary_maximum(bg_tree_t *tree)
+double bg_print_conf_momentary_maximum(bg_tree_t *tree)
 {
   return lib1770_stats_get_max(tree->stats.momentary);
 }
 
-static double bg_print_conf_momentary_maximum_relative(bg_tree_t *tree)
+double bg_print_conf_momentary_maximum_relative(bg_tree_t *tree)
 {
   double norm=bg_print_conf_norm(tree);
   double mean=bg_print_conf_momentary_maximum(tree);
@@ -58,7 +58,7 @@ static double bg_print_conf_momentary_maximum_relative(bg_tree_t *tree)
 }
 
 ////////
-static double bg_print_conf_momentary_range(bg_tree_t *tree)
+double bg_print_conf_momentary_range(bg_tree_t *tree)
 {
   return lib1770_stats_get_range(tree->stats.momentary,
       tree->param->momentary.range.gate,
@@ -67,14 +67,14 @@ static double bg_print_conf_momentary_range(bg_tree_t *tree)
 }
 
 ////////
-static double bg_print_conf_shortterm_mean(bg_tree_t *tree)
+double bg_print_conf_shortterm_mean(bg_tree_t *tree)
 {
 
   return lib1770_stats_get_mean(tree->stats.shortterm,
       tree->param->shortterm.mean.gate);
 }
 
-static double bg_print_conf_shortterm_mean_relative(bg_tree_t *tree)
+double bg_print_conf_shortterm_mean_relative(bg_tree_t *tree)
 {
   double norm=bg_print_conf_norm(tree);
   double mean=bg_print_conf_shortterm_mean(tree);
@@ -83,12 +83,12 @@ static double bg_print_conf_shortterm_mean_relative(bg_tree_t *tree)
 }
 
 ////////
-static double bg_print_conf_shortterm_maximum(bg_tree_t *tree)
+double bg_print_conf_shortterm_maximum(bg_tree_t *tree)
 {
   return lib1770_stats_get_max(tree->stats.shortterm);
 }
 
-static double bg_print_conf_shortterm_maximum_relative(bg_tree_t *tree)
+double bg_print_conf_shortterm_maximum_relative(bg_tree_t *tree)
 {
   double norm=bg_print_conf_norm(tree);
   double mean=bg_print_conf_shortterm_maximum(tree);
@@ -97,7 +97,7 @@ static double bg_print_conf_shortterm_maximum_relative(bg_tree_t *tree)
 }
 
 ////////
-static double bg_print_conf_shortterm_range(bg_tree_t *tree)
+double bg_print_conf_shortterm_range(bg_tree_t *tree)
 {
   return lib1770_stats_get_range(tree->stats.shortterm,
       tree->param->shortterm.range.gate,
@@ -106,74 +106,74 @@ static double bg_print_conf_shortterm_range(bg_tree_t *tree)
 }
 
 ////////
-static double bg_print_conf_samplepeak_absolute(bg_tree_t *tree)
+double bg_print_conf_samplepeak_absolute(bg_tree_t *tree)
 {
   return tree->stats.samplepeak;
 }
 
-static double bg_print_conf_samplepeak_relative(bg_tree_t *tree)
+double bg_print_conf_samplepeak_relative(bg_tree_t *tree)
 {
   return LIB1770_Q2DB(tree->stats.samplepeak);
 }
 
 ////////
-static double bg_print_conf_truepeak_absolute(bg_tree_t *tree)
+double bg_print_conf_truepeak_absolute(bg_tree_t *tree)
 {
   return tree->stats.truepeak;
 }
 
-static double bg_print_conf_truepeak_relative(bg_tree_t *tree)
+double bg_print_conf_truepeak_relative(bg_tree_t *tree)
 {
   return LIB1770_Q2DB(tree->stats.truepeak);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static const char *bg_print_conf_unit_lum(bg_tree_t *tree)
+const char *bg_print_conf_unit_lum(bg_tree_t *tree)
 {
   return tree->param->unit->n.lu;
 }
 
 #if defined (_WIN32) // [
-static const wchar_t *bg_print_conf_unit_luw(bg_tree_t *tree)
+const wchar_t *bg_print_conf_unit_luw(bg_tree_t *tree)
 {
   return tree->param->unit->w.lu;
 }
 #endif // ]
 
 ////////
-static const char *bg_print_conf_unit_lram(bg_tree_t *tree)
+const char *bg_print_conf_unit_lram(bg_tree_t *tree)
 {
   return tree->param->unit->n.lra;
 }
 
 #if defined (_WIN32) // [
-static const wchar_t *bg_print_conf_unit_lraw(bg_tree_t *tree)
+const wchar_t *bg_print_conf_unit_lraw(bg_tree_t *tree)
 {
   return tree->param->unit->w.lra;
 }
 #endif // ]
 
 ////////
-static const char *bg_print_conf_unit_spm(bg_tree_t *tree)
+const char *bg_print_conf_unit_spm(bg_tree_t *tree)
 {
   return tree->param->unit->n.sp;
 }
 
 #if defined (_WIN32) // [
-static const wchar_t *bg_print_conf_unit_spw(bg_tree_t *tree)
+const wchar_t *bg_print_conf_unit_spw(bg_tree_t *tree)
 {
   return tree->param->unit->w.sp;
 }
 #endif // ]
 
 ////////
-static const char *bg_print_conf_unit_tpm(bg_tree_t *tree)
+const char *bg_print_conf_unit_tpm(bg_tree_t *tree)
 {
   return tree->param->unit->n.tp;
 }
 
 #if defined (_WIN32) // [
-static const wchar_t *bg_print_conf_unit_tpw(bg_tree_t *tree)
+const wchar_t *bg_print_conf_unit_tpw(bg_tree_t *tree)
 {
   return tree->param->unit->w.tp;
 }

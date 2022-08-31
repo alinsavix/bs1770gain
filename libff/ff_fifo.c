@@ -35,7 +35,7 @@ int ff_fifo_create(ff_fifo_t *fifo, const AVCodecParameters *ocodecpar)
   fifo->fifo=av_audio_fifo_alloc(ocodecpar->format,ocodecpar->channels,1);
 
   if (!fifo->fifo) {
-    DMESSAGE("allocating audio fifo");
+    _DMESSAGE("allocating audio fifo");
     err=AVERROR(ENOMEM);
     goto e_fifo;
   }
@@ -75,7 +75,7 @@ int ff_fifo_send_frame(ff_fifo_t *fifo, AVFrame *frame)
   err=av_audio_fifo_realloc(fifo->fifo,fifo_size+frame_size);
 
   if (err<0) {
-    DMESSAGE("reallocating");
+    _DMESSAGE("reallocating");
     goto e_realloc;
   }
 
@@ -83,13 +83,13 @@ int ff_fifo_send_frame(ff_fifo_t *fifo, AVFrame *frame)
   err=av_audio_fifo_write(fifo->fifo,(void **)frame->data,frame->nb_samples);
 
   if (err<frame->nb_samples) {
-    DMESSAGE("writing");
+    _DMESSAGE("writing");
     err=AVERROR_EXIT;
     goto e_write;
   }
 
   /////////////////////////////////////////////////////////////////////////////
-DVWRITELN("%d",frame->nb_samples);
+_DWRITELNV("%d",frame->nb_samples);
   return 0;
 e_write:
 e_realloc:
@@ -124,7 +124,7 @@ int ff_fifo_receive_frame(ff_fifo_t *fifo, AVFrame *frame)
   err=av_frame_get_buffer(frame,0);
 
   if (err<0) {
-    DMESSAGE("getting frame buffer");
+    _DMESSAGE("getting frame buffer");
     goto e_buffer;
   }
 
@@ -132,7 +132,7 @@ int ff_fifo_receive_frame(ff_fifo_t *fifo, AVFrame *frame)
   err=av_audio_fifo_read(fifo->fifo,(void **)frame->data,frame->nb_samples);
 
   if (err<frame->nb_samples) {
-    DMESSAGE("reading from fifo");
+    _DMESSAGE("reading from fifo");
     err=AVERROR_EXIT;
     goto e_read;
   }

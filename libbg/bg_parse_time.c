@@ -36,7 +36,7 @@ int64_t bg_parse_time(const ffchar_t *s)
   for (;*s;++s) {
     if (FFL(':'==*s)) {
       if (2==ncolon) {
-        DVMESSAGE("more than %d colons in timestamp not supported",ncolon);
+        _DMESSAGEV("more than %d colons in timestamp not supported",ncolon);
         goto exit;
       }
 
@@ -48,7 +48,7 @@ int64_t bg_parse_time(const ffchar_t *s)
       ts+=*s-FFL('0');
     }
     else {
-      DVMESSAGE("unexpected character '\\x%x' in timestamp",*s);
+      _DMESSAGEV("unexpected character '\\x%x' in timestamp",*s);
       goto exit;
     }
   }
@@ -61,7 +61,7 @@ int64_t bg_parse_time(const ffchar_t *s)
         den*=10ll;
       }
       else {
-        DVMESSAGE("unexpected character '\\x%x' in timestamp",*s);
+        _DMESSAGEV("unexpected character '\\x%x' in timestamp",*s);
         goto exit;
       }
     }

@@ -42,7 +42,7 @@ const char *bg_char_nexta(const char *str)
   else if (*(const uint8_t *)str==(MASK_FOUR_BYTES&*(const uint8_t *)str))
     return str+4;
   else {
-    DVMESSAGE("unexpected byte: %02x",*str);
+    _DMESSAGEV("unexpected byte: %02x",*str);
     exit(1);
     return NULL;
   }

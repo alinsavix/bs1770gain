@@ -23,7 +23,6 @@
 
 int ff_rm(const ffchar_t *path)
 {
-//FFVWRITELN(FFL("rm \"%s\""),path);
 #if defined (_WIN32) // [
   DWORD dwError;
 
@@ -32,7 +31,11 @@ int ff_rm(const ffchar_t *path)
 
     switch (dwError) {
     default:
-      DVMESSAGEW(L"removing \"%s\" (%lu)",path,dwError);
+#if defined (_WIN32) // [
+      _DMESSAGEV("removing \"%S\" (%lu)",path,dwError);
+#else // ] [
+      _DMESSAGEV("removing \"%s\" (%lu)",path,dwError);
+#endif // ]
       break;
     }
 
@@ -40,7 +43,11 @@ int ff_rm(const ffchar_t *path)
   }
 #else // ] [
   if (remove(path)<0) {
-    DVMESSAGE("removing \"%s\"",path);
+#if defined (_WIN32) // [
+    _DMESSAGEV("removing \"%S\"",path);
+#else // ] [
+    _DMESSAGEV("removing \"%s\"",path);
+#endif // ]
     goto e_remove;
   }
 #endif // ]

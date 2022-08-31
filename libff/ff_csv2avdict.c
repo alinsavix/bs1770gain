@@ -80,7 +80,7 @@ static priv_t *priv_init(priv_t *b, FILE *f)
   b->f=f;
 
   if ((pos=ftell(f)<-1l)) {
-    DMESSAGE("getting file length");
+    _DMESSAGE("getting file length");
     goto error;
   }
 
@@ -98,7 +98,7 @@ static priv_t *priv_init(priv_t *b, FILE *f)
 #endif // ]
 
   if (0==(b->get=priv_get_utf16le)(b)) {
-    DMESSAGE("getting utf16le");
+    _DMESSAGE("getting utf16le");
     goto error;
   }
 
@@ -106,7 +106,7 @@ static priv_t *priv_init(priv_t *b, FILE *f)
 utf16be:
   // UTF-16 BE
   if (0!=fseek(f,pos,SEEK_SET)) {
-    DMESSAGE("seeking");
+    _DMESSAGE("seeking");
     goto error;
   }
 
@@ -122,16 +122,16 @@ utf16be:
 #endif // ]
 
   if (0==(b->get=priv_get_utf16be)(b)) {
-    DMESSAGE("getting utf16be");
+    _DMESSAGE("getting utf16be");
     goto error;
   }
 
-DVWRITELN("*** \"%s\" ***",b->buf);
+_DWRITELNV("*** \"%s\" ***",b->buf);
   return b;
 utf8:
   // UTF-8
   if (0!=fseek(f,pos,SEEK_SET)) {
-    DMESSAGE("seeking");
+    _DMESSAGE("seeking");
     goto error;
   }
 #endif // ]
@@ -147,7 +147,7 @@ utf8:
 #endif // ]
 
   if (0==(b->get=priv_get_utf8)(b)) {
-    DMESSAGE("getting utf8");
+    _DMESSAGE("getting utf8");
     goto error;
   }
 
@@ -155,7 +155,7 @@ utf8:
 ansi:
   // ANSI
   if (0!=fseek(f,pos,SEEK_SET)) {
-    DMESSAGE("seeking");
+    _DMESSAGE("seeking");
     goto error;
   }
 
@@ -164,7 +164,7 @@ ansi:
 #endif
 
   if (0==(b->get=priv_get_ansi)(b)) {
-    DMESSAGE("getting ansi");
+    _DMESSAGE("getting ansi");
     goto error;
   }
 
@@ -195,7 +195,7 @@ static int priv_realloc(priv_t *b, size_t n)
     } while (size<offs+n);
 
     if (NULL==(tmp=realloc(b->buf,size))) {
-      DMESSAGE("reallocationg");
+      _DMESSAGE("reallocationg");
       return -1;
     }
 
@@ -278,7 +278,7 @@ static int priv_get_utf8(priv_t *b)
   // read first byte into buffer
   if (EOF==(i=getc(b->f))) {
     // we don't want to have an error message when EOF.
-    //DMESSAGE("unexpected EOF");
+    //_DMESSAGE("unexpected EOF");
     goto error;
   }
 
@@ -295,7 +295,7 @@ static int priv_get_utf8(priv_t *b)
   // read subsequent character bytes
   if (0<n) {
     if (n!=fread(wp,1,n,b->f)) {
-      DMESSAGE("reading");
+      _DMESSAGE("reading");
 	    goto error;
     }
 
@@ -321,7 +321,7 @@ static int priv_get_utf16(priv_t *b, int (*read)(wchar_t *, FILE *))
   // NOTE: function read() is an argument!
   if (0!=read(&wch,b->f)) {
     // we don't want to have an error message when EOF.
-    //DMESSAGE("reading");
+    //_DMESSAGE("reading");
     goto error;
   }
 
@@ -337,7 +337,7 @@ static int priv_get_utf16(priv_t *b, int (*read)(wchar_t *, FILE *))
   );
 
   if (PRIV_CH_SIZE<n) {
-    DMESSAGE("converting");
+    _DMESSAGE("converting");
     goto error;
   }
 
@@ -354,7 +354,7 @@ static int priv_read_utf16le(wchar_t *wch, FILE *f)
 {
   if (1!=fread(wch,sizeof *wch,1,f)) {
     // we don't want to have an error message when EOF.
-    //DMESSAGE("reading");
+    //_DMESSAGE("reading");
     return -1;
   }
 
@@ -369,12 +369,12 @@ static int priv_get_utf16le(priv_t *b)
 static int priv_read_utf16be(wchar_t *wch, FILE *f)
 {
   if (1!=fread(((char *)wch)+1,1,1,f)) {
-    DMESSAGE("reading");
+    _DMESSAGE("reading");
     return -1;
   }
 
   if (1!=fread((char *)wch,1,1,f)) {
-    DMESSAGE("reading");
+    _DMESSAGE("reading");
     return -1;
   }
 
@@ -418,7 +418,7 @@ static int priv_gets(priv_t *b)
 	  n=strlen(ch);
 
     if (0!=priv_realloc(b,n)) {
-      DMESSAGE("reallocating");
+      _DMESSAGE("reallocating");
       return -1;
     }
 
@@ -431,7 +431,7 @@ static int priv_gets(priv_t *b)
     continue;
   end_line:
     if (0!=priv_realloc(b,1)) {
-      DMESSAGE("reallocating");
+      _DMESSAGE("reallocating");
       return -1;
     }
 
@@ -464,18 +464,18 @@ static int priv_loop(FILE *f, const char *name, char sep,
 
   // initilialize parser.
   if (NULL==priv_init(&b,f)) {
-    DMESSAGE("initializing");
+    _DMESSAGE("initializing");
     goto cleanup;
   }
 
   // read the header.
   if (0!=priv_gets(&b)) {
-    DMESSAGE("initializing");
+    _DMESSAGE("initializing");
     goto cleanup;
   }
 
   if (NULL==(head=malloc(b.wp-b.buf))) {
-    DMESSAGE("initializing");
+    _DMESSAGE("initializing");
     goto cleanup;
   }
 
@@ -486,7 +486,7 @@ static int priv_loop(FILE *f, const char *name, char sep,
     ;
 
   if (0!=strcmp("file",head)) {
-    DMESSAGE("field \"file\" undefined");
+    _DMESSAGE("field \"file\" undefined");
     goto cleanup;
   }
 
@@ -506,7 +506,7 @@ static int priv_loop(FILE *f, const char *name, char sep,
             goto next_line;
         }
         else if (av_dict_set(metadata,hrp,rp,0)<0) {
-          DMESSAGE("setting av_dict");
+          _DMESSAGE("setting av_dict");
           goto cleanup;
         }
 
@@ -600,7 +600,7 @@ int ff_csv2avdict(const char *path, char sep,
   csvw=malloc((len+wcslen(PRIV_FOLDER_CSV)+1)*sizeof csvw[0]);
 
   if (!csvw) {
-    DMESSAGE("allocating");
+    _DMESSAGE("allocating");
     goto cleanup;
   }
 
@@ -611,7 +611,7 @@ int ff_csv2avdict(const char *path, char sep,
 
   if (!f) {
     if (erropen)
-      DVMESSAGEW("opening %s",csvw);
+      _DMESSAGEV("opening %S",csvw);
     else
       code=0;
 
@@ -622,7 +622,7 @@ int ff_csv2avdict(const char *path, char sep,
   csv=malloc((len+strlen(PRIV_FOLDER_CSV)+1)*sizeof csv[0]);
 
   if (!csv) {
-    DMESSAGE("allocating");
+    _DMESSAGE("allocating");
     goto cleanup;
   }
 
@@ -632,7 +632,7 @@ int ff_csv2avdict(const char *path, char sep,
 
   if (!f) {
     if (erropen)
-      DVMESSAGE("opening %s",csv);
+      _DMESSAGEV("opening %s",csv);
     else
       code=0;
 

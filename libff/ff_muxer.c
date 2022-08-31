@@ -24,9 +24,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //#define FF_DEBUG_LOCAL
 #if defined (FF_DEBUG_LOCAL) // [
-#define DDMARKLN() DMARKLN()
-#define DDWRITELN(line) DWRITELN(line)
-#define DDVWRITELN(format,...) DVWRITELN(format,__VA_ARGS__)
+#define DDMARKLN() _DMARKLN()
+#define DDWRITELN(line) _DWRITELN(line)
+#define DDVWRITELN(format,...) _DWRITELNV(format,__VA_ARGS__)
 #else // ] [
 #define DDMARKLN()
 #define DDWRITELN(line)
@@ -49,7 +49,7 @@ int ff_muxer_create(ff_muxer_t *m, ff_inout_t *in, ff_inout_t *out,
   m->pkt=av_packet_alloc();
 
   if (!m->pkt) {
-    DMESSAGE("allocating packet");
+    _DMESSAGE("allocating packet");
     goto e_packet;
   }
 
@@ -58,7 +58,7 @@ int ff_muxer_create(ff_muxer_t *m, ff_inout_t *in, ff_inout_t *out,
     m->frame=av_frame_alloc();
 
     if (!m->frame) {
-      DMESSAGE("allocating frame");
+      _DMESSAGE("allocating frame");
       goto e_frame;
     }
   }
@@ -69,7 +69,7 @@ int ff_muxer_create(ff_muxer_t *m, ff_inout_t *in, ff_inout_t *out,
     ///////////////////////////////////////////////////////////////////////////
     if (ff_filter_create(&m->filter,ostream->codecpar,istream->codecpar,
         istream->time_base,filter)<0) {
-      DMESSAGE("creating filter");
+      _DMESSAGE("creating filter");
       goto e_filter;
     }
   }
@@ -155,7 +155,7 @@ static int ff_muxer_remux_frame(ff_muxer_t *m, AVPacket *pkt, int stream_index)
     opkt.buf=av_buffer_ref(pkt->buf);
 
     if (!opkt.buf) {
-      DMESSAGE("referencing buffer");
+      _DMESSAGE("referencing buffer");
       goto e_ref;
     }
   }
@@ -166,14 +166,14 @@ static int ff_muxer_remux_frame(ff_muxer_t *m, AVPacket *pkt, int stream_index)
   av_copy_packet_side_data(&opkt,pkt);
 #else // ] [
   if (av_packet_copy_props(&opkt,pkt)<0) {
-    DMESSAGE("copying properties");
+    _DMESSAGE("copying properties");
     goto e_props;
   }
 #endif // ]
   //opkt.pos=-1;
 
   if (av_interleaved_write_frame(m->out->fmt.ctx,&opkt)<0) {
-    DMESSAGE("writing");
+    _DMESSAGE("writing");
     goto e_write;
   }
 
@@ -215,9 +215,7 @@ static int ff_muxer_send_packet(ff_muxer_t *m, AVPacket *pkt)
   for (;;) {
     switch (m->state) {
     case FF_MUXER_DECODER_SEND_PACKET:
-DDVWRITELN("FF_MUXER_DECODER_SEND_PACKET: %d",pkt?pkt->size:-1);
       err=avcodec_send_packet(m->in->audio.ctx,pkt);
-DDVWRITELN("FF_MUXER_DECODER_SEND_PACKET: %d",err);
 
 #if defined (FF_PACKET_UNREF) // [
       if (pkt)
@@ -234,14 +232,11 @@ DDVWRITELN("FF_MUXER_DECODER_SEND_PACKET: %d",err);
         m->state=FF_MUXER_DECODER_RECEIVE_FRAME;
         continue;
       default:
-        DVMESSAGE("sending packet: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("sending packet: %s (%d)",av_err2str(err),err);
         return err;
       }
     case FF_MUXER_DECODER_RECEIVE_FRAME:
-DDWRITELN("FF_MUXER_DECODER_RECEIVE_FRAME");
       err=avcodec_receive_frame(m->in->audio.ctx,m->frame);
-DDVWRITELN("FF_MUXER_DECODER_RECEIVE_FRAME: %d (%d)",
-    m->frame->nb_samples,err);
 
       switch (err) {
       case 0:
@@ -271,14 +266,11 @@ DDVWRITELN("FF_MUXER_DECODER_RECEIVE_FRAME: %d (%d)",
         m->state=FF_MUXER_DECODER_SEND_PACKET;
         return err;
       default:
-        DVMESSAGE("receiving frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("receiving frame: %s (%d)",av_err2str(err),err);
         return err;
       }
     case FF_MUXER_FILTER_SEND_FRAME:
-DDWRITELN("FF_MUXER_FILTER_RECEIVE_FRAME");
       err=ff_filter_send_frame(&m->filter,frame);
-DDVWRITELN("FF_MUXER_FILTER_SEND_FRAME: %d (%d)",
-    frame?frame->nb_samples:-1,err);
 
 #if defined (FF_FRAME_UNREF) // [
       if (frame==m->frame)
@@ -286,7 +278,7 @@ DDVWRITELN("FF_MUXER_FILTER_SEND_FRAME: %d (%d)",
 #endif // ]
 
       if (err<0) {
-        DVMESSAGE("sending frame to filter: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("sending frame to filter: %s (%d)",av_err2str(err),err);
         return err;
       }
 
@@ -312,23 +304,20 @@ DDVWRITELN("FF_MUXER_FILTER_RECEIVE_FRAME: %d (%d)",
           m->state=FF_MUXER_ENCODER_SEND_FRAME;
           continue;
         default:
-          DVMESSAGE("filter receiving frame: %s (%d)",av_err2str(err),err);
+          _DMESSAGEV("filter receiving frame: %s (%d)",av_err2str(err),err);
           return err;
       }
     case FF_MUXER_ENCODER_SEND_FRAME:
       if (frame&&m->out->audio.ctx->frame_size<frame->nb_samples) {
-        DVMESSAGE("frame too large: frame_size:%d<nb_samples:%d",
+        _DMESSAGEV("frame too large: frame_size:%d<nb_samples:%d",
             m->out->audio.ctx->frame_size,frame->nb_samples);
         return AVERROR(EAGAIN);
       }
 
-DDWRITELN("FF_MUXER_ENCODER_SEND_FRAME");
       err=avcodec_send_frame(m->out->audio.ctx,frame);
-DDVWRITELN("FF_MUXER_ENCODER_SEND_FRAME: %d (%d)",
-    frame?frame->nb_samples:-1,err);
 
       if (err<0) {
-        DVMESSAGE("encoder sending frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("encoder sending frame: %s (%d)",av_err2str(err),err);
         return err;
       }
       else {
@@ -346,13 +335,11 @@ DDVWRITELN("FF_MUXER_ENCODER_SEND_FRAME: %d (%d)",
         m->state=FF_MUXER_ENCODER_RECEIVE_PACKET;
         continue;
       default:
-        DVMESSAGE("sending frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("sending frame: %s (%d)",av_err2str(err),err);
         return err;
       }
     case FF_MUXER_ENCODER_RECEIVE_PACKET:
-DDWRITELN("FF_MUXER_ENCODER_RECEIVE_PACKET");
       err=avcodec_receive_packet(m->out->audio.ctx,m->pkt);
-DDVWRITELN("FF_MUXER_ENCODER_RECEIVE_PACKET: %d (%d)",m->pkt->size,err);
 
       switch (err) {
       case 0:
@@ -363,7 +350,7 @@ DDVWRITELN("FF_MUXER_ENCODER_RECEIVE_PACKET: %d (%d)",m->pkt->size,err);
 #endif // ]
 
         if (err<0) {
-          DMESSAGE("writing packet");
+          _DMESSAGE("writing packet");
           return err;
         }
 
@@ -372,7 +359,7 @@ DDVWRITELN("FF_MUXER_ENCODER_RECEIVE_PACKET: %d (%d)",m->pkt->size,err);
 #if 0 // [
         // not an error just THE END.
         // everything (decoder and encoder) is flushed.
-        DVMESSAGE("sending frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("sending frame: %s (%d)",av_err2str(err),err);
 #else // ] [
         m->state=FF_MUXER_DECODER_SEND_PACKET;
 #endif // ]
@@ -381,11 +368,11 @@ DDVWRITELN("FF_MUXER_ENCODER_RECEIVE_PACKET: %d (%d)",m->pkt->size,err);
         m->state=FF_MUXER_DECODER_RECEIVE_FRAME;
         continue;
       default:
-        DVMESSAGE("receiving packet: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("receiving packet: %s (%d)",av_err2str(err),err);
         return err;
       }
     default:
-      DMESSAGE("unexpected state");
+      _DMESSAGE("unexpected state");
       return -1;
     }
   }
@@ -421,11 +408,11 @@ read:
       break;
     case AVERROR(EINVAL):
       ff_printer_flush(m->in->printer);
-      DVWARNING("remuxing video frame: %s (%d)",av_err2str(err),err);
+      _DWARNINGV("remuxing video frame: %s (%d)",av_err2str(err),err);
       break;
     default:
       if (err<0) {
-        DVMESSAGE("remuxing video frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("remuxing video frame: %s (%d)",av_err2str(err),err);
         goto e_loop;
       }
 
@@ -446,11 +433,11 @@ read:
       break;
     case AVERROR(EINVAL):
       ff_printer_flush(m->in->printer);
-      DVWARNING("remuxing video frame: %s (%d)",av_err2str(err),err);
+      _DWARNINGV("remuxing video frame: %s (%d)",av_err2str(err),err);
       break;
     default:
       if (err<0) {
-        DVMESSAGE("remuxing video frame: %s (%d)",av_err2str(err),err);
+        _DMESSAGEV("remuxing video frame: %s (%d)",av_err2str(err),err);
         goto e_loop;
       }
 
@@ -478,7 +465,7 @@ read:
     case AVERROR_EOF:
       goto eof;
     default:
-      DVMESSAGE("re-encoding frame: %s (%d)",av_err2str(err),err);
+      _DMESSAGEV("re-encoding frame: %s (%d)",av_err2str(err),err);
       goto e_loop;
     }
   }
@@ -489,8 +476,7 @@ eof:
     err=ff_muxer_send_packet(m,NULL);
 
     if (err<0&&FF_MUXER_DECODER_SEND_PACKET<m->state) {
-      DVMESSAGE("re-encoding frame: %s (%d:%d)",
-          av_err2str(err),err,m->state);
+      _DMESSAGEV("re-encoding frame: %s (%d:%d)",av_err2str(err),err,m->state);
       goto e_loop;
     }
   }

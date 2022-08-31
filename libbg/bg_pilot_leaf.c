@@ -35,7 +35,7 @@ int bg_pilot_hist_leaf_create(bg_pilot_hist_t *hist)
   /////////////////////////////////////////////////////////////////////////////
   if (client->cb&&client->cb->leaf.enter) {
     if (client->cb->leaf.enter(hist,client->data)<0) {
-      DMESSAGE("entering leaf");
+      _DMESSAGE("entering leaf");
       goto e_enter;
     }
   }

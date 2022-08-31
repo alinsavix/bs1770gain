@@ -41,11 +41,11 @@ int ff_iter_first(ff_iter_t *i, const AVFrame *frame)
   switch (frame->format) {
   /////////////////////////////////////////////////////////////////////////////
   case AV_SAMPLE_FMT_NONE:
-    DMESSAGE("format AV_SAMPLE_FMT_NONE not supported");
+    _DMESSAGE("format AV_SAMPLE_FMT_NONE not supported");
     goto exit;
   // interleaved //////////////////////////////////////////////////////////////
   case AV_SAMPLE_FMT_U8:
-    DMESSAGE("format AV_SAMPLE_FMT_U8 not supported");
+    _DMESSAGE("format AV_SAMPLE_FMT_U8 not supported");
     goto exit;
   case AV_SAMPLE_FMT_S16:
     i->vmt=&ff_iter_s16i_vmt;
@@ -61,7 +61,7 @@ int ff_iter_first(ff_iter_t *i, const AVFrame *frame)
     break;
   // planar ///////////////////////////////////////////////////////////////////
   case AV_SAMPLE_FMT_U8P:
-    DMESSAGE("format AV_SAMPLE_FMT_U8P not supported");
+    _DMESSAGE("format AV_SAMPLE_FMT_U8P not supported");
     goto exit;
   case AV_SAMPLE_FMT_S16P:
     i->vmt=&ff_iter_s16p_vmt;
@@ -78,10 +78,10 @@ int ff_iter_first(ff_iter_t *i, const AVFrame *frame)
   /////////////////////////////////////////////////////////////////////////////
   case AV_SAMPLE_FMT_NB:
     // Number of sample formats. DO NOT USE if linking dynamically.
-    DMESSAGE("format AV_SAMPLE_FMT_NB not supported");
+    _DMESSAGE("format AV_SAMPLE_FMT_NB not supported");
     goto exit;
   default:
-    DVMESSAGE("format %d not supported",frame->format);
+    _DMESSAGEV("format %d not supported",frame->format);
     goto exit;
   }
 
@@ -96,10 +96,10 @@ exit:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#define FF_INT16_SCALE (1.0/MAXOF(int16_t))
-#define FF_INT32_SCALE (1.0/MAXOF(int32_t))
-#define FF_INT16_SCALE_NEG (1.0/(1.0+MAXOF(int16_t)))
-#define FF_INT32_SCALE_NEG (1.0/(1.0+MAXOF(int32_t)))
+#define FF_INT16_SCALE (1.0/PBU_MAXOF(int16_t))
+#define FF_INT32_SCALE (1.0/PBU_MAXOF(int32_t))
+#define FF_INT16_SCALE_NEG (1.0/(1.0+PBU_MAXOF(int16_t)))
+#define FF_INT32_SCALE_NEG (1.0/(1.0+PBU_MAXOF(int32_t)))
 
 static void ff_iter_norm(ff_iter_t *i FFUNUSED, double *x, double *max,
     int channels, int ch, double sample)
@@ -109,11 +109,11 @@ static void ff_iter_norm(ff_iter_t *i FFUNUSED, double *x, double *max,
       x[ch]=sample;
     }
     else if (LIB1770_MAX_CHANNELS<ch) {
-      DVWARNING("channel overflow: %d",ch);
+      _DWARNINGV("channel overflow: %d",ch);
       return;
     }
     else if (FF_LFE_CHANNEL<ch) {
-DVWRITELN("+++ ch:%d: sample:%lf",ch-1,sample);
+_DWRITELNV("+++ ch:%d: sample:%lf",ch-1,sample);
       x[ch-1]=sample;
     }
   }
@@ -511,25 +511,25 @@ static ff_iter_vmt_t ff_iter_dblp_vmt={
 ///////////////////////////////////////////////////////////////////////////////
 static void ff_iter_err_first(ff_iter_t *i FFUNUSED)
 {
-  DMESSAGE("invalid frame iterator");
+  _DMESSAGE("invalid frame iterator");
 }
 
 static int ff_iter_err_valid(ff_iter_t *i FFUNUSED)
 {
-  DMESSAGE("invalid frame iterator");
+  _DMESSAGE("invalid frame iterator");
 
   return 0;
 }
 
 static void ff_iter_err_next(ff_iter_t *i FFUNUSED)
 {
-  DMESSAGE("invalid frame iterator");
+  _DMESSAGE("invalid frame iterator");
 }
 
 static void ff_iter_err_norm(ff_iter_t *i FFUNUSED, double *x FFUNUSED,
     double *max FFUNUSED)
 {
-  DMESSAGE("invalid frame iterator");
+  _DMESSAGE("invalid frame iterator");
 }
 
 static ff_iter_vmt_t ff_iter_err_vmt={

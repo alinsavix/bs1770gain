@@ -42,7 +42,7 @@ char *bg_wcs2str(const wchar_t *wcs, unsigned int codepage)
   str=malloc(size*sizeof *str);
 
   if (!str) {
-    DMESSAGE("allocating");
+    _DMESSAGE("allocating");
     goto ealloc;
   }
 
