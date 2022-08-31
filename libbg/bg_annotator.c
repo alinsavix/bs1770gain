@@ -268,9 +268,16 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
     const AVDictionaryEntry *track;
 #endif // ]
   } tag={
+#if 0 // [
     .title=av_dict_get(metadata,"TITLE",NULL,AV_DICT_IGNORE_SUFFIX),
 #if defined (BG_TRACK_BASENAME_TRACK) // [
     .track=av_dict_get(metadata,"TRACK",NULL,AV_DICT_IGNORE_SUFFIX),
+#endif // ]
+#else // ] [
+    .title=av_dict_get(metadata,"TITLE",NULL,0),
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+    .track=av_dict_get(metadata,"TRACK",NULL,0),
+#endif // ]
 #endif // ]
   };
 
@@ -358,6 +365,8 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
         case L'\\':
         case L'(':
         case L')':
+        case L'[':
+        case L']':
         case L'&':
         case L':':
         case L' ':
@@ -454,6 +463,8 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
         case L'\\':
         case L'(':
         case L')':
+        case L'[':
+        case L']':
         case L'&':
         case L':':
         case L' ':

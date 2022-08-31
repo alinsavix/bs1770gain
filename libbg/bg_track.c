@@ -195,16 +195,13 @@ static int input_stats_create(void *data, const AVCodecParameters *codecpar)
 {
   bg_tree_t *tree=data;
   bg_track_t *track=&tree->track;
+  int channels=codecpar->channels<FF_LFE_THRESHOLD
+      ?codecpar->channels
+      :codecpar->channels-1;
 
   /////////////////////////////////////////////////////////////////////////////
   if (tree->stats.momentary||tree->stats.shortterm) {
-#if defined (LIB1770_LFE) // [
-    track->filter.pre=lib1770_pre_new_lfe(codecpar->sample_rate,
-        codecpar->channels,tree->param->lfe);
-#else // ] [
-    track->filter.pre=lib1770_pre_new(codecpar->sample_rate,
-        codecpar->channels);
-#endif // ]
+    track->filter.pre=lib1770_pre_new(codecpar->sample_rate,channels);
 
     if (!track->filter.pre) {
       DMESSAGE("creating pre-filter");
@@ -282,6 +279,7 @@ static int input_stats_add(void *data, int upsampled, AVFrame *frame)
 
   if (frame) {
     for (ff_iter_first(&i,frame);i.vmt->valid(&i);i.vmt->next(&i)) {
+DWRITELN("{");
       if (upsampled) {
 #if defined (FF_UPSAMPLE_MODIFYX) // [
         i.vmt->norm(&i,NULL,&tree->stats.truepeak,upsampled);
@@ -290,12 +288,15 @@ static int input_stats_add(void *data, int upsampled, AVFrame *frame)
 #endif // ]
       }
       else if (track->filter.pre) {
+DWRITELN(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 #if defined (FF_UPSAMPLE_MODIFYX) // [
         i.vmt->norm(&i,sample,&tree->stats.samplepeak,upsampled);
 #else // ] [
         i.vmt->norm(&i,sample,&tree->stats.samplepeak);
 #endif // ]
+DWRITELN("================================================");
         lib1770_pre_add_sample(track->filter.pre,sample);
+DWRITELN("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
       }
       else {
 #if defined (FF_UPSAMPLE_MODIFYX) // [
@@ -304,6 +305,7 @@ static int input_stats_add(void *data, int upsampled, AVFrame *frame)
         i.vmt->norm(&i,NULL,&tree->stats.samplepeak);
 #endif // ]
       }
+DWRITELN("}");
     }
   }
 #if ! defined (FF_INPUT_CALLBACK_FLUSH) // [

@@ -36,12 +36,15 @@ extern "C" {
 
 ///////////////////////////////////////////////////////////////////////////////
 //#define BG_LIST
-#define BG_CHANNEL_LFE 3
 #define BG_TEMP_PREFIX FFL(".")
 #define BG_CLOCK
 //#define BG_PARAM_SLEEP
 //#define BG_BWF_TAGS
 //#define BG_TREE_CREATE_CHILD_WARNING
+//#define BG_PARAM_LFE
+#if defined (BG_PARAM_LFE) // [
+#define BG_CHANNEL_LFE 3
+#endif // ]
 #if defined (_WIN32) // [
 #define BG_WIN32_TARGET_UTF8
 // WARNING:  define BG_WIN32_CREATE_LOCALE at your own risk: at the run-time
@@ -544,7 +547,9 @@ struct bg_param {
 #if defined (BG_CLOCK) // [
   int time;
 #endif // ]
+#if defined (BG_PARAM_LFE) // [
   int lfe;
+#endif // ]
 #if defined (_WIN32) && defined (BG_WIN32_CREATE_LOCALE) // [
   _locale_t locale;
 #endif // ]

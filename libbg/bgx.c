@@ -62,7 +62,7 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
   FFPUTC(' ',f);
   _FFPUTS(FFSTR(PACKAGE_VERSION),f);
 #endif // ]
-  FFPUTS(", Copyright (C) Peter Belkner 2014-2019.\n",f),
+  FFPUTS(", Copyright (C) Peter Belkner 2014-2020.\n",f),
 #if defined (BG_NANOS_GIGANTUM_HUMERIS_INSIDENTES) // [
   _FFPUTS(FFSTR(BG_NANOS_GIGANTUM_HUMERIS_INSIDENTES),f);
 #endif // ]
@@ -334,7 +334,7 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "      files will definitely be lost!!! For this reason using\n"
       "      this option is discouraged. It's provided just for\n"
       "      completeness.\n",f);
-#if defined (BG_CHANNEL_LFE) // [
+#if defined (BG_PARAM_LFE) && defined (BG_CHANNEL_LFE) // [
   FFPRINTF(f," --lfe=<lfe channel>  overwrite the default <lfe"
       " channel>\n"
       "    (default: %d.)\n",BG_CHANNEL_LFE);
@@ -467,7 +467,9 @@ int main(int argc, char *const *argv)
     BG_ARG_XML,
     BG_ARG_TAG_PREFIX,
     BG_ARG_OVERWRITE,
+#if defined (BG_PARAM_LFE) // [
     BG_ARG_CH_LFE,
+#endif // ]
     BG_ARG_OUTPUT_CODEC,
     BG_ARG_TEMP_PREFIX,
     BG_ARG_SUPPRESS_HIERARCHY,
@@ -575,7 +577,9 @@ int main(int argc, char *const *argv)
     { FFL("xml"),no_argument,NULL,BG_ARG_XML },
     { FFL("tag-prefix"),required_argument,NULL,BG_ARG_TAG_PREFIX },
     { FFL("overwrite"),no_argument,NULL,BG_ARG_OVERWRITE },
+#if defined (BG_PARAM_LFE) // [
     { FFL("lfe"),required_argument,NULL,BG_ARG_CH_LFE },
+#endif // ]
     { FFL("codec"),required_argument,NULL,BG_ARG_OUTPUT_CODEC },
     { FFL("temp-prefix"),required_argument,NULL,BG_ARG_TEMP_PREFIX },
     { FFL("suppress-hierarchy"),no_argument,NULL,BG_ARG_SUPPRESS_HIERARCHY },
@@ -868,9 +872,11 @@ int main(int argc, char *const *argv)
 
       param.overwrite=1;
       break;
+#if defined (BG_PARAM_LFE) // [
     case BG_ARG_CH_LFE:
       param.lfe=FFATOI(optarg);
       break;
+#endif // ]
     case BG_ARG_OUTPUT_CODEC:
 #if defined (_WIN32) // [
       ff_wcs2str(optarg,param.codec.name,CP_UTF8,(sizeof param.codec.name)-1);

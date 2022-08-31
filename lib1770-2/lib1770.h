@@ -51,13 +51,7 @@ extern "C" {
 
 ///////////////////////////////////////////////////////////////////////////////
 #define LIB1770_BUF_SIZE      9
-#define LIB1770_LFE           3
-#if defined (LIB1770_LFE) // [
-#define LIB1770_MAX_CHANNELS  6
-#define LIB1770_SAMPLES_SIZE  8
-#else // ] [
 #define LIB1770_MAX_CHANNELS  5
-#endif // ]
 #if defined __GNUC__ // [
 #define LIB1770_DEPRECATED __attribute__ ((deprecated))
 #else // ] [
@@ -90,11 +84,7 @@ extern "C" {
   ((size)*sizeof(((lib1770_block_t *)NULL)->ring.wmsq[0]))
 
 ///////////////////////////////////////////////////////////////////////////////
-#if defined (LIB1770_LFE) // [
-typedef double lib1770_sample_t[LIB1770_SAMPLES_SIZE];
-#else // ] [
 typedef double lib1770_sample_t[LIB1770_MAX_CHANNELS];
-#endif // ]
 typedef unsigned long long lib1770_count_t;
 
 typedef struct lib1770_biquad lib1770_biquad_t;
@@ -217,9 +207,7 @@ struct lib1770_pre {
   lib1770_block_t *block;
   double samplerate;
   int channels;
-#if defined (LIB1770_LFE) // [
   int lfe;
-#endif // ]
 
   lib1770_biquad_t f1;
   lib1770_biquad_t f2;
@@ -231,13 +219,7 @@ struct lib1770_pre {
   } ring;
 };
 
-#if defined (LIB1770_LFE) // [
-lib1770_pre_t *lib1770_pre_new_lfe(double samplerate, int channels, int lfe);
-lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
-    LIB1770_DEPRECATED;
-#else // ] [
 lib1770_pre_t *lib1770_pre_new(double samplerate, int channels);
-#endif // ]
 void lib1770_pre_close(lib1770_pre_t *pre);
 
 void lib1770_pre_add_block(lib1770_pre_t *pre, lib1770_block_t *block);
