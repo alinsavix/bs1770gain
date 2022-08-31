@@ -31,12 +31,15 @@ static int getopts(sox_effect_t *e, int argc, char *argv[])
 {
   priv_t *priv=e->priv;
 
+//DMARKLN();
   if (argc<2) {
     DMESSAGE("missing argument");
     goto argc;
   }
 
+//DMARKLN();
   priv->read=(void *)argv[1];
+//DMARKLN();
 
   return SOX_SUCCESS;
 argc:
@@ -48,13 +51,16 @@ static int drain(sox_effect_t *e, sox_sample_t *obuf, size_t *osamp)
   priv_t *priv=e->priv;
   sox_reader_t *read=priv->read;
 
+//DMARKLN();
   /* ensure that *osamp is a multiple of the number of channels. */
   *osamp-=*osamp%e->out_signal.channels;
 
+//DMARKLN();
   /* Read up to *osamp samples into obuf; store the actual number read
    * back to *osamp */
   *osamp=ffsox_sox_reader_read(read,obuf,*osamp);
 
+//DMARKLN();
 #if defined (PBU_DEBUG) // {
   /* sox_read may return a number that is less than was requested; only if
    * 0 samples is returned does it indicate that end-of-file has been reached
@@ -63,6 +69,7 @@ static int drain(sox_effect_t *e, sox_sample_t *obuf, size_t *osamp)
     DMESSAGE("reading");
 #endif // }
 
+//DMARKLN();
   return 0==*osamp?SOX_EOF:SOX_SUCCESS;
 }
 

@@ -265,6 +265,7 @@ static int frame_reader_run(frame_reader_t *n)
 
     return MACHINE_POP;
   case STATE_FLUSH:
+#if 0 // [
     pkt->size=0;
     pkt->data=NULL;
 
@@ -274,6 +275,7 @@ static int frame_reader_run(frame_reader_t *n)
 
       return frame_reader_next_set_frame(n,NULL);
     }
+#if 0 // [
     else if (avcodec_decode_audio4(cc,frame,&got_frame,pkt)<0) {
       DMESSAGE("decoding audio");
 #if defined (FRAME_READER_RUN_CODE) // [
@@ -282,6 +284,26 @@ static int frame_reader_run(frame_reader_t *n)
         return -1;
 #endif // ]
     }
+#else // ] [
+    else {
+			if (!pkt->data||!pkt->size) {
+      	n->state=STATE_END;
+
+      	return frame_reader_next_set_frame(n,NULL);
+			}
+
+			code=avcodec_decode_audio4(cc,frame,&got_frame,pkt);
+
+			if (code<0) {
+      		DMESSAGE("decoding audio");
+#if defined (FRAME_READER_RUN_CODE) // [
+        	goto exit;
+#else // ] [
+        	return -1;
+#endif // ]
+    	}
+    }
+#endif // ]
 //DMARKLN();
 
     if (0==got_frame) {
@@ -297,6 +319,11 @@ static int frame_reader_run(frame_reader_t *n)
         return frame_reader_next_set_frame(n,fo);
 #endif // ]
     }
+#else // ] [
+    n->state=STATE_END;
+
+    return frame_reader_next_set_frame(n,NULL);
+#endif // ]
   case STATE_END:
 //DMARKLN();
 #if defined (FRAME_READER_RUN_CODE) // [

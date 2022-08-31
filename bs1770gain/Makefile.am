@@ -40,22 +40,23 @@ bs1770gain_LDADD+=$(top_builddir)/libffsox-2/libffsox_2.a
 bs1770gain_LDADD+=$(top_builddir)/libffsox-2/libffsox_2.a
 bs1770gain_LDADD+=$(top_builddir)/lib1770-2/lib1770_2.a
 bs1770gain_LDADD+=$(top_builddir)/libpbutil/libpbutil.a
-if WIN32
-AM_LDFLAGS+=-lsox.dll
-AM_LDFLAGS+=-lavformat.dll
-AM_LDFLAGS+=-lavcodec.dll
-AM_LDFLAGS+=-lswresample.dll
-AM_LDFLAGS+=-lavutil.dll
-else
-AM_LDFLAGS+=-lsox
-AM_LDFLAGS+=-lavformat
-AM_LDFLAGS+=-lavcodec
-AM_LDFLAGS+=-lswresample
-AM_LDFLAGS+=-lavutil
-if FFSOX_DYNLOAD
-bs1770gain_LDADD+=-ldl
-endif
-endif
+#if WIN32
+#AM_LDFLAGS+=-lsox.dll
+#AM_LDFLAGS+=-lavformat.dll
+#AM_LDFLAGS+=-lavcodec.dll
+#AM_LDFLAGS+=-lswresample.dll
+#AM_LDFLAGS+=-lavutil.dll
+#else
+#if FFSOX_DYNLOAD
+#bs1770gain_LDADD+=-ldl
+#else
+#AM_LDFLAGS+=-lsox
+#AM_LDFLAGS+=-lavformat
+#AM_LDFLAGS+=-lavcodec
+#AM_LDFLAGS+=-lswresample
+#AM_LDFLAGS+=-lavutil
+#endif
+#endif
 bs1770gain_LDADD+=-lm
 
 noinst_LIBRARIES=libbs1770gain.a
