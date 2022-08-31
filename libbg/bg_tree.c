@@ -1,7 +1,7 @@
 /*
  * bg_tree.c
  *
- * Copyright (C) 2019 Peter Belkner <pbelkner@users.sf.net>
+ * Copyright (C) 2019 Peter Belkner <info@pbelkner.de>
  * Nanos gigantum humeris insidentes #TeamWhite
  *
  * This program is free software; you can redistribute it and/or
@@ -306,6 +306,11 @@ emerge:
 #if defined (_WIN32) // [
 const char *bg_tree_in_basanamen(bg_tree_t *tree)
 {
+#if 0 // [
+fprintf(stdout,"oem: %d %p (%s:%d:%s)\n",tree->param->oem,tree->oem.basename,
+    __FILE__,__LINE__,__func__);
+fflush(stdout);
+#endif // ]
   return tree->oem.basename?tree->oem.basename:tree->utf8.basename;
 }
 

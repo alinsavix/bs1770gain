@@ -1,6 +1,6 @@
 ##
  # configure.ac
- # Copyright (C) 2015-2019 Peter Belkner <pbelkner@users.sf.net>
+ # Copyright (C) 2015-2019 Peter Belkner <info@pbelkner.de>
  # This program is free software; you can redistribute it and/or
  # modify it under the terms of the GNU General Public
  # License as published by the Free Software Foundation; either
@@ -25,7 +25,7 @@
 # AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes = `default-includes'])
 # AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 
-AC_INIT([bs1770gain], [0.7.0], [pbelkner@users.sf.net], [], [http://bs1770gain.sourceforge.net/])
+AC_INIT([bs1770gain], [0.8.0], [info@pbelkner.de], [], [http://pbelkner.de/])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR()
 AC_PROG_CC
@@ -342,13 +342,12 @@ else # ] [
 #  LIBS=" ${LIBS} -pthread"
   AC_CHECK_HEADER(pthread.h,
     AC_CHECK_LIB(pthread, pthread_create, [pthread=yes LIBS="${LIBS} -pthread"], pthread=no),
-    pthread=no,
-    [[#ifdef HAVE_PTHREAD
-    # include <pthread.h>
-    #endif]])
+    pthread=no)
   if test "x$pthread" == "xno" ; then # [
-    AC_MSG_ERROR([pthread not found])
-	else # ] [
+    AC_MSG_WARN([pthread not found])
+    AC_DEFINE([HAVE_PTHREAD], [0],
+        [Define to 1 if you have pthreads.])
+  else # ] [
     AC_DEFINE([HAVE_PTHREAD], [1],
         [Define to 1 if you have pthreads.])
   fi # ]

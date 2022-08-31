@@ -1,7 +1,7 @@
 /*
  * bgx.c
  *
- * Copyright (C) 2014-2019 Peter Belkner <pbelkner@users.sf.net>
+ * Copyright (C) 2014-2019 Peter Belkner <info@pbelkner.de>
  * Nanos gigantum humeris insidentes #TeamWhite
  *
  * This program is free software; you can redistribute it and/or
@@ -672,6 +672,7 @@ int main(int argc, char *const *argv)
 #if defined (BG_CLOCK) // [
   double t1,t2,sec;
 #endif // ]
+  int verbose;
 
   /////////////////////////////////////////////////////////////////////////////
   if (argc<2) {
@@ -820,6 +821,19 @@ int main(int argc, char *const *argv)
       if (!optarg) {
         param.flags.aggregate|=BG_FLAGS_AGG_TRUEPEAK;
         param.flags.extension=BG_FLAGS_EXT_ALL;
+#if defined (BG_PARAM_STEREO) // [
+        param.stereo=1;
+#else // ] [
+        param.decode.request.channel_layout=AV_CH_LAYOUT_STEREO;
+#endif // ]
+        param.decode.drc.enabled=1;
+#if 0 // [
+        param.decode.drc.scale=0.0;
+#endif // ]
+      }
+      else if (0==FFSTRCASECMP(FFL("2"),optarg)) {
+        param.flags.aggregate|=BG_FLAGS_AGG_TRUEPEAK;
+        param.flags.extension=BG_FLAGS_EXT_ALL&~BG_FLAGS_EXT_RENAME;
 #if defined (BG_PARAM_STEREO) // [
         param.stereo=1;
 #else // ] [
@@ -1442,10 +1456,6 @@ int main(int argc, char *const *argv)
   if (param.nthreads<0)
     param.nthreads=0;
   else if (param.nthreads) {
-#if 1 // [
-    param.quiet=1;
-#endif // ]
-
     if (bg_param_threads_create(&param.threads,param.nthreads)<0) {
       DMESSAGE("creating threads");
       goto e_threads;
@@ -1458,6 +1468,9 @@ int main(int argc, char *const *argv)
 #if defined (BG_WIN32_CREATE_LOCALE) // [
   param.locale=_create_locale(LC_ALL,"");
 #endif // ]
+  // needed in order for _wcslwr() working as expected.
+  //_wsetlocale(LC_ALL,L"English_US");
+  _wsetlocale(LC_ALL,L"");
   // if LANG is set to e.g. "en_US.UTF-8" we assume we're run from
   // e.g. MSYS2 shell undestanding UTF-8 otherwise from MS console using
   // codepage OEM. In the latter case we need an OEM representation of
@@ -1519,20 +1532,18 @@ int main(int argc, char *const *argv)
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (BG_PARAM_QUIET) // [
-  if (!param.quiet&&!param.suppress.progress) {
+  verbose=!param.quiet&&!param.suppress.progress;
 #else // ] [
-  if (!param.suppress.progress) {
+  verbose=!param.suppress.progress;
 #endif // ]
+
+  if (verbose) {
     if (&bg_print_xml_vmt==param.print.vmt)
       fputs("<!-- ",stdout);
 
     fputs("scanning ",stdout);
     fflush(stdout);
-#if ! defined (BG_PARAM_QUIET) // [
   }
-#else // ] [
-  }
-#endif // ]
 
 #if defined (BG_CLOCK) // [
   /////////////////////////////////////////////////////////////////////////////
@@ -1545,11 +1556,12 @@ int main(int argc, char *const *argv)
     goto e_count;
   }
 
-#if defined (BG_PARAM_QUIET) // [
-  if (!param.quiet&&!param.suppress.progress) {
-#else // ] [
-  if (!param.suppress.progress) {
+#if defined (BG_PARAM_THREADS) // [
+  if (0<param.nthreads)
+    param.quiet=1;
 #endif // ]
+
+  if (verbose) {
     ///////////////////////////////////////////////////////////////////////////
     if (&bg_print_xml_vmt==param.print.vmt)
       fputs(" -->",stdout);
@@ -1566,11 +1578,7 @@ int main(int argc, char *const *argv)
 
     fputc('\n',stdout);
     fflush(stdout);
-#if ! defined (BG_PARAM_QUIET) // [
   }
-#else // ] [
-  }
-#endif // ]
 
   bg_param_set_process(&param);
 
@@ -1579,11 +1587,7 @@ int main(int argc, char *const *argv)
     goto e_process;
   }
 
-#if defined (BG_PARAM_QUIET) // [
-  if (!param.quiet&&!param.suppress.progress) {
-#else // ] [
-  if (!param.suppress.progress) {
-#endif // ]
+  if (verbose) {
     ///////////////////////////////////////////////////////////////////////////
     if (&bg_print_xml_vmt==param.print.vmt)
       fputs("<!-- ",stdout);
@@ -1595,11 +1599,7 @@ int main(int argc, char *const *argv)
 
     fputc('\n',stdout);
     fflush(stdout);
-#if ! defined (BG_PARAM_QUIET) // [
   }
-#else // ] [
-  }
-#endif // ]
 
 #if defined (BG_CLOCK) // [
   /////////////////////////////////////////////////////////////////////////////

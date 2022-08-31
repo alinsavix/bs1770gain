@@ -1,6 +1,6 @@
 /*
  * lib1770_block.c
- * Copyright (C) 2014 Peter Belkner <pbelkner@users.sf.net>
+ * Copyright (C) 2014 Peter Belkner <info@pbelkner.de>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public

@@ -1,7 +1,7 @@
 /*
  * ff_resampler.c
  *
- * Copyright (C) 2019 Peter Belkner <pbelkner@users.sf.net>
+ * Copyright (C) 2019 Peter Belkner <info@pbelkner.de>
  * Nanos gigantum humeris insidentes #TeamWhite
  *
  * This program is free software; you can redistribute it and/or

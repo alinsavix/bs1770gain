@@ -1,5 +1,5 @@
 /*
- * bg_rm.c
+ * charnexta.c
  *
  * Copyright (C) 2019 Peter Belkner <info@pbelkner.de>
  * Nanos gigantum humeris insidentes #TeamWhite
@@ -19,33 +19,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#include <ff.h>
 
-int ff_rm(const ffchar_t *path)
+#include <bg.h>
+
+#if defined (BG_CHAR_NEXTA) // [
+enum {
+  // cf. e.g. "https://en.wikipedia.org/wiki/UTF-8#Description".
+  MASK_ONE_BYTE=~(1u<<7u),
+  MASK_TWO_BYTES=~(1u<<5u),
+  MASK_THREE_BYTES=~(1u<<4u),
+  MASK_FOUR_BYTES=~(1u<<3u),
+};
+
+const char *bg_char_nexta(const char *str)
 {
-//FFVWRITELN(FFL("rm \"%s\""),path);
-#if defined (_WIN32) // [
-  DWORD dwError;
-
-  if (!DeleteFileW(path)) {
-    dwError=GetLastError();
-
-    switch (dwError) {
-    default:
-      DVMESSAGEW(L"removing \"%s\" (%lu)",path,dwError);
-      break;
-    }
-
-    goto e_remove;
+  if (*(const uint8_t *)str==(MASK_ONE_BYTE&*(const uint8_t *)str))
+    return str+1;
+  else if (*(const uint8_t *)str==(MASK_TWO_BYTES&*(const uint8_t *)str))
+    return str+2;
+  else if (*(const uint8_t *)str==(MASK_THREE_BYTES&*(const uint8_t *)str))
+    return str+3;
+  else if (*(const uint8_t *)str==(MASK_FOUR_BYTES&*(const uint8_t *)str))
+    return str+4;
+  else {
+    DVMESSAGE("unexpected byte: %02x",*str);
+    exit(1);
+    return NULL;
   }
-#else // ] [
-  if (remove(path)<0) {
-    DVMESSAGE("removing \"%s\"",path);
-    goto e_remove;
-  }
-#endif // ]
-  return 0;
-//cleanup:
-e_remove:
-  return -1;
 }
+#endif // ]
