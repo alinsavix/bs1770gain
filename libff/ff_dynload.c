@@ -1,6 +1,8 @@
 /*
- * ff.c
+ * ff_dynload.c
+ *
  * Copyright (C) 2014 Peter Belkner <pbelkner@users.sf.net>
+ * Nanos gigantum humeris insidentes #TeamWhite
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -592,6 +594,8 @@ static struct _ff_avcodec {
   void (*avcodec_free_context)(AVCodecContext **avctx);
   AVPacket *(*av_packet_alloc)(void);
   void (*av_packet_free)(AVPacket **pkt);
+  AVCodecParameters *(*avcodec_parameters_alloc)(void);
+  void (*avcodec_parameters_free)(AVCodecParameters **par);
   int (*avcodec_parameters_copy)(AVCodecParameters *dst,
       const AVCodecParameters *src);
   int (*avcodec_parameters_to_context)(AVCodecContext *codec,
@@ -810,6 +814,22 @@ void av_packet_free(AVPacket **pkt)
     return;
 
   avcodec.av_packet_free(pkt);
+}
+
+AVCodecParameters *avcodec_parameters_alloc(void)
+{
+  if (avcodec_load_sym(&avcodec.avcodec_parameters_alloc,__func__)<0)
+    return NULL;
+
+  return avcodec.avcodec_parameters_alloc();
+}
+
+void avcodec_parameters_free(AVCodecParameters **par)
+{
+  if (avcodec_load_sym(&avcodec.avcodec_parameters_free,__func__)<0)
+    return;
+
+  avcodec.avcodec_parameters_free(par);
 }
 
 int avcodec_parameters_copy(AVCodecParameters *dst,
