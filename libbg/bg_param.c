@@ -27,12 +27,20 @@ static bg_pilot_callback_t bg_pilot_callback;
 ///////////////////////////////////////////////////////////////////////////////
 static bg_param_unit_t bg_param_unit_ebu={
   .n.lu="LU",
+#if defined (BG_UNIT_LRA) // [
   .n.lra="LRA",
+#else // ] [
+  .n.lra="LU",
+#endif // ]
   .n.sp="SP",
   .n.tp="TP",
 #if defined (_WIN32) // [
   .w.lu=L"LU",
+#if defined (BG_UNIT_LRA) // [
   .w.lra=L"LRA",
+#else // ] [
+  .w.lra=L"LU",
+#endif // ]
   .w.sp=L"SP",
   .w.tp=L"TP",
 #endif // ]
@@ -64,8 +72,13 @@ int bg_param_create(bg_param_t *param)
 #if defined (BG_PARAM_SCRIPT) // [
   param->script=NULL;
 #endif // ]
-#if defined (BG_PARAM_REFERENCE) // [
-  param->reference=NULL;
+#if defined (BG_SAMPLES_COUNT) // [
+  param->upsampler.threshould=0;
+#endif // ]
+
+  param->csv.separator=FFL('\t');
+#if defined (BG_PARAM_XML_CDATA) // [
+  param->xml.cdata=0;
 #endif // ]
 
 #if defined (BG_PARAM_SHELL) // [
@@ -76,6 +89,11 @@ int bg_param_create(bg_param_t *param)
   param->shell.interpreter="/bin/sh";
   param->shell.parameter="-c";
 #endif // ]
+#endif // ]
+
+#if defined (FF_INPUT_LIST) // [
+  param->list.in=0;
+  param->list.out=0;
 #endif // ]
 
   if (bg_pilot_create(&param->pilot,20,&bg_pilot_callback,param)<0) {
@@ -90,10 +108,17 @@ int bg_param_create(bg_param_t *param)
 
   param->print.vmt=&bg_print_classic_vmt;
 
+#if defined (FF_PROGRESS_STDERR) // [
+  if (ff_printer_create(&param->printer,stderr)<0) {
+    _DMESSAGE("creating printer");
+    goto e_printer;
+  }
+#else // ] [
   if (ff_printer_create(&param->printer,stdout)<0) {
     _DMESSAGE("creating printer");
     goto e_printer;
   }
+#endif // ]
 
   param->loglevel=AV_LOG_QUIET;
 #if defined (_WIN32) // [
@@ -182,6 +207,9 @@ int bg_param_create(bg_param_t *param)
   param->shortterm.range.lower_bound=0.1;
   param->shortterm.range.upper_bound=0.95;
 
+#if defined (FF_PROGRESS_STDERR) // [
+  param->stdprog=stderr;
+#endif // ]
   /////////////////////////////////////////////////////////////////////////////
   return 0;
 //cleanup:

@@ -83,6 +83,7 @@ static void ff_dynload_list_append(ff_dynload_node_t *node,
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
+#define FF_AVLOGLEVEL
 static struct _ff_avutil {
   ff_dynload_node_t node;
   unsigned (*avutil_version)(void);
@@ -94,7 +95,6 @@ static struct _ff_avutil {
   void (*av_frame_set_best_effort_timestamp)(AVFrame *frame, int64_t val);
   int (*av_log_get_level)(void);
 #endif // ]
-  void (*av_log_set_level)(int level);
 #if 0 // [
   const char *(*av_get_sample_fmt_name)(enum AVSampleFormat sample_fmt);
 #if 0 // [
@@ -169,6 +169,10 @@ static struct _ff_avutil {
 #if 0 // [
   AVBufferRef *(*av_buffer_ref)(AVBufferRef *buf);
 #endif // ]
+#if defined (FF_AVLOGLEVEL) // [
+  int (*av_log_get_level)(void);
+  void (*av_log_set_level)(int level);
+#endif // ]
 } avutil;
 
 static int avutil_load_sym(void *p, const char *sym);
@@ -232,6 +236,15 @@ int av_log_get_level(void)
 }
 #endif // ]
 
+#if defined (FF_AVLOGLEVEL) // [
+int av_log_get_level(void)
+{
+  if (avutil_load_sym(&avutil.av_log_get_level,__func__)<0)
+    return 0;
+
+  return avutil.av_log_get_level();
+}
+
 void av_log_set_level(int level)
 {
   if (avutil_load_sym(&avutil.av_log_set_level,__func__)<0)
@@ -239,6 +252,7 @@ void av_log_set_level(int level)
 
   avutil.av_log_set_level(level);
 }
+#endif // ]
 
 #if 0 // [
 const char *av_get_sample_fmt_name(enum AVSampleFormat sample_fmt)
@@ -600,9 +614,9 @@ static struct _ff_avcodec {
 	AVCodec *(*av_codec_next)(const AVCodec *c);
 	AVOutputFormat *(*av_oformat_next)(const AVOutputFormat *f);
 #endif // ]
-  AVCodec *(*avcodec_find_decoder)(enum AVCodecID id);
-  AVCodec *(*avcodec_find_decoder_by_name)(const char *name);
-  AVCodec *(*avcodec_find_encoder)(enum AVCodecID id);
+  FF_CONST AVCodec *(*avcodec_find_decoder)(enum AVCodecID id);
+  FF_CONST AVCodec *(*avcodec_find_decoder_by_name)(const char *name);
+  FF_CONST AVCodec *(*avcodec_find_encoder)(enum AVCodecID id);
   int (*avcodec_open2)(AVCodecContext *avctx, const AVCodec *codec,
       AVDictionary **options);
 #if 0 // [
@@ -642,7 +656,7 @@ static struct _ff_avcodec {
       const AVCodecContext *codec);
   const char *(*avcodec_get_name)(enum AVCodecID id);
   void (*avcodec_flush_buffers)(AVCodecContext *avctx);
-  AVCodec *(*avcodec_find_encoder_by_name)(const char *name);
+  FF_CONST AVCodec *(*avcodec_find_encoder_by_name)(const char *name);
   const AVCodec *(*av_codec_iterate)(void **opaque);
 #if 0 // [
   void (*av_init_packet)(AVPacket *pkt);
@@ -698,7 +712,7 @@ AVOutputFormat *av_oformat_next(const AVOutputFormat *f)
 }
 #endif // ]
 
-AVCodec *avcodec_find_decoder(enum AVCodecID id)
+FF_CONST AVCodec *avcodec_find_decoder(enum AVCodecID id)
 {
   if (avcodec_load_sym(&avcodec.avcodec_find_decoder,__func__)<0)
     return NULL;
@@ -706,7 +720,7 @@ AVCodec *avcodec_find_decoder(enum AVCodecID id)
   return avcodec.avcodec_find_decoder(id);
 }
 
-AVCodec *avcodec_find_decoder_by_name(const char *name)
+FF_CONST AVCodec *avcodec_find_decoder_by_name(const char *name)
 {
   if (avcodec_load_sym(&avcodec.avcodec_find_decoder_by_name,__func__)<0)
     return NULL;
@@ -714,7 +728,7 @@ AVCodec *avcodec_find_decoder_by_name(const char *name)
   return avcodec.avcodec_find_decoder_by_name(name);
 }
 
-AVCodec *avcodec_find_encoder(enum AVCodecID id)
+FF_CONST AVCodec *avcodec_find_encoder(enum AVCodecID id)
 {
   if (avcodec_load_sym(&avcodec.avcodec_find_encoder,__func__)<0)
     return NULL;
@@ -929,7 +943,7 @@ void avcodec_flush_buffers(AVCodecContext *avctx)
   avcodec.avcodec_flush_buffers(avctx);
 }
 
-AVCodec *avcodec_find_encoder_by_name(const char *name)
+FF_CONST AVCodec *avcodec_find_encoder_by_name(const char *name)
 {
   if (avcodec_load_sym(&avcodec.avcodec_find_encoder_by_name,__func__)<0)
     return NULL;
@@ -972,13 +986,13 @@ static struct _ff_avformat {
   void (*av_register_all)(void);
 #endif // ]
   int (*avformat_open_input)(AVFormatContext **ps, const char *filename,
-      AVInputFormat *fmt, AVDictionary **options);
+      FF_CONST AVInputFormat *fmt, AVDictionary **options);
   int (*avformat_find_stream_info)(AVFormatContext *ic,
       AVDictionary **options);
   int (*av_read_frame)(AVFormatContext *s, AVPacket *pkt);
   void (*avformat_close_input)(AVFormatContext **s);
   int (*avformat_alloc_output_context2)(AVFormatContext **ctx,
-      AVOutputFormat *oformat, const char *format_name,
+      FF_CONST AVOutputFormat *oformat, const char *format_name,
       const char *filename);
   void (*avformat_free_context)(AVFormatContext *s);
   AVStream *(*avformat_new_stream)(AVFormatContext *s, const AVCodec *c);
@@ -1024,7 +1038,7 @@ void av_register_all(void)
 #endif // ]
 
 int avformat_open_input(AVFormatContext **ps, const char *filename,
-    AVInputFormat *fmt, AVDictionary **options)
+    FF_CONST AVInputFormat *fmt, AVDictionary **options)
 {
   if (avformat_load_sym(&avformat.avformat_open_input,__func__)<0)
     return -1;
@@ -1057,7 +1071,7 @@ void avformat_close_input(AVFormatContext **s)
 }
 
 int avformat_alloc_output_context2(AVFormatContext **ctx,
-    AVOutputFormat *oformat, const char *format_name,
+    FF_CONST AVOutputFormat *oformat, const char *format_name,
     const char *filename)
 {
   if (avformat_load_sym(&avformat.avformat_alloc_output_context2,__func__)<0)

@@ -338,12 +338,12 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
 #if defined (BG_PARAM_THREADS) // [
   /////////////////////////////////////////////////////////////////////////////
   tree->helper.nchildren=tree->album.nchildren.cur;
-_DWRITELNV(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
+//_DWRITELNV(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   for (cur=tree->album.first;cur;cur=cur->next) {
-_DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
+//_DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
     if (cur->vmt->accept(cur,vis)<0) {
       _DMESSAGEV("analyzing \"%" PBU_PRIs "\"",cur->source.path);
       goto e_child;
@@ -393,11 +393,19 @@ _DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
 #else // ] [
     if (!param->suppress.progress) {
 #endif // ]
+#if defined (FF_PROGRESS_STDERR) // [
+      if (&bg_print_xml_vmt==param->print.vmt)
+        _FPRINTF(param->stdprog,"<!-- ");
+
+      _FPRINTF(param->stdprog,"begin remuxing ...\n");
+      fflush(param->stdprog);
+#else // ]
       if (&bg_print_xml_vmt==param->print.vmt)
         _FPRINTF(stdout,"<!-- ");
 
       _FPRINTF(stdout,"begin remuxing ...\n");
       fflush(stdout);
+#endif // ]
 #if ! defined (BG_PARAM_QUIET) // [
     }
 #else // ] [
@@ -416,11 +424,19 @@ _DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
 #endif // ]
       _FPRINTF(stdout,"end remuxing.");
 
+#if defined (FF_PROGRESS_STDERR) // [
+      if (&bg_print_xml_vmt==param->print.vmt)
+        _FPRINTF(param->stdprog," -->");
+
+      _FPRINTF(param->stdprog,"\n");
+      fflush(param->stdprog);
+#else // ]
       if (&bg_print_xml_vmt==param->print.vmt)
         _FPRINTF(stdout," -->");
 
       _FPRINTF(stdout,"\n");
       fflush(stdout);
+#endif // ]
 #if ! defined (BG_PARAM_QUIET) // [
     }
 #else // ] [
@@ -432,9 +448,10 @@ _DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
 
       if (verbose) {
         if (tree->source.path) {
-          if (&bg_print_xml_vmt==param->print.vmt)
+          if (&bg_print_xml_vmt==param->print.vmt) {
             _FPRINTF(stdout,"<!-- ");
             _FPRINTFV(stdout,"\"%" PBU_PRIs "\"",tree->source.path);
+					}
 
           if (&bg_print_xml_vmt==param->print.vmt)
             _FPRINTF(stdout," -->\n");

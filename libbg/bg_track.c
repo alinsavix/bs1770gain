@@ -21,6 +21,7 @@
  */
 #include <bg.h>
 
+FF_DISABLE_DEPRECATION_WARNINGS // [
 ///////////////////////////////////////////////////////////////////////////////
 static bg_tree_vmt_t bg_track_vmt;
 static ff_input_callback_t bg_input_callback;
@@ -52,7 +53,12 @@ int bg_track_content_create(bg_tree_t *tree)
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (BG_TREE_CREATE_CHILD_WARNING) // [
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+  err=ff_input_create(&track->input,&bg_input_callback,tree,1,param->ai,
+			param->vi);
+#else // ] [
   err=ff_input_create(&track->input,&bg_input_callback,tree,1);
+#endif // ]
 
   if (err<0) {
 #if defined (_WIN32) // [
@@ -63,7 +69,21 @@ int bg_track_content_create(bg_tree_t *tree)
     goto e_input;
   }
 #else // ] [
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+#if defined (FF_INPUT_LIST) // [
+  err=ff_input_create(&track->input,&bg_input_callback,tree,0,p,
+      param->process&&param->list.in,param->ai,param->vi);
+#else // ] [
+  err=ff_input_create(&track->input,&bg_input_callback,tree,0,p,param->ai);
+#endif // ]
+#else // ] [
+#if defined (FF_INPUT_LIST) // [
+  err=ff_input_create(&track->input,&bg_input_callback,tree,0,p,
+      param->process&&param->list.in);
+#else // ] [
   err=ff_input_create(&track->input,&bg_input_callback,tree,0,p);
+#endif // ]
+#endif // ]
 
   if (err<0)
     goto e_input;
@@ -84,7 +104,11 @@ int bg_track_content_create(bg_tree_t *tree)
 #else // ] [
   if (!param->process&&!param->suppress.progress) {
 #endif // ]
+#if defined (FF_PROGRESS_STDERR) // [
+    ff_printer_reset(p,stderr);
+#else // ] [
     ff_printer_reset(p);
+#endif // ]
     _FF_PRINTER_PRINTF(p,"%d",track->root.id);
 #if ! defined (BG_PARAM_QUIET) // [
   }
@@ -297,16 +321,27 @@ static int input_stats_add(void *data, int upsampled, AVFrame *frame)
   bg_track_t *track=&tree->track;
   lib1770_sample_t sample={ 0 };
   ff_iter_t i={ 0 };
+#if defined (BG_SAMPLES_COUNT) // [
+  int count=0;
+#endif // ]
 
   if (frame) {
     for (ff_iter_first(&i,frame);i.vmt->valid(&i);i.vmt->next(&i)) {
 //DWRITELN("{");
       if (upsampled) {
+#if defined (BG_SAMPLES_COUNT) // [
+        if (count<tree->param->upsampler.threshould) {
+          ++count;
+          continue;
+        }
+#endif // ]
+
 #if defined (FF_UPSAMPLE_MODIFYX) // [
         i.vmt->norm(&i,NULL,&tree->stats.truepeak,upsampled);
 #else // ] [
         i.vmt->norm(&i,NULL,&tree->stats.truepeak);
 #endif // ]
+//DVWRITELN("peak: %lf",tree->stats.truepeak);
       }
       else if (track->filter.pre) {
 //DWRITELN(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -384,3 +419,5 @@ static ff_input_callback_t bg_input_callback={
   .stats.flush=input_stats_flush,
 #endif // ]
 };
+
+FF_ENABLE_DEPRECATION_WARNINGS // ]

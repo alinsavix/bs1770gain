@@ -53,6 +53,7 @@ libbg_a_SOURCES+=bg_threads_helper.c
 libbg_a_SOURCES+=bg_param_threads.c
 libbg_a_SOURCES+=bg_param.c
 libbg_a_SOURCES+=bg_print_conf.c
+libbg_a_SOURCES+=bg_print_csv.c
 libbg_a_SOURCES+=bg_print_xml.c
 libbg_a_SOURCES+=bg_print_classic.c
 libbg_a_SOURCES+=bg_annotator.c

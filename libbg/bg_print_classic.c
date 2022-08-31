@@ -21,41 +21,61 @@
  */
 #include <bg.h>
 
-static int bg_print_conf_len(bg_print_conf_t *c, bg_tree_t *tree FFUNUSED)
+static void bg_print_classic_indent(FILE *f, int width)
 {
+  enum { SIZE=128 };
+  
+  union {
 #if defined (_WIN32) // [
-  return wcslen(c->w.label);
-#else // ] [
-  return strlen(c->n.label);
+    // wide string representation.
+    wchar_t w[SIZE];
+#endif // ]
+    // narrow string representation.
+    char n[SIZE];
+  } format;
+
+  width+=2;
+
+  // indentation.
+#if defined (_WIN32) // [
+  if (stdout!=f&&stderr!=f) {
+    _snwprintf(format.w,SIZE,L"%%%ds",width);
+    fwprintf(f,format.w,L"");
+  }
+  else {
+#endif // ]
+    snprintf(format.n,SIZE,"%%%ds",width);
+    fprintf(f,format.n,"");
+#if defined (_WIN32) // [
+  }
 #endif // ]
 }
 
-static void bg_print_conf_tail(bg_print_conf_t *c, bg_tree_t *tree,
-    int width, FILE *f)
+static void bg_print_conf_tail(bg_print_conf_t *c, bg_tree_t *tree FFUNUSED,
+    int width FFUNUSED, FILE *f FFUNUSED)
 {
-  enum { FORMAT_SIZE=128 };
-
-  struct {
-#if defined (_WIN32) // [
-    wchar_t w[FORMAT_SIZE];
-#else // ] [
-    char n[FORMAT_SIZE];
-#endif // ]
-  } format;
-
-#if defined (_WIN32) // [
-  _snwprintf(format.w,FORMAT_SIZE,c->w.format.classic,width);
-#else // ] [
-  snprintf(format.n,FORMAT_SIZE,c->n.format.classic,width);
-#endif // ]
-
   switch (c->argc) {
   case 1:
-    if (c->argv[0]) {
+    if (c->argv[0].fn) {
 #if defined (_WIN32) // [
-      fwprintf(f,format.w,c->w.label,c->argv[0](tree),c->n.unit(tree));
-#else // ] [
-      fprintf(f,format.n,c->n.label,c->argv[0](tree),c->n.unit(tree));
+      if (stdout!=f&&stderr!=f) {
+        bg_print_classic_indent(f,width-wcslen(c->w.label.classic));
+        fwprintf(f,L"%S: ",c->w.label.classic);
+        fwprintf(f,c->argv[0].w.format,c->argv[0].fn(tree));
+        fputwc(L' ',f);
+        bg_print_conf_unitw(f,0,c,tree->param,0);
+        fputwc(L'\n',f);
+      }
+      else {
+#endif // ]
+        bg_print_classic_indent(f,width-strlen(c->n.label.classic));
+        fprintf(f,"%s: ",c->n.label.classic);
+        fprintf(f,c->argv[0].n.format,c->argv[0].fn(tree));
+        fputc(' ',f);
+        bg_print_conf_unit(f,0,c,tree->param,0);
+        fputc('\n',f);
+#if defined (_WIN32) // [
+      }
 #endif // ]
     }
     else
@@ -63,14 +83,36 @@ static void bg_print_conf_tail(bg_print_conf_t *c, bg_tree_t *tree,
 
     break;
   case 2:
-    if (c->argv[0]&&c->argv[1]) {
+    if (c->argv[0].fn&&c->argv[1].fn) {
 #if defined (_WIN32) // [
-      fwprintf(f,format.w,c->n.label,c->argv[0](tree),c->n.unit(tree),
-          c->argv[1](tree),c->n.unit(tree));
-#else // ] [
-      fprintf(f,format.n,c->n.label,c->argv[0](tree),c->n.unit(tree),
-          c->argv[1](tree),c->n.unit(tree));
+      if (stdout!=f&&stderr!=f) {
+        bg_print_classic_indent(f,width-wcslen(c->w.label.classic));
+        fwprintf(f,L"%S: ",c->w.label);
+        fwprintf(f,c->argv[0].w.format,c->argv[0].fn(tree));
+        fputwc(L' ',f);
+        bg_print_conf_unitw(f,0,c,tree->param,0);
+        fwprintf(f,L" / ");
+        fwprintf(f,c->argv[1].w.format,c->argv[1].fn(tree));
+        fputwc(L' ',f);
+        bg_print_conf_unitw(f,0,c,tree->param,1);
+        fputwc(L'\n',f);
+      }
+      else {
 #endif // ]
+        bg_print_classic_indent(f,width-strlen(c->n.label.classic));
+        fprintf(f,"%s: ",c->n.label.classic);
+        fprintf(f,c->argv[0].n.format,c->argv[0].fn(tree));
+        fputc(' ',f);
+        bg_print_conf_unit(f,0,c,tree->param,0);
+        fprintf(f," / ");
+        fprintf(f,c->argv[1].n.format,c->argv[1].fn(tree));
+        fputc(' ',f);
+        bg_print_conf_unit(f,0,c,tree->param,1);
+        fputc('\n',f);
+#if defined (_WIN32) // [
+      }
+#endif // ]
+      fflush(f);
     }
     else
       _DWARNING("argv[0]/argv[1]");
@@ -88,7 +130,17 @@ static void bg_print_classic_encoding(bg_param_t *param, int bits)
   param->result.bits=bits;
 }
 
-static int bg_print_classic_width(bg_tree_t *tree)
+static int bg_print_conf_len(bg_print_conf_t *c, FILE *f FFUNUSED)
+{
+#if defined (_WIN32) // [
+  if (stdout!=f&&stderr!=f)
+    return wcslen(c->w.label.classic);
+  else
+#endif // ]
+    return strlen(c->n.label.classic);
+}
+
+static int bg_print_classic_width(bg_tree_t *tree, FILE *f)
 {
   // path 1:  determine the maximum length of the involved labels.
   int width=-1;
@@ -101,12 +153,12 @@ static int bg_print_classic_width(bg_tree_t *tree)
       // this aggregation isn't involved.
       continue;
     }
-    else if (agg!=c->aggregate) {
+    else if (agg!=c->agg) {
       // wrong order.
       _DWARNING("aggregate mismatch");
       continue;
     }
-    else if ((len=bg_print_conf_len(c,tree))<0) {
+    else if ((len=bg_print_conf_len(c,f))<0) {
       _DWARNING("getting length");
       continue;
     }
@@ -132,18 +184,41 @@ static int bg_print_classic_head(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
     break;
   case BG_TREE_TYPE_TRACK:
     track=&tree->track;
-    _FPRINTFV(f,"[%lu/%lu] %s\n",track->root.id,tree->param->count.max,
-        bg_tree_in_basename(tree));
+
+#if defined (_WIN32) // [
+    if (stdout!=f&&stderr!=f) {
+      fwprintf(f,L"[%lu/%lu] %S\n",track->root.id,tree->param->count.max,
+          tree->source.basename);
+    }
+    else {
+#endif // ]
+      fprintf(f,"[%lu/%lu] %s\n",track->root.id,tree->param->count.max,
+          bg_tree_in_basename(tree));
+#if defined (_WIN32) // [
+    }
+#endif // ]
 
     break;
   case BG_TREE_TYPE_ALBUM:
-    if (!tree->param->suppress.hierarchy)
-      _FPRINTFV(f,"[ALBUM] %s\n",bg_tree_in_basename(tree));
+    if (!tree->param->suppress.hierarchy) {
+#if defined (_WIN32) // [
+      if (stdout!=f&&stderr!=f)
+        fwprintf(f,L"[ALBUM] %S\n",tree->source.basename);
+      else
+#endif // ]
+        fprintf(f,"[ALBUM] %s\n",bg_tree_in_basename(tree));
+    }
 
     break;
   case BG_TREE_TYPE_ROOT:
-    if (!tree->param->suppress.hierarchy)
-      _FPRINTF(f,"[COLLECTION]\n");
+    if (!tree->param->suppress.hierarchy) {
+#if defined (_WIN32) // [
+      if (stdout!=f&&stderr!=f)
+        fwprintf(f,L"[COLLECTION]\n");
+      else
+#endif // ]
+        fprintf(f,"[COLLECTION]\n");
+    }
 
     break;
   default:
@@ -165,7 +240,7 @@ static int bg_print_classic_tail(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
 {
   int suppress_hierarchy=tree->param->suppress.hierarchy;
   // path 1:  determine the maximum length of the involved labels.
-  int width=bg_print_classic_width(tree);
+  int width=bg_print_classic_width(tree,f);
   // path 2:  print out the results aligned according to the maximum length
   //   of the involved labels.
   bg_flags_agg_t agg;
@@ -187,7 +262,7 @@ static int bg_print_classic_tail(bg_tree_t *tree, int depth FFUNUSED, FILE *f)
         // the aggregation isn't involved.
         continue;
       }
-      else if (agg!=c->aggregate) {
+      else if (agg!=c->agg) {
         // wrong order.
         _DWARNING("aggregate mismatch");
         continue;

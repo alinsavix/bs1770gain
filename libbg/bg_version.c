@@ -28,6 +28,8 @@
 #define UNUSED
 #endif // ]
 
+#define BG_COMMAND
+
 #if defined (_WIN32) // [
 #include <windows.h>
 #include <stdio.h>
@@ -40,6 +42,30 @@ int wmain(int argc UNUSED, wchar_t *const *argv UNUSED)
 #endif // ]
 #include <string.h>
 #include <stdio.h>
+#include <stddef.h>
+
+#if defined (BG_COMMAND) && defined (__GNUC__) // [
+char *bg_command(const char *command,char *buf, size_t size)
+{
+	char *bp=buf;
+
+  FILE *p=popen(command,"r");
+
+  for (;;) {
+    int count=fread(buf,1,size,p);
+
+    if (0<count)
+      bp+=count;
+    else
+      break;
+  }
+
+	// skip newline
+	*--bp=0;
+
+	return buf;
+}
+#endif // ]
 
 int main(int argc UNUSED, char *const *argv UNUSED)
 #endif // ]
@@ -53,6 +79,9 @@ int main(int argc UNUSED, char *const *argv UNUSED)
   GetVersionExA(&buf);
 #else // ] [
   struct utsname buf;
+#if 0 && defined (BG_COMMAND) // [
+	char result[128];
+#endif // ]
 
   memset(&buf,0,sizeof buf);
   uname(&buf);
@@ -72,6 +101,12 @@ int main(int argc UNUSED, char *const *argv UNUSED)
   fprintf(f,"#define BG_WINDOWS_CSD_VESIONW L\"%s\"\n",buf.szCSDVersion);
 #else // ] [
   fprintf(f,"#define BG_POSIX_SYSNAME \"%s\"\n",buf.sysname);
+#if defined (BG_COMMAND) // [
+  fprintf(f,"#define BG_POSIX_NODENAME \"%s\"\n",bg_command("uname -n",
+		buf.nodename,sizeof buf.nodename));
+  fprintf(f,"#define BG_POSIX_RELEASE \"%s\"\n",bg_command("uname -m",
+		buf.release,sizeof buf.release));
+#endif // ]
   fprintf(f,"#define BG_POSIX_NODENAME \"%s\"\n",buf.nodename);
   fprintf(f,"#define BG_POSIX_RELEASE \"%s\"\n",buf.release);
   fprintf(f,"#define BG_POSIX_VERSION \"%s\"\n",buf.version);

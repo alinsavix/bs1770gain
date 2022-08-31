@@ -2,25 +2,25 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to libavcodec major version. */
-#define FF_AVCODEC_V "58"
+#define FF_AVCODEC_V "59"
 
 /* Define to libavfilter major version. */
-#define FF_AVFILTER_V "7"
+#define FF_AVFILTER_V "8"
 
 /* Define to libavformat major version. */
-#define FF_AVFORMAT_V "58"
+#define FF_AVFORMAT_V "59"
 
 /* Define to libavutil major version. */
-#define FF_AVUTIL_V "56"
+#define FF_AVUTIL_V "57"
 
 /* Define to libswscale major version. */
-#define FF_POSTPROC_V "55"
+#define FF_POSTPROC_V "56"
 
 /* Define to libswresample major version. */
-#define FF_SWRESAMPLE_V "3"
+#define FF_SWRESAMPLE_V "4"
 
 /* Define to libswscale major version. */
-#define FF_SWSCALE_V "5"
+#define FF_SWSCALE_V "6"
 
 /* Define to 1 if FFmpeg should be loaded dynamically. */
 #define HAVE_FF_DYNLOAD 1
@@ -31,14 +31,14 @@
 /* Define to 1 if you have libproc. */
 /* #undef HAVE_LIBPROC */
 
-/* Define to 1 if you have the <memory.h> header file. */
-#define HAVE_MEMORY_H 1
-
 /* Define to 1 if you have pthreads. */
 /* #undef HAVE_PTHREAD */
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#define HAVE_STDIO_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
@@ -68,7 +68,7 @@
 #define PACKAGE_NAME "bs1770gain"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "bs1770gain 0.8.3"
+#define PACKAGE_STRING "bs1770gain 0.8.4"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "bs1770gain"
@@ -77,10 +77,12 @@
 #define PACKAGE_URL "http://pbelkner.de/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.8.3"
+#define PACKAGE_VERSION "0.8.4"
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.8.3"
+#define VERSION "0.8.4"

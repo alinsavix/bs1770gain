@@ -306,8 +306,14 @@ static int bg_muxer_track(bg_tree_t *tree, bg_visitor_t *vis)
   // the output the format from decoding.
   codecpar=track->input.fmt.ctx->streams[track->input.ai]->codecpar;
   sample_fmt=hack?codecpar->format:AV_SAMPLE_FMT_NONE;
+#if defined (FF_INPUT_LIST) // [
+  err=ff_output_create(&output,&bg_output_callback,tree,sample_fmt,
+      param->process&&param->list.out);
+#else // ] [
+  err=ff_output_create(&output,&bg_output_callback,tree,sample_fmt);
+#endif // ]
 
-  if (ff_output_create(&output,&bg_output_callback,tree,sample_fmt)<0) {
+  if (err<0) {
     _DMESSAGE("creating output");
     goto e_output;
   }
@@ -918,7 +924,7 @@ static enum AVCodecID bg_muxer_codec_id(const void *data,
 {
   const bg_tree_t *tree=(const bg_tree_t *)data;
   const bg_param_t *param=tree->param;
-  AVCodec *codec;
+  FF_CONST AVCodec *codec;
   
   if (param->codec.name&&*param->codec.name) {
     codec=avcodec_find_encoder_by_name(param->codec.name);

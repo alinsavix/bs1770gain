@@ -26,6 +26,11 @@
 #endif // ]
 #include <stdio.h>
 
+//#define BG_PRINT_PARAM_CLASSIC
+//#define BG_UNIT_LRA
+
+#define BG_SAMPLES_COUNT
+#define BG_SERGEY_XML_FIX
 #define BG_PARAM_QUIET
 #if defined (BG_PARAM_QUIET) // [
 #if defined (HAVE_PTHREAD) || defined (_WIN32) // [
@@ -60,6 +65,7 @@ extern "C" {
 #endif // ]
 #endif // ]
 
+#define BG_PARAM_XML_CDATA
 #define BG_PARAM_SKIP_SCAN
 #define BG_PARAM_REFERENCE
 //#define BG_PARAM_NODE_VMT
@@ -74,6 +80,12 @@ extern "C" {
 #define BG_TEMP_PREFIX FFL(".")
 #define BG_CLOCK
 #define BG_TRACK_ID
+#if defined (_WIN32) // [
+//#define BG_UNICODE
+#if defined (BG_UNICODE) // [
+//#define BG_NUTF16
+#endif // ]
+#endif // ]
 //#define BG_PARAM_SLEEP
 //#define BG_BWF_TAGS
 //#define BG_TREE_CREATE_CHILD_WARNING
@@ -531,6 +543,7 @@ struct bg_print_vmt {
 
 extern bg_print_vmt_t bg_print_classic_vmt;
 extern bg_print_vmt_t bg_print_xml_vmt;
+extern bg_print_vmt_t bg_print_csv_vmt;
 
 ////////
 struct bg_param_block {
@@ -562,6 +575,7 @@ enum {
 };
 
 enum bg_flags_agg {
+#if 1 // [
   BG_FLAGS_AGG_MOMENTARY_MEAN=1<<BG_FLAGS_AGG_MOMENTARY_MEAN_OFFSET,
   BG_FLAGS_AGG_MOMENTARY_MAXIMUM=1<<BG_FLAGS_AGG_MOMENTARY_MAXIMUM_OFFSET,
   BG_FLAGS_AGG_MOMENTARY_RANGE=1<<BG_FLAGS_AGG_MOMENTARY_RANGE_OFFSET,
@@ -571,6 +585,17 @@ enum bg_flags_agg {
   BG_FLAGS_AGG_SAMPLEPEAK=1<<BG_FLAGS_AGG_SAMPLEPEAK_OFFSET,
   BG_FLAGS_AGG_TRUEPEAK=1<<BG_FLAGS_AGG_TRUEPEAK_OFFSET,
   BG_FLAGS_AGG_MAX=1<<BG_FLAGS_AGG_MAX_OFFSET,
+#else // ] [
+  BG_FLAGS_AGG_MOMENTARY_MEAN=1<<0,
+  BG_FLAGS_AGG_MOMENTARY_MAXIMUM=1<<1,
+  BG_FLAGS_AGG_MOMENTARY_RANGE=1<<2,
+  BG_FLAGS_AGG_SHORTTERM_MEAN=1<<3,
+  BG_FLAGS_AGG_SHORTTERM_MAXIMUM=1<<4,
+  BG_FLAGS_AGG_SHORTTERM_RANGE=1<<5,
+  BG_FLAGS_AGG_SAMPLEPEAK=1<<6,
+  BG_FLAGS_AGG_TRUEPEAK=1<<7,
+  BG_FLAGS_AGG_MAX=1<<8,
+#endif // ]
   BG_FLAGS_AGG_MOMENTARY
       =BG_FLAGS_AGG_MOMENTARY_MAXIMUM
       |BG_FLAGS_AGG_MOMENTARY_MEAN
@@ -774,6 +799,11 @@ struct bg_param {
   } count;
 
   int process;
+#if defined (FF_INPUT_LIST) // [
+  struct {
+    int in,out;
+  } list;
+#endif // ]
 #if defined (BG_PARAM_SKIP_SCAN) // [
   int skip_scan;
 #endif // ]
@@ -782,6 +812,27 @@ struct bg_param {
 #endif // ]
 #if defined (BG_PARAM_SCRIPT) // [
   ffchar_t *script;
+#endif // ]
+
+#if defined (BG_SAMPLES_COUNT) // [
+  struct {
+    int threshould;
+  } upsampler;
+#endif // ]
+
+  struct {
+    int separator;
+
+    struct {
+      int console;
+      int file;
+    } header;
+  } csv;
+
+#if defined (BG_PARAM_XML_CDATA) // [
+  struct {
+    int cdata;
+  } xml;
 #endif // ]
 
 #if defined (BG_PARAM_SHELL) // [
@@ -900,6 +951,10 @@ struct bg_param {
 #endif // ]
   bg_param_block_t momentary;
   bg_param_block_t shortterm;
+
+#if defined (FF_PROGRESS_STDERR) // [
+	FILE *stdprog;
+#endif // ]
 };
 
 int bg_param_create(bg_param_t *param);
@@ -914,39 +969,55 @@ int bg_param_loop(bg_param_t *param, ffchar_t *const *argv);
 
 ///////////////////////////////////////////////////////////////////////////////
 struct bg_print_conf {
-  bg_flags_agg_t aggregate;
+  bg_flags_agg_t agg;
 
-#if defined (_WIN32) // [
-  // when not writing to the console/shell (i.e. to a file) we need to use
-  // the wide character representation.
   struct {
-    const wchar_t *label;
-
+#if defined (_WIN32) // [
     struct {
-      const wchar_t *classic;
-      const wchar_t *xml;
-    } format;
-
-    const wchar_t *(*unit)(bg_tree_t *tree);
-  } w;
+      struct {
+        const wchar_t *classic;
+        const wchar_t *xml;
+        const wchar_t *csv;
+      } label;
+    } w;
 #endif // ]
 
-  // narrow character representation.
+    struct {
+      struct {
+        const char *classic;
+        const char *xml;
+        const char *csv;
+      } label;
+    } n;
+  };
+
   struct {
-    const char *label;
+    int argc;
 
     struct {
-      const char *classic;
-      const char *xml;
-    } format;
+      double (*fn)(bg_tree_t *tree);
 
-    const char *(*unit)(bg_tree_t *tree);
-  } n;
+#if defined (_WIN32) // [
+      struct {
+        const wchar_t *format;
+        const wchar_t *(*unit)(bg_param_t *param);
+      } w;
+#endif // ]
 
-  int unitc;
-  int argc;
-  double (*argv[2])(bg_tree_t *tree);
+      struct {
+        const char *format;
+        const char *(*unit)(bg_param_t *param);
+      } n;
+    } argv[2];
+  };
 };
+
+#if defined (_WIN32) // [
+void bg_print_conf_unitw(FILE *f, int lc, bg_print_conf_t *c,
+    bg_param_t *param, int argv);
+#endif // ]
+void bg_print_conf_unit(FILE *f, int lc, bg_print_conf_t *c,
+    bg_param_t *param, int argv);
 
 extern bg_print_conf_t bg_print_conf[BG_FLAGS_AGG_MAX_OFFSET];
 

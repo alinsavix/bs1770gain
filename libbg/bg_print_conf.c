@@ -20,6 +20,9 @@
  * MA  02110-1301  USA
  */
 #include <bg.h>
+#if ! defined (_WIN32) // [
+#include <ctype.h>
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 double bg_print_conf_norm(bg_tree_t *tree)
@@ -109,10 +112,23 @@ double bg_print_conf_shortterm_maximum_relative(bg_tree_t *tree)
 ////////
 double bg_print_conf_shortterm_range(bg_tree_t *tree)
 {
+#if 1 // [
   return lib1770_stats_get_range(tree->stats.shortterm,
       tree->param->shortterm.range.gate,
-      tree->param->momentary.range.lower_bound,
+      tree->param->shortterm.range.lower_bound,
       tree->param->shortterm.range.upper_bound);
+#else // ] [
+  double range;
+
+DWRITELN("===");
+  range=lib1770_stats_get_range(tree->stats.shortterm,
+      tree->param->shortterm.range.gate,
+      tree->param->shortterm.range.lower_bound,
+      tree->param->shortterm.range.upper_bound);
+DVWRITELN("=== range:%.02f",range);
+
+  return range;
+#endif // ]
 }
 
 ////////
@@ -191,101 +207,292 @@ const wchar_t *bg_print_conf_unit_tpw(bg_tree_t *tree)
 
 ////////
 #if defined (_WIN32) // [
-#define BG_CONF(agg,l,fc,u,uc,fx,c,v1,v2) { \
-  .aggregate=agg, \
-  .w.label=L##l, \
-  .w.format.classic=L##fc, \
-  .w.format.xml=L##fx, \
-  .w.unit=bg_print_conf_unit_##u##w, \
-  .n.label=l, \
-  .n.format.classic=fc, \
-  .n.format.xml=fx, \
-  .n.unit=bg_print_conf_unit_##u##m, \
-  .unitc=uc, \
-  .argc=c, \
-  .argv[0]=v1, \
-  .argv[1]=v2 \
+#define BG_CONF(AGG,LABEL1,LABEL2,LABEL3,ARGC,FN1,FORMAT1,FN2,FORMAT2) { \
+  .agg=AGG, \
+  .w.label={ .classic=L##LABEL1, .xml=L##LABEL2, .csv=L##LABEL3 }, \
+  .n.label={ .classic=LABEL1, .xml=LABEL2, .csv=LABEL3 }, \
+  .argc=ARGC, \
+  \
+  .argv={ \
+    { .fn=FN1, .w={ .format=L##FORMAT1 }, .n={ .format=FORMAT1 } }, \
+    { .fn=FN2, .w={ .format=L##FORMAT2 }, .n={ .format=FORMAT2 } }, \
+  } \
 }
 #else // ] [
-#define BG_CONF(agg,l,fc,u,uc,fx,c,v1,v2) { \
-  .aggregate=agg, \
-  .n.label=l, \
-  .n.format.classic=fc, \
-  .n.format.xml=fx, \
-  .n.unit=bg_print_conf_unit_##u##m, \
-  .unitc=uc, \
-  .argc=c, \
-  .argv[0]=v1, \
-  .argv[1]=v2 \
+#define BG_CONF(AGG,LABEL1,LABEL2,LABEL3,ARGC,FN1,FORMAT1,FN2,FORMAT2) { \
+  .agg=AGG, \
+  .n.label={ .classic=LABEL1, .xml=LABEL2, .csv=LABEL3 }, \
+  .argc=ARGC, \
+  \
+  .argv={ \
+    { .fn=FN1, .n={ .format=FORMAT1 } }, \
+    { .fn=FN2, .n={ .format=FORMAT2 } }, \
+  } \
 }
 #endif // ]
 
-#define BG_CONF1(agg,l,fc,u,uc,fx,v1) \
-    BG_CONF(agg,l,fc,u,uc,fx,1,v1,NULL)
-#define BG_CONF2(agg,l,fc,u,uc,fx,v1,v2) \
-    BG_CONF(agg,l,fc,u,uc,fx,2,v1,v2)
+#define BG_CONF1(AGG,LABEL1,LABEL2,LABEL3,FN1,FORMAT1) \
+    BG_CONF(AGG,LABEL1,LABEL2,LABEL3,1,FN1,FORMAT1,NULL,"")
+#define BG_CONF2(AGG,LABEL1,LABEL2,LABEL3,FN1,FORMAT1,FN2,FORMAT2) \
+    BG_CONF(AGG,LABEL1,LABEL2,LABEL3,2,FN1,FORMAT1,FN2,FORMAT2)
 
 bg_print_conf_t bg_print_conf[BG_FLAGS_AGG_MAX_OFFSET]={
   BG_CONF2(BG_FLAGS_AGG_MOMENTARY_MEAN,
       "integrated (momentary mean)",
-      "  %%%ds: %%.2f %%sFS / %%.2f %%s\n",
-      lu,
-      2,
-      "<integrated %sfs=\"%.2f\" %s=\"%.2f\"/>\n",
+      "integrated",
+      "integrated",
       bg_print_conf_momentary_mean,
-      bg_print_conf_momentary_mean_relative),
+      "%.2f",
+      bg_print_conf_momentary_mean_relative,
+      "%.2f"),
   BG_CONF2(BG_FLAGS_AGG_MOMENTARY_MAXIMUM,
       "momentary maximum",
-      "  %%%ds: %%.2f %%sFS / %%.2f %%s\n",
-      lu,
-      2,
-      "<momentary %sfs=\"%.2f\" %s=\"%.2f\"/>\n",
+      "momentary-maximum",
+      "momentary maximum",
       bg_print_conf_momentary_maximum,
-      bg_print_conf_momentary_maximum_relative),
+      "%.2f",
+      bg_print_conf_momentary_maximum_relative,
+      "%.2f"),
   BG_CONF1(BG_FLAGS_AGG_MOMENTARY_RANGE,
+#if defined (BG_UNIT_LRA) // [
       "momentary loudness range",
-      "  %%%ds: %%.2f %%s\n",
-      lra,
-      1,
-      "<momentary-range %s=\"%.2f\"/>\n",
-      bg_print_conf_momentary_range),
+      "momentary-range",
+      "momentary range",
+#else // ] [
+      "momentary lra",
+      "momentary-lra",
+      "momentary lra",
+#endif // ]
+      bg_print_conf_momentary_range,
+      "%.2f"),
   BG_CONF2(BG_FLAGS_AGG_SHORTTERM_MEAN,
       "shortterm mean",
-      "  %%%ds: %%.2f %%sFS / %%.2f %%s\n",
-      lu,
-      2,
-      "<shortterm-mean %sfs=\"%.2f\" %s=\"%.2f\"/>\n",
+      "shortterm-mean",
+      "shortterm mean",
       bg_print_conf_shortterm_mean,
-      bg_print_conf_shortterm_mean_relative),
+      "%.2f",
+      bg_print_conf_shortterm_mean_relative,
+      "%.2f"),
   BG_CONF2(BG_FLAGS_AGG_SHORTTERM_MAXIMUM,
       "shortterm maximum",
-      "  %%%ds: %%.2f %%sFS / %%.2f %%s\n",
-      lu,
-      2,
-      "<shortterm-maximum %sfs=\"%.2f\" %s=\"%.2f\"/>\n",
+      "shortterm-maximum",
+      "shortterm maximum",
       bg_print_conf_shortterm_maximum,
-      bg_print_conf_shortterm_maximum_relative),
+      "%.2f",
+      bg_print_conf_shortterm_maximum_relative,
+      "%.2f"),
   BG_CONF1(BG_FLAGS_AGG_SHORTTERM_RANGE,
-      "(shortterm) loudness range",
-      "  %%%ds: %%.2f %%s\n",
-      lra,
-      1,
-      "<range %s=\"%.2f\"/>\n",
-      bg_print_conf_shortterm_range),
+#if defined (BG_UNIT_LRA) // [
+      "shortterm loudness range",
+      "shortterm-range",
+      "shortterm range",
+#else // ] [
+      "shortterm lra",
+      "shortterm-lra",
+      "shortterm lra",
+#endif // ]
+      bg_print_conf_shortterm_range,
+#if 1 // [
+      "%.2f"
+#else
+      "%f"
+#endif // ]
+      ),
   BG_CONF2(BG_FLAGS_AGG_SAMPLEPEAK,
-      "sample peak (relative/absolute)",
-      "  %%%ds: %%.2f %%sFS / %%f\n",
-      sp,
-      1,
-      "<sample-peak %sfs=\"%.2f\" amplitude=\"%.2f\"/>\n",
+      "sample peak",
+      "sample-peak",
+      "sample peak",
       bg_print_conf_samplepeak_relative,
-      bg_print_conf_samplepeak_absolute),
+      "%.2f",
+      bg_print_conf_samplepeak_absolute,
+      "%f"),
   BG_CONF2(BG_FLAGS_AGG_TRUEPEAK,
-      "true peak (relative/absolute)",
-      "  %%%ds: %%.2f %%sFS / %%f\n",
-      tp,
-      1,
-      "<true-peak %sfs=\"%.2f\" amplitude=\"%.2f\"/>\n",
+      "true peak",
+      "true-peak",
+      "true peak",
       bg_print_conf_truepeak_relative,
-      bg_print_conf_truepeak_absolute),
+      "%.2f",
+      bg_print_conf_truepeak_absolute,
+      "%f"),
 };
+
+#if defined (_WIN32) // [
+void bg_print_conf_unitw(FILE *f, int lc FFUNUSED, bg_print_conf_t *c,
+    bg_param_t *param, int argv)
+{
+  const wchar_t *unit;
+
+  if (stdout==f||stderr==f) {
+    DMESSAGE("writing to consule");
+    return;
+  }
+
+  switch (c-bg_print_conf) {
+  case BG_FLAGS_AGG_MOMENTARY_MEAN_OFFSET:
+    unit=param->unit->w.lu;
+    break;
+  case BG_FLAGS_AGG_MOMENTARY_MAXIMUM_OFFSET:
+    unit=param->unit->w.lu;
+    break;
+  case BG_FLAGS_AGG_MOMENTARY_RANGE_OFFSET:
+    unit=param->unit->w.lra;
+    break;
+  case BG_FLAGS_AGG_SHORTTERM_MEAN_OFFSET:
+    unit=param->unit->w.lu;
+    break;
+  case BG_FLAGS_AGG_SHORTTERM_MAXIMUM_OFFSET:
+    unit=param->unit->w.lu;
+    break;
+  case BG_FLAGS_AGG_SHORTTERM_RANGE_OFFSET:
+    unit=param->unit->w.lra;
+    break;
+  case BG_FLAGS_AGG_SAMPLEPEAK_OFFSET:
+    unit=param->unit->w.sp;
+    break;
+  case BG_FLAGS_AGG_TRUEPEAK_OFFSET:
+    unit=param->unit->w.tp;
+    break;
+  default:
+    DMESSAGE("out of range");
+    return;
+  }
+
+  switch (c-bg_print_conf) {
+  case BG_FLAGS_AGG_MOMENTARY_MEAN_OFFSET:
+  case BG_FLAGS_AGG_MOMENTARY_MAXIMUM_OFFSET:
+  case BG_FLAGS_AGG_SHORTTERM_MEAN_OFFSET:
+  case BG_FLAGS_AGG_SHORTTERM_MAXIMUM_OFFSET:
+    if (lc) {
+      while (*unit)
+        fputwc(towlower(*unit++),f);
+
+      if (!argv)
+        fputws(L"fs",f);
+    }
+    else {
+      fputws(unit,f);
+
+      if (!argv)
+        fputws(L"FS",f);
+    }
+
+    break;
+  case BG_FLAGS_AGG_MOMENTARY_RANGE_OFFSET:
+  case BG_FLAGS_AGG_SHORTTERM_RANGE_OFFSET:
+    if (lc) {
+      while (*unit)
+        fputwc(towlower(*unit++),f);
+    }
+    else
+      fputws(unit,f);
+
+    break;
+  case BG_FLAGS_AGG_SAMPLEPEAK_OFFSET:
+  case BG_FLAGS_AGG_TRUEPEAK_OFFSET:
+    if (0<argv)
+      fputws(L"amplitude",f);
+    else if (lc) {
+      while (*unit)
+        fputwc(towlower(*unit++),f);
+
+      fputws(L"fs",f);
+    }
+    else {
+      fputws(unit,f);
+      fputws(L"FS",f);
+    }
+
+    break;
+  default:
+    DMESSAGE("out of range");
+    return;
+  }
+}
+#endif // ]
+
+void bg_print_conf_unit(FILE *f, int lc, bg_print_conf_t *c,
+    bg_param_t *param, int argv)
+{
+  const char *unit;
+
+  switch (c-bg_print_conf) {
+  case BG_FLAGS_AGG_MOMENTARY_MEAN_OFFSET:
+    unit=param->unit->n.lu;
+    break;
+  case BG_FLAGS_AGG_MOMENTARY_MAXIMUM_OFFSET:
+    unit=param->unit->n.lu;
+    break;
+  case BG_FLAGS_AGG_MOMENTARY_RANGE_OFFSET:
+    unit=param->unit->n.lra;
+    break;
+  case BG_FLAGS_AGG_SHORTTERM_MEAN_OFFSET:
+    unit=param->unit->n.lu;
+    break;
+  case BG_FLAGS_AGG_SHORTTERM_MAXIMUM_OFFSET:
+    unit=param->unit->n.lu;
+    break;
+  case BG_FLAGS_AGG_SHORTTERM_RANGE_OFFSET:
+    unit=param->unit->n.lra;
+    break;
+  case BG_FLAGS_AGG_SAMPLEPEAK_OFFSET:
+    unit=param->unit->n.sp;
+    break;
+  case BG_FLAGS_AGG_TRUEPEAK_OFFSET:
+    unit=param->unit->n.tp;
+    break;
+  default:
+    DMESSAGE("out of range");
+    return;
+  }
+
+  switch (c-bg_print_conf) {
+  case BG_FLAGS_AGG_MOMENTARY_MEAN_OFFSET:
+  case BG_FLAGS_AGG_MOMENTARY_MAXIMUM_OFFSET:
+  case BG_FLAGS_AGG_SHORTTERM_MEAN_OFFSET:
+  case BG_FLAGS_AGG_SHORTTERM_MAXIMUM_OFFSET:
+    if (lc) {
+      while (*unit)
+        fputc(tolower(*unit++),f);
+
+      if (!argv)
+        fputs("fs",f);
+    }
+    else {
+      fputs(unit,f);
+
+      if (!argv)
+        fputs("FS",f);
+    }
+
+    break;
+  case BG_FLAGS_AGG_MOMENTARY_RANGE_OFFSET:
+  case BG_FLAGS_AGG_SHORTTERM_RANGE_OFFSET:
+    if (lc) {
+      while (*unit)
+        fputc(tolower(*unit++),f);
+    }
+    else
+      fputs(unit,f);
+
+    break;
+  case BG_FLAGS_AGG_SAMPLEPEAK_OFFSET:
+  case BG_FLAGS_AGG_TRUEPEAK_OFFSET:
+    if (0<argv)
+      fputs("amplitude",f);
+    else if (lc) {
+      while (*unit)
+        fputc(tolower(*unit++),f);
+
+      fputs("fs",f);
+    }
+    else {
+      fputs(unit,f);
+      fputs("FS",f);
+    }
+
+    break;
+  default:
+    DMESSAGE("out of range");
+    return;
+  }
+}

@@ -22,6 +22,7 @@
 #include <lib1770.h>
 #include <ff.h>
 
+FF_DISABLE_DEPRECATION_WARNINGS // [
 ///////////////////////////////////////////////////////////////////////////////
 static ff_iter_vmt_t ff_iter_s16i_vmt;
 static ff_iter_vmt_t ff_iter_s32i_vmt;
@@ -119,12 +120,16 @@ _DWRITELNV("+++ ch:%d: sample:%lf",ch-1,sample);
   }
 
   if (max) {
-    if (sample<0) {
+    if (sample<0.0) {
       if (sample<-*max)
         *max=-sample;
+//DVWRITELN("%lf %lf",-sample,*max);
     }
-    else if (*max<sample)
+    else if (*max<sample) {
       *max=sample;
+//DVWRITELN("%lf %lf",sample,*max);
+    }
+//DVWRITELN("--- %lf",*max);
   }
 }
 
@@ -539,3 +544,5 @@ static ff_iter_vmt_t ff_iter_err_vmt={
   .next=ff_iter_err_next,
   .norm=ff_iter_err_norm,
 };
+
+FF_ENABLE_DEPRECATION_WARNINGS // ]

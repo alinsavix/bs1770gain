@@ -21,6 +21,7 @@
  */
 #include <ff.h>
 
+FF_DISABLE_DEPRECATION_WARNINGS // [
 ///////////////////////////////////////////////////////////////////////////////
 int ff_resampler_create(ff_resampler_t *res,
     const AVCodecParameters *ocodecpar,
@@ -190,3 +191,5 @@ e_frame:
 #endif // ]
   return -1;
 }
+
+FF_ENABLE_DEPRECATION_WARNINGS // ]

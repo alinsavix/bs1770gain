@@ -21,6 +21,7 @@
  */
 #include <ff.h>
 
+FF_DISABLE_DEPRECATION_WARNINGS // [
 ///////////////////////////////////////////////////////////////////////////////
 //#define FF_OUTPUT_BIT_RATE 96000
 
@@ -32,7 +33,7 @@ int ff_audio_create(ff_audio_t *audio, ff_inout_t *inout,
   AVStream *stream=inout->fmt.ctx->streams[inout->ai];
   AVCodecParameters *codecpar=stream->codecpar;
   AVDictionary *opt=NULL;
-  AVCodec *codec;
+  FF_CONST AVCodec *codec;
   int i;
   char value[64];
   int err;
@@ -294,3 +295,5 @@ void ff_audio_destroy(ff_audio_t *audio)
 {
   avcodec_free_context(&audio->ctx);
 }
+
+FF_ENABLE_DEPRECATION_WARNINGS // ]

@@ -39,9 +39,18 @@ void ff_printer_clear(ff_printer_t *p)
   p->len=0u;
 }
 
+#if defined (FF_PROGRESS_STDERR) // [
+void ff_printer_reset(ff_printer_t *p, FILE *f)
+#else // ] [
 void ff_printer_reset(ff_printer_t *p)
+#endif // ]
 {
   size_t i;
+
+#if defined (FF_PROGRESS_STDERR) // [
+	if (f)
+		p->f=f;
+#endif // ]
 
   for (i=0u;i<p->len;++i) {
 #if defined (_WIN32) // [
@@ -54,7 +63,11 @@ void ff_printer_reset(ff_printer_t *p)
   p->len=0u;
 }
 
+#if defined (FF_PROGRESS_STDERR) // [
+void ff_printer_flush(ff_printer_t *p, FILE *f)
+#else // ] [
 void ff_printer_flush(ff_printer_t *p)
+#endif // ]
 {
   size_t i;
 
@@ -84,6 +97,9 @@ void ff_printer_flush(ff_printer_t *p)
 
   p->len=0u;
   fflush(p->f);
+#if defined (FF_PROGRESS_STDERR) // [
+	p->f=f;
+#endif // ]
 }
 
 int ff_printer_printf(ff_printer_t *p, const ffchar_t *format, ...)

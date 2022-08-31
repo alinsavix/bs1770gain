@@ -21,24 +21,8 @@
  */
 #include <bg.h>
 
-#if defined (_WIN32) // [
-#if ! defined (PBU_CONSOLE_UTF8) // [
-#define ISW(bits,f) \
-  (/*(bits)==16&&*/stderr!=(f)&&stdout!=(f))
-//  (stderr!=(f)&&stdout!=(f))
-#endif // ]
-#else // ] [
+#if ! defined (_WIN32) // [
 #include <ctype.h>
-
-static char *strlwr(char *s)
-{
-  char *sp;
-
-  for (sp=s;*sp;++sp)
-    *sp=tolower(*sp);
-
-  return s;
-}
 #endif // ]
 
 static void bg_print_xml_encoding(bg_param_t *param, int bits)
@@ -52,69 +36,52 @@ static void bg_print_xml_encoding(bg_param_t *param, int bits)
     goto success;
 #endif // ]
 
-#if defined (PBU_CONSOLE_UTF8) // [
-  _FPRINTFV(f,"<?xml version=\"1.0\" encoding=\"UTF-%d\""
-      " standalone=\"no\"?>\n",bits);
-#else // ] [
-#if defined (WIN32) // [
-  if (!ISW(param->result.bits,f)) {
-#endif // ]
-    fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-%d\""
-        " standalone=\"no\"?>\n",bits);
-#if defined (WIN32) // [
-  }
-  else {
+#if defined (_WIN32) // [
+  if (stdout!=f&&stderr!=f) {
     fwprintf(f,L"<?xml version=\"1.0\" encoding=\"UTF-%d\""
         " standalone=\"no\"?>\n",bits);
   }
+  else {
 #endif // ]
+    fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-%d\""
+        " standalone=\"no\"?>\n",bits);
+#if defined (_WIN32) // [
+  }
 #endif // ]
+
 #if defined (BG_PARAM_QUIET) // [
 success:
   return;
 #endif // ]
 }
 
-static void bg_print_xml_indent(int depth, FILE *f, int bits FFUNUSED)
+#if defined (_WIN32) // [
+static void bg_print_xml_indentw(int depth, FILE *f)
 {
-  enum { SIZE=128 };
-  
-  union {
-    // narrow string representation.
-    char n[SIZE];
-#if defined (WIN32) // [
-    // wide string representation.
-    wchar_t w[SIZE];
-#endif // ]
-  } format;
+  --depth;
 
-  if (--depth) {
-    depth*=2;
+   if (stdout==f||stderr==f) {
+      _DMESSAGE("illegal attempt to write to the console");
+      exit(1);
+   }
 
-    // indentation.
-#if defined (PBU_CONSOLE_UTF8) // [
-#if defined (WIN32) // [
-    _snwprintf(format.w,SIZE,L"%%%ds",depth);
-    fwprintf(f,format.w,L"");
-#else // ] [
-    snprintf(format.n,SIZE,"%%%ds",depth);
-    fprintf(f,format.n,"");
+   while (0<depth) {
+     --depth;
+     fputwc(L' ',f);
+     fputwc(L' ',f);
+   }
+}
 #endif // ]
-#else // ] [
-#if defined (WIN32) // [
-    if (!ISW(param->result.bits,f)) {
-#endif // ]
-      snprintf(format.n,SIZE,"%%%ds",depth);
-      fprintf(f,format.n,"");
-#if defined (WIN32) // [
-    }
-    else {
-      _snwprintf(format.w,SIZE,L"%%%ds",depth);
-      fwprintf(f,format.w,L"");
-    }
-#endif // ]
-#endif // ]
-  }
+
+static void bg_print_xml_indent(int depth, FILE *f)
+{
+  --depth;
+
+   while (0<depth) {
+     --depth;
+     fputc(' ',f);
+     fputc(' ',f);
+   }
 }
 
 static int bg_print_xml_head(bg_tree_t *tree, int depth, FILE *f)
@@ -129,55 +96,120 @@ static int bg_print_xml_head(bg_tree_t *tree, int depth, FILE *f)
 
   switch (tree->vmt->type) {
   case BG_TREE_TYPE_TRACK:
-    bg_print_xml_indent(depth,f,param->result.bits);
-#if defined (PBU_CONSOLE_UTF8) // [
-    _FPRINTFV(f,"<track total=\"%lu\" number=\"%lu\" file=\"%s\">\n",
-        param->count.max,track->root.id,bg_tree_in_basename(tree));
-#else // ] [
-#if defined (WIN32) // [
-    if (ISW(param->result.bits,f)) {
-      fwprintf(f,L"<track total=\"%lu\" number=\"%lu\" file=\"%s\">\n",
-          param->count.max,track->root.id,bg_tree_in_basenamew(tree));
+#if defined (_WIN32) // [
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
+
+#if defined (BG_PARAM_XML_CDATA) // [
+      if (param->xml.cdata) {
+        fwprintf(f,L"<track total=\"%lu\" number=\"%lu\">\n",
+            param->count.max);
+        bg_print_xml_indentw(depth+1,f);
+        fwprintf(f,L"<file><![CDATA[%S]]></file>\n",tree->source.basename);
+      }
+      else {
+#endif // ]
+        fwprintf(f,L"<track total=\"%lu\" number=\"%lu\" file=\"%S\">\n",
+            param->count.max,track->root.id,tree->source.basename);
+#if defined (BG_PARAM_XML_CDATA) // [
+      }
+#endif // ]
     }
     else {
 #endif // ]
-      fprintf(f,"<track total=\"%lu\" number=\"%lu\" file=\"%s\">\n",
-          param->count.max,track->root.id,bg_tree_in_basename(tree));
-#if defined (WIN32) // [
-    }
+#if defined (BG_PARAM_XML_CDATA) // [
+      bg_print_xml_indent(depth,f);
+
+      if (param->xml.cdata) {
+        fprintf(f,"<track total=\"%lu\" number=\"%lu\">\n",
+            param->count.max,track->root.id);
+        bg_print_xml_indent(depth+1,f);
+        fprintf(f,"<file><![CDATA[%s]]></file>\n",bg_tree_in_basename(tree));
+      }
+      else {
 #endif // ]
+        fprintf(f,"<track total=\"%lu\" number=\"%lu\" file=\"%s\">\n",
+            param->count.max,track->root.id,bg_tree_in_basename(tree));
+#if defined (BG_PARAM_XML_CDATA) // [
+      }
+#endif // ]
+#if defined (_WIN32) // [
+    }
 #endif // ]
 
     break;
   case BG_TREE_TYPE_ALBUM:
+#if 0 // [
     if (!param->suppress.hierarchy) {
-      bg_print_xml_indent(depth,f,param->result.bits);
-
-#if defined (PBU_CONSOLE_UTF8) // [
-      _FPRINTFV(f,"<album folder=\"%s\">\n",bg_tree_in_basename(tree));
-#else // ] [
-#if defined (WIN32) // [
-      if (ISW(param->result.bits,f))
-        fwprintf(f,L"<album folder=\"%s\">\n",bg_tree_in_basenamew(tree));
-      else
+#if defined (_WIN32) // [
+      if (stdout!=f&&stderr!=f) {
+        bg_print_xml_indentw(depth,f);
+        fwprintf(f,L"<album folder=\"%S\">\n",tree->source.basename);
+      }
+      else {
 #endif // ]
+        bg_print_xml_indent(depth,f);
         fprintf(f,"<album folder=\"%s\">\n",bg_tree_in_basename(tree));
+#if defined (_WIN32) // [
+      }
 #endif // ]
     }
+#else // ] [
+    if (!param->suppress.hierarchy) {
+#if defined (_WIN32) // [
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
+
+#if defined (BG_PARAM_XML_CDATA) // [
+      if (param->xml.cdata) {
+        fwprintf(f,L"<album>\n");
+        bg_print_xml_indentw(depth+1,f);
+        fwprintf(f,L"<folder><![CDATA[%S]]></folder>\n",tree->source.basename);
+      }
+      else {
+#endif // ]
+        fwprintf(f,L"<album folder=\"%S\">\n",tree->source.basename);
+#if defined (BG_PARAM_XML_CDATA) // [
+      }
+#endif // ]
+    }
+    else {
+#endif // ]
+#if defined (BG_PARAM_XML_CDATA) // [
+      bg_print_xml_indent(depth,f);
+
+      if (param->xml.cdata) {
+        fprintf(f,"<album>\n");
+        bg_print_xml_indent(depth+1,f);
+        fprintf(f,"<folder><![CDATA[%s]]></folder>\n",
+						bg_tree_in_basename(tree));
+      }
+      else {
+#endif // ]
+        fprintf(f,"<album file=\"%s\">\n",bg_tree_in_basename(tree));
+#if defined (BG_PARAM_XML_CDATA) // [
+      }
+#endif // ]
+#if defined (_WIN32) // [
+    }
+#endif // ]
+		}
+#endif // ]
 
     break;
   case BG_TREE_TYPE_ROOT:
-    bg_print_xml_indent(depth,f,param->result.bits);
 
-#if defined (PBU_CONSOLE_UTF8) // [
-    _FPRINTFV(f,"<bs1770gain norm=\"%0.2f\">\n",param->norm);
-#else // ] [
-#if defined (WIN32) // [
-    if (ISW(param->result.bits,f))
+#if defined (_WIN32) // [
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
       fwprintf(f,L"<bs1770gain norm=\"%0.2f\">\n",param->norm);
-    else
+    }
+    else {
 #endif // ]
+      bg_print_xml_indent(depth,f);
       fprintf(f,"<bs1770gain norm=\"%0.2f\">\n",param->norm);
+#if defined (_WIN32) // [
+    }
 #endif // ]
 
     break;
@@ -200,99 +232,68 @@ e_type:
 static void bg_print_conf_tail(bg_print_conf_t *c, bg_tree_t *tree,
     int depth, FILE *f)
 {
-  enum { SIZE_UNIT=64 };
-
-  struct {
-    char n[SIZE_UNIT];
-  } unit;
-
-  strncpy(unit.n,c->n.unit(tree),SIZE_UNIT-1);
-  strlwr(unit.n);
 
   switch (c->argc) {
   case 1:
-    if (c->argv[0]) {
-      bg_print_xml_indent(depth,f,tree->param->result.bits);
-
-#if defined (PBU_CONSOLE_UTF8) // [
 #if defined (_WIN32) // [
-      fwprintf(f,c->w.format.xml,unit.n,c->argv[0](tree));
-#else // ] [
-      fprintf(f,c->n.format.xml,unit.n,c->argv[0](tree));
-#endif // ]
-#else // ] [
-#if defined (_WIN32) // [
-      // when not writing to the console/shell (i.e. to a file) we need to
-      // use wide otherwise narrow character strings.
-      if (ISW(param->result.bits,f))
-        fwprintf(f,c->w.format.xml,unit.n,c->argv[0](tree));
-      else {
-#endif // ]
-        fprintf(f,c->n.format.xml,unit.n,c->argv[0](tree));
-#if defined (_WIN32) // [
-      }
-#endif // ]
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
+      fwprintf(f,L"<%S ",c->w.label.xml);
+      bg_print_conf_unitw(f,1,c,tree->param,0);
+      fwprintf(f,L"=\"");
+      fwprintf(f,c->argv[0].w.format,c->argv[0].fn(tree));
+#if defined (BG_SERGEY_XML_FIX) // [
+      fwprintf(f,L"\"/>\n");
 #endif // ]
     }
-    else
-      _DWARNING("argv[0]");
+    else {
+#endif // ]
+      bg_print_xml_indent(depth,f);
+      fprintf(f,"<%s ",c->n.label.xml);
+      bg_print_conf_unit(f,1,c,tree->param,0);
+      fprintf(f,"=\"");
+      fprintf(f,c->argv[0].n.format,c->argv[0].fn(tree));
+#if defined (BG_SERGEY_XML_FIX) // [
+      fprintf(f,"\"/>\n");
+#endif // ]
+#if defined (_WIN32) // [
+    }
+#endif // ]
 
     break;
   case 2:
-    if (c->argv[0]&&c->argv[1]) {
-      bg_print_xml_indent(depth,f,tree->param->result.bits);
-
-#if defined (PBU_CONSOLE_UTF8) // [
 #if defined (_WIN32) // [
-      if (c->unitc<2)
-        fwprintf(f,c->w.format.xml,unit.n,c->argv[0](tree),c->argv[1](tree));
-      else {
-        fwprintf(f,c->w.format.xml,unit.n,c->argv[0](tree),unit.n,
-            c->argv[1](tree));
-      }
-#else // ] [
-      if (c->unitc<2)
-        fprintf(f,c->n.format.xml,unit.n,c->argv[0](tree),c->argv[1](tree));
-      else {
-        fprintf(f,c->n.format.xml,unit.n,c->argv[0](tree),unit.n,
-            c->argv[1](tree));
-      }
-#endif // ]
-#else // ] [
-#if defined (_WIN32) // [
-      // when not writing to the console/shell (i.e. to a file) we need to
-      // use wide otherwise narrow character strings.
-      if (ISW(param->result.bits,f)) {
-        if (c->unitc<2) {
-          fwprintf(f,c->w.format.xml,unit.n,c->argv[0](tree),
-              c->argv[1](tree));
-        }
-        else {
-          fwprintf(f,c->w.format.xml,unit.n,c->argv[0](tree),
-              unit.n,c->argv[1](tree));
-        }
-      }
-      else {
-#endif // ]
-        if (c->unitc<2) {
-          fprintf(f,c->n.format.xml,unit.n,c->argv[0](tree),
-              c->argv[1](tree));
-        }
-        else {
-          fprintf(f,c->n.format.xml,unit.n,c->argv[0](tree),
-              unit.n,c->argv[1](tree));
-        }
-#if defined (_WIN32) // [
-      }
-#endif // ]
-#endif // ]
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
+      fwprintf(f,L"<%S ",c->w.label.xml);
+      bg_print_conf_unitw(f,1,c,tree->param,0);
+      fwprintf(f,L"=\"");
+      fwprintf(f,c->argv[0].w.format,c->argv[0].fn(tree));
+      fwprintf(f,L"\" ");
+      bg_print_conf_unitw(f,1,c,tree->param,1);
+      fwprintf(f,L"=\"");
+      fwprintf(f,c->argv[1].w.format,c->argv[1].fn(tree));
+      fwprintf(f,L"\"/>\n");
     }
-    else
-      _DWARNING("argv[0]/argv[1]");
+    else {
+#endif // ]
+      bg_print_xml_indent(depth,f);
+      fprintf(f,"<%s ",c->n.label.xml);
+      bg_print_conf_unit(f,1,c,tree->param,0);
+      fprintf(f,"=\"");
+      fprintf(f,c->argv[0].n.format,c->argv[0].fn(tree));
+      fprintf(f,"\" ");
+      bg_print_conf_unit(f,1,c,tree->param,1);
+      fprintf(f,"=\"");
+      fprintf(f,c->argv[1].n.format,c->argv[1].fn(tree));
+      fprintf(f,"\"/>\n");
+#if defined (_WIN32) // [
+    }
+#endif // ]
 
     break;
   default:
-    _DWARNING("argc");
+    _DWARNINGV("argc:%d",c->argc);
     break;
   }
 }
@@ -314,7 +315,7 @@ static int bg_print_xml_tail(bg_tree_t *tree, int depth, FILE *f)
         // this aggregation isn't involved.
         continue;
       }
-      else if (agg!=c->aggregate) {
+      else if (agg!=c->agg) {
         // wrong order.
         _DWARNING("aggregate mismatch");
         continue;
@@ -326,55 +327,51 @@ static int bg_print_xml_tail(bg_tree_t *tree, int depth, FILE *f)
 
   switch (tree->vmt->type) {
   case BG_TREE_TYPE_TRACK:
-    bg_print_xml_indent(depth,f,param->result.bits);
 
-#if defined (PBU_CONSOLE_UTF8) // [
-    _FPRINTF(f,"</track>\n");
-#else // ] [
-#if defined (WIN32) // [
-    if (!ISW(param->result.bits,f))
-#endif // ]
-      fprintf(f,"</track>\n");
-#if defined (WIN32) // [
-    else
+#if defined (_WIN32) // [
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
       fwprintf(f,L"</track>\n");
+    }
+    else {
 #endif // ]
+      bg_print_xml_indent(depth,f);
+      fprintf(f,"</track>\n");
+#if defined (_WIN32) // [
+    }
 #endif // ]
 
     break;
   case BG_TREE_TYPE_ALBUM:
     if (!param->suppress.hierarchy) {
-      bg_print_xml_indent(depth,f,param->result.bits);
-
-#if defined (PBU_CONSOLE_UTF8) // [
-      _FPRINTF(f,"</album>\n");
-#else // ] [
-#if defined (WIN32) // [
-      if (!ISW(param->result.bits,f))
-#endif // ]
-        fprintf(f,"</album>\n");
-#if defined (WIN32) // [
-      else
+#if defined (_WIN32) // [
+      if (stdout!=f&&stderr!=f) {
+        bg_print_xml_indentw(depth,f);
         fwprintf(f,L"</album>\n");
+      }
+      else {
 #endif // ]
-#endif // ]
+        bg_print_xml_indent(depth,f);
+        fprintf(f,"</album>\n");
+      }
+#if defined (_WIN32) // [
     }
+#endif // ]
 
     break;
   case BG_TREE_TYPE_ROOT:
-    bg_print_xml_indent(depth,f,param->result.bits);
 
-#if defined (PBU_CONSOLE_UTF8) // [
-    _FPRINTF(f,"</bs1770gain>\n");
-#else // ] [
-#if defined (WIN32) // [
-    if (!ISW(param->result.bits,f))
-#endif // ]
-      fprintf(f,"</bs1770gain>\n");
-#if defined (WIN32) // [
-    else
+#if defined (_WIN32) // [
+    if (stdout!=f&&stderr!=f) {
+      bg_print_xml_indentw(depth,f);
       fwprintf(f,L"</bs1770gain>\n");
+    }
+    else {
 #endif // ]
+      bg_print_xml_indent(depth,f);
+      fprintf(f,"</bs1770gain>\n");
+#if defined (_WIN32) // [
+    }
 #endif // ]
 
     break;
