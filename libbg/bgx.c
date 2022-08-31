@@ -43,7 +43,7 @@
 #if 1 // [
 #if 1 // [
 #define BG_TEAM_WHITE \
-    " #TeamWhite"
+    " #WLM"
 #else // ] [
 #define BG_TEAM_WHITE \
     ""
@@ -656,7 +656,7 @@ int main(int argc, char *const *argv)
 #endif // ]
   const ffchar_t *fpath=NULL;
   enum BGFlagHelpArg help_args=0;
-#if defined (HAVE_FF_DYNLOAD) && ! defined (_WIN32) && defined (__GNUC__) // [
+#if defined (HAVE_FF_DYNLOAD) && defined (__linux__) && defined (__GNUC__) // [
   const char *lhs;
   const char *rhs;
 #endif // ]

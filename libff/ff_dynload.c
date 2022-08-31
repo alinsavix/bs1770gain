@@ -25,10 +25,13 @@
 #if defined (_WIN32) // [
 #include <windows.h>
 #else // ] [
-#include <linux/limits.h>
+//#include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#endif // ]
+#if defined (__APPLE__) && defined (HAVE_LIBPROC) // [
+#include <libproc.h>
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -594,6 +597,8 @@ static struct _ff_avcodec {
   unsigned (*avcodec_version)(void);
 #if (LIBAVCODEC_VERSION_MAJOR<58) // [
   void (*avcodec_register_all)(void);
+	AVCodec *(*av_codec_next)(const AVCodec *c);
+	AVOutputFormat *(*av_oformat_next)(const AVOutputFormat *f);
 #endif // ]
   AVCodec *(*avcodec_find_decoder)(enum AVCodecID id);
   AVCodec *(*avcodec_find_decoder_by_name)(const char *name);
@@ -674,6 +679,22 @@ void avcodec_register_all(void)
     return;
 
   avcodec.avcodec_register_all();
+}
+
+AVCodec *av_codec_next(const AVCodec *c)
+{
+  if (avcodec_load_sym(&avcodec.av_codec_next,__func__)<0)
+    return NULL;
+
+  return avcodec.av_codec_next(c);
+}
+
+AVOutputFormat *av_oformat_next(const AVOutputFormat *f)
+{
+  if (avcodec_load_sym(&avcodec.av_oformat_next,__func__)<0)
+    return NULL;
+
+  return avcodec.av_oformat_next(f);
 }
 #endif // ]
 
@@ -1288,7 +1309,11 @@ static struct _ff_avfilter {
   void (*avfilter_register_all)(void);
 #endif // ]
   AVFilterGraph *(*avfilter_graph_alloc)(void);
+#if (LIBAVFILTER_VERSION_MAJOR<7) // [
+  AVFilter *(*avfilter_get_by_name)(const char *name);
+#else // ] [
   const AVFilter *(*avfilter_get_by_name)(const char *name);
+#endif // ]
   int (*avfilter_graph_create_filter)(AVFilterContext **filt_ctx,
       const AVFilter *filt, const char *name, const char *args,
       void *opaque, AVFilterGraph *graph_ctx);
@@ -1333,7 +1358,11 @@ AVFilterGraph *avfilter_graph_alloc(void)
   return avfilter.avfilter_graph_alloc();
 }
 
+#if (LIBAVFILTER_VERSION_MAJOR<7) // [
+AVFilter *avfilter_get_by_name(const char *name)
+#else // ] [
 const AVFilter *avfilter_get_by_name(const char *name)
+#endif // ]
 {
   if (avfilter_load_sym(&avfilter.avfilter_get_by_name,__func__)<0)
     return NULL;
@@ -1795,10 +1824,11 @@ static int ff_dynload_relative(const ffchar_t *dirname)
   enum { SIZE=(sizeof path)/(sizeof path[0]) };
   int code=-1;
   ffchar_t *mp=path+SIZE;
-#if ! defined (_WIN32) // [
+#if defined (__linux__) // [
   char process_path[64];
 #endif // ]
-  int len,size;
+  int len;
+  int size;
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
@@ -1806,6 +1836,11 @@ static int ff_dynload_relative(const ffchar_t *dirname)
 
 	if (ERROR_INSUFFICIENT_BUFFER==GetLastError())
     goto exit;
+#elif defined (__APPLE__) // ] [
+	proc_pidpath(getpid(),pp,path+(sizeof path)-pp);
+	len=strlen(pp);
+	//pp+=strlen(pp);
+DVWRITELN("\"%s\"",path);
 #else // ] [
   sprintf(process_path,"/proc/%d/exe",getpid());
 
@@ -1842,6 +1877,9 @@ static int ff_dynload_relative(const ffchar_t *dirname)
   *pp=FFL('\0');
 
   /////////////////////////////////////////////////////////////////////////////
+#if defined (__APPLE__) // [
+DVWRITELN("\"%s\"",path);
+#endif // ]
   code=0;
 exit:
   return code;

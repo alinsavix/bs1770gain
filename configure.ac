@@ -25,43 +25,62 @@
 # AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes = `default-includes'])
 # AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 
-AC_INIT([bs1770gain], [0.8.0], [info@pbelkner.de], [], [http://pbelkner.de/])
+AC_INIT([bs1770gain], [0.8.1], [info@pbelkner.de], [], [http://pbelkner.de/])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR()
 AC_PROG_CC
 AC_PROG_RANLIB
 
-# test for win32 [
-AC_MSG_CHECKING([for win32])
-tmp=`mktemp`
-cat << _ACEOF | gcc -xc -o "$tmp" -
-#include <stdio.h>
+unset withval
+AC_ARG_ENABLE(dynload, AS_HELP_STRING([--enable-dynload],
+		[load FFmpeg's shared objects ("*.so", "*.dylib", or "*.dll") dynamically (requires option --with-ffmpeg)]),
+    dynload=yes, dynload=no)
 
-int main()
-{ 
-#if defined (_WIN32) // [
-  puts("yes");
-#else // ] [
-  puts("no");
-#endif // ]
-  return 0;
-}
-_ACEOF
+AM_CONDITIONAL([FF_DYNLOAD], [test x$dynload = xyes ])
 
-win32="`$tmp`"
-rm -f "$tmp"
+unset withval
+AC_ARG_WITH(ffmpeg, AS_HELP_STRING([--with-ffmpeg=[DIR]],
+		[path to FFmpeg installation (i.e. FFmpeg's installation prefix]),
+    ffmpeg=$withval, ffmpeg=no)
+
+if test \( x$dynload = xyes \) -a \( x$ffmpeg = xno \); then
+  AC_MSG_ERROR(["option --enable-dynload requires option --with-ffmpeg"])
+fi
+
+# AC_CANONICAL_HOST is needed to access the 'host_os' variable    
+AC_CANONICAL_HOST
+
+build_linux=no
+build_windows=no
+build_mac=no
+
+# Detect the target system [
+case "${host_os}" in # [
+  linux*)
+    build_linux=yes
+    win32='no'
+    ;;
+  cygwin*|mingw*)
+    build_windows=yes
+    win32='yes'
+    ;;
+  darwin*)
+    build_mac=yes
+    win32='no'
+    ;;
+  *)
+    AC_MSG_ERROR(["OS $host_os is not supported"])
+    ;;
+esac # ]
+
 AM_CONDITIONAL([WIN32], [test x$win32 = xyes])
 AC_MSG_RESULT($win32)
-# ]
+# Detect the target system ]
 
 LIBS_INITIAL=${LIBS}
 
 # test for FFmpeg [
-unset withval
-AC_ARG_WITH(ffmpeg, AS_HELP_STRING([--with-ffmpeg=[DIR]], [path to FFmpeg installation]),
-    ffmpeg=$withval, ffmpeg=yes)
 if test "x$ffmpeg" != "xno"; then # [
-  if test "x$ffmpeg" != "xyes"; then # [
     LDFLAGS="${LDFLAGS} -L$ffmpeg/lib"
     CPPFLAGS="${CPPFLAGS} -I$ffmpeg/include"
     if test "x$win32" = "xno"; then # [
@@ -71,8 +90,8 @@ if test "x$ffmpeg" != "xno"; then # [
     fi # ]
     FFMPEG_PREFIX="$ffmpeg"
     AC_SUBST(FFMPEG_PREFIX)
-  fi # ]
 fi # ]
+
 if test "x$ffmpeg" != "xno"; then # [
   AC_CHECK_HEADER(libavutil/avutil.h,
     AC_CHECK_LIB(avutil, avutil_version, [ffmpeg=yes LIBS="${LIBS} -lavutil"], ffmpeg=no),
@@ -230,13 +249,46 @@ AC_DEFINE_UNQUOTED([FF_AVFILTER_V], ["$FF_AVFILTER_V"], [Define to libavfilter m
 rm -f "$tmp"
 # define avfilter major version ]
 
+case "${host_os}" in # [
+  linux*)
+		########
+    AVUTIL_SO=libavutil.so.$FF_AVUTIL_V
+    SWSCALE_SO=libswscale.so.$FF_SWSCALE_V
+    AVCODEC_SO=libavcodec.so.$FF_AVCODEC_V
+    AVFORMAT_SO=libavformat.so.$FF_AVFORMAT_V
+    SWRESAMPLE_SO=libswresample.so.$FF_SWRESAMPLE_V
+    SWSCALE_SO=libswscale.so.$FF_SWSCALE_V
+    POSTPROC_SO=libpostproc.so.$FF_POSTPROC_V
+    AVFILTER_SO=libavfilter.so.$FF_AVFILTER_V
+    ;;
+  cygwin*|mingw*)
+		########
+  	AVUTIL_SO=avutil-$FF_AVUTIL_V.dll
+  	SWSCALE_SO=swscale-$FF_SWSCALE_V.dll
+  	AVCODEC_SO=avcodec-$FF_AVCODEC_V.dll
+  	AVFORMAT_SO=avformat-$FF_AVFORMAT_V.dll
+  	SWRESAMPLE_SO=swresample-$FF_SWRESAMPLE_V.dll
+  	SWSCALE_SO=swscale-$FF_SWSCALE_V.dll
+  	POSTPROC_SO=postproc-$FF_POSTPROC_V.dll
+  	AVFILTER_SO=avfilter-$FF_AVFILTER_V.dll
+    ;;
+  darwin*)
+		########
+    AVUTIL_SO=libavutil.$FF_AVUTIL_V.dylib
+    SWSCALE_SO=libswscale.$FF_SWSCALE_V.dylib
+    AVCODEC_SO=libavcodec.$FF_AVCODEC_V.dylib
+    AVFORMAT_SO=libavformat.$FF_AVFORMAT_V.dylib
+    SWRESAMPLE_SO=libswresample.$FF_SWRESAMPLE_V.dylib
+    SWSCALE_SO=libswscale.$FF_SWSCALE_V.dylib
+    POSTPROC_SO=libpostproc.$FF_POSTPROC_V.dylib
+    AVFILTER_SO=libavfilter.$FF_AVFILTER_V.dylib
+    ;;
+  *)
+    AC_MSG_ERROR(["OS $host_os is not supported"])
+    ;;
+esac # ]
+
 # test for dynload [
-unset withval
-# AC_ARG_ENABLE(dynload, AS_HELP_STRING([--enable-dynload], [load FFmpeg and SoX dynamically]),
-#     dynload=yes, dynload=no)
-AC_ARG_ENABLE(dynload, AS_HELP_STRING([--enable-dynload], [load FFmpeg dynamically]),
-    dynload=yes, dynload=no)
-AM_CONDITIONAL([FF_DYNLOAD], [test x$dynload = xyes])
 if test "x$dynload" = "xyes"; then # [
   # revert LIBS to it's initial state
   # why??? because when loading ffmpeg libs dynamically we don't want to link
@@ -308,14 +360,6 @@ fi # ]
 # dealing with shared objects [
 if test "x$win32" = "xyes"; then # [
   SODIR='bin'
-  AVUTIL_SO=avutil-$FF_AVUTIL_V.dll
-  SWSCALE_SO=swscale-$FF_SWSCALE_V.dll
-  AVCODEC_SO=avcodec-$FF_AVCODEC_V.dll
-  AVFORMAT_SO=avformat-$FF_AVFORMAT_V.dll
-  SWRESAMPLE_SO=swresample-$FF_SWRESAMPLE_V.dll
-  SWSCALE_SO=swscale-$FF_SWSCALE_V.dll
-  POSTPROC_SO=postproc-$FF_POSTPROC_V.dll
-  AVFILTER_SO=avfilter-$FF_AVFILTER_V.dll
   # not needed:
   #LDFLAGS=" ${LDFLAGS} -static-libgcc -static-libstdc++"
   # -mwindows for linking a windows application, i.e. WinMain().
@@ -325,26 +369,32 @@ if test "x$win32" = "xyes"; then # [
   LDFLAGS=" ${LDFLAGS} -municode"
 else # ] [
   SODIR='lib'
-  AVUTIL_SO=libavutil.so.$FF_AVUTIL_V
-  SWSCALE_SO=libswscale.so.$FF_SWSCALE_V
-  AVCODEC_SO=libavcodec.so.$FF_AVCODEC_V
-  AVFORMAT_SO=libavformat.so.$FF_AVFORMAT_V
-  SWRESAMPLE_SO=libswresample.so.$FF_SWRESAMPLE_V
-  SWSCALE_SO=libswscale.so.$FF_SWSCALE_V
-  POSTPROC_SO=libpostproc.so.$FF_POSTPROC_V
-  AVFILTER_SO=libavfilter.so.$FF_AVFILTER_V
-  if test "x$dynload" = "yes"; then # [
-    LIBS="${LIBS} -ld"
-  else # ] [
-    LIBS="${LIBS} -lm"
+  if test "x$build_mac" = "xyes"; then # [
+    AC_CHECK_HEADER(libproc.h, AC_CHECK_LIB(proc, proc_pidpath,
+      [proc=yes LIBS="${LIBS} -lproc"], proc=no), proc=no)
+
+    if test "x$proc" == "xno" ; then # [
+      AC_MSG_ERROR([libproc not found])
+    else # ] [
+      AC_DEFINE([HAVE_LIBPROC], [1], [Define to 1 if you have libproc.])
+    fi # ]
   fi # ]
+
+  if test "x$dynload" = "xyes"; then # [
+    LIBS="${LIBS} -ldl"
+  fi # ]
+
+  LIBS="${LIBS} -lm"
   #############################################################################
 #  LIBS=" ${LIBS} -pthread"
   AC_CHECK_HEADER(pthread.h,
     AC_CHECK_LIB(pthread, pthread_create, [pthread=yes LIBS="${LIBS} -pthread"], pthread=no),
     pthread=no)
   if test "x$pthread" == "xno" ; then # [
-    AC_MSG_WARN([pthread not found])
+    AC_MSG_NOTICE([*******************************************************************])
+    AC_MSG_NOTICE([* pthread not found.                                              *])
+    AC_MSG_NOTICE([* bs10gain will be build without support for parallel processing. *])
+    AC_MSG_NOTICE([*******************************************************************])
     AC_DEFINE([HAVE_PTHREAD], [0],
         [Define to 1 if you have pthreads.])
   else # ] [
@@ -362,7 +412,18 @@ AC_SUBST(AVFORMAT_SO)
 AC_SUBST(POSTPROC_SO)
 AC_SUBST(AVFILTER_SO)
 AC_SUBST(BS1770GAIN_LDFLAGS)
-# dealing with shared objects ]
+
+#XX AC_MSG_NOTICE([$dynload])
+#XX if test "x$dynload" = "xyes"; then # [
+#XX mkdir -p ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$AVUTIL_SO ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$SWRESAMPLE_SO ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$SWSCALE_SO ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$AVCODEC_SO ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$AVFORMAT_SO ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$POSTPROC_SO ./libbg/bs1770gain-tools
+#XX cp -p $FFMPEG_PREFIX/$SODIR/$AVFILTER_SO ./libbg/bs1770gain-tools
+#XX fi # ]
 
 #CPPFLAGS="-DDEBUG ${CPPFLAGS}"
 #CFLAGS="-g ${CFLAGS}"
