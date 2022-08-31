@@ -32,7 +32,7 @@ static int getopts(sox_effect_t *e, int argc, char *argv[])
 {
   priv_t *priv=e->priv;
 
-  priv->cb=1<argc?(pull_cb_t)argv[1]:NULL;
+  priv->cb=1<argc?(void *)argv[1]:NULL;
   priv->data=2<argc?(void *)argv[2]:NULL;
 
   return SOX_SUCCESS;
@@ -71,7 +71,7 @@ sox_effect_handler_t const *ffsox_sox_pull_handler(void)
   static sox_effect_handler_t handler;
 
   if (NULL==handler.name) {
-    handler.name="priv";
+    handler.name="ffsox_sox_pull";
     handler.usage=NULL;
     handler.flags=SOX_EFF_MCHAN;
     handler.getopts=getopts;
