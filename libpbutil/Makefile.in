@@ -104,12 +104,9 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libpbutil_a_AR = $(AR) $(ARFLAGS)
 libpbutil_a_LIBADD =
-am_libpbutil_a_OBJECTS = pbu_basename.$(OBJEXT) \
-	pbu_copy_file.$(OBJEXT) pbu_ext.$(OBJEXT) \
-	pbu_extend_path.$(OBJEXT) pbu_list.$(OBJEXT) \
-	pbu_malloc.$(OBJEXT) pbu_mkdir.$(OBJEXT) pbu_msvcrt.$(OBJEXT) \
-	pbu_s2w.$(OBJEXT) pbu_w2s.$(OBJEXT) pbu_same_file.$(OBJEXT) \
-	pbu_strtok.$(OBJEXT) pbu_trace.$(OBJEXT) pbu_wcstok.$(OBJEXT) \
+am__objects_1 =
+am_libpbutil_a_OBJECTS = $(am__objects_1) pbu_basename.$(OBJEXT) \
+	pbu_msvcrt.$(OBJEXT) pbu_strtok.$(OBJEXT) \
 	pbu_vwritelna.$(OBJEXT) pbu_vwritelnw.$(OBJEXT)
 libpbutil_a_OBJECTS = $(am_libpbutil_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -176,6 +173,7 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AVCODEC_SO = @AVCODEC_SO@
+AVFILTER_SO = @AVFILTER_SO@
 AVFORMAT_SO = @AVFORMAT_SO@
 AVUTIL_SO = @AVUTIL_SO@
 AWK = @AWK@
@@ -194,11 +192,14 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FFMPEG_PREFIX = @FFMPEG_PREFIX@
-FFSOX_AVCODEC_V = @FFSOX_AVCODEC_V@
-FFSOX_AVFORMAT_V = @FFSOX_AVFORMAT_V@
-FFSOX_AVUTIL_V = @FFSOX_AVUTIL_V@
-FFSOX_LIBSOX_V = @FFSOX_LIBSOX_V@
-FFSOX_SWRESAMPLE_V = @FFSOX_SWRESAMPLE_V@
+FF_AVCODEC_V = @FF_AVCODEC_V@
+FF_AVFILTER_V = @FF_AVFILTER_V@
+FF_AVFORMAT_V = @FF_AVFORMAT_V@
+FF_AVUTIL_V = @FF_AVUTIL_V@
+FF_POSTPROC_V = @FF_POSTPROC_V@
+FF_SWRESAMPLE_V = @FF_SWRESAMPLE_V@
+FF_SWSCALE_V = @FF_SWSCALE_V@
+GETOPTW_PREFIX = @GETOPTW_PREFIX@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -208,7 +209,6 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBSOX_SO = @LIBSOX_SO@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -221,13 +221,14 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+POSTPROC_SO = @POSTPROC_SO@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SODIR = @SODIR@
-SOX_PREFIX = @SOX_PREFIX@
 STRIP = @STRIP@
 SWRESAMPLE_SO = @SWRESAMPLE_SO@
+SWSCALE_SO = @SWSCALE_SO@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -272,18 +273,21 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CFLAGS = -Werror -Wall -Wformat -Wpointer-arith -Wcast-align \
-	-Wcast-qual -Wreturn-type -Wextra -Wstrict-prototypes
-AM_CPPFLAGS = 
-AM_LDFLAGS = 
 noinst_LIBRARIES = libpbutil.a
-#libpbutil_a_SOURCES+=dirent.h
-#libpbutil_a_SOURCES+=pbu_dirent.c
-libpbutil_a_SOURCES = pbutil.h pbutil_priv.h pbu_basename.c \
-	pbu_copy_file.c pbu_ext.c pbu_extend_path.c pbu_list.c \
-	pbu_malloc.c pbu_mkdir.c pbu_msvcrt.c pbu_s2w.c pbu_w2s.c \
-	pbu_same_file.c pbu_strtok.c pbu_trace.c pbu_wcstok.c \
-	pbu_vwritelna.c pbu_vwritelnw.c
+#libpbutil_a_SOURCES+=pbu_copy_file.c
+#libpbutil_a_SOURCES+=pbu_ext.c
+#libpbutil_a_SOURCES+=pbu_extend_path.c
+#libpbutil_a_SOURCES+=pbu_list.c
+#libpbutil_a_SOURCES+=pbu_malloc.c
+#libpbutil_a_SOURCES+=pbu_mkdir.c
+#libpbutil_a_SOURCES+=pbu_s2w.c
+#libpbutil_a_SOURCES+=pbu_w2s.c
+#libpbutil_a_SOURCES+=pbu_same_file.c
+#libpbutil_a_SOURCES+=pbu_trace.c
+#libpbutil_a_SOURCES+=pbu_wcstok.c
+libpbutil_a_SOURCES = $(CONFIG_HEADER) pbutil.h pbutil_priv.h \
+	pbu_basename.c pbu_msvcrt.c pbu_strtok.c pbu_vwritelna.c \
+	pbu_vwritelnw.c
 all: all-am
 
 .SUFFIXES:
@@ -333,21 +337,10 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_basename.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_copy_file.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_ext.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_extend_path.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_list.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_malloc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_mkdir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_msvcrt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_s2w.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_same_file.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_strtok.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_trace.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_vwritelna.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_vwritelnw.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_w2s.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbu_wcstok.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -565,15 +558,6 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
-#AM_CFLAGS+=-Wmissing-declarations
-#AM_CFLAGS+=-Wmissing-prototypes
-
-#AM_CFLAGS+=-g
-#AM_CFLAGS+=-ggdb
-#AM_LDFLAGS+=-static-libgcc
-#AM_LDFLAGS+=-static-libstdc++
-
-$(libpbutil_a_OBJECTS): $(CONFIG_HEADER)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

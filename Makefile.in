@@ -208,6 +208,7 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AVCODEC_SO = @AVCODEC_SO@
+AVFILTER_SO = @AVFILTER_SO@
 AVFORMAT_SO = @AVFORMAT_SO@
 AVUTIL_SO = @AVUTIL_SO@
 AWK = @AWK@
@@ -226,11 +227,14 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FFMPEG_PREFIX = @FFMPEG_PREFIX@
-FFSOX_AVCODEC_V = @FFSOX_AVCODEC_V@
-FFSOX_AVFORMAT_V = @FFSOX_AVFORMAT_V@
-FFSOX_AVUTIL_V = @FFSOX_AVUTIL_V@
-FFSOX_LIBSOX_V = @FFSOX_LIBSOX_V@
-FFSOX_SWRESAMPLE_V = @FFSOX_SWRESAMPLE_V@
+FF_AVCODEC_V = @FF_AVCODEC_V@
+FF_AVFILTER_V = @FF_AVFILTER_V@
+FF_AVFORMAT_V = @FF_AVFORMAT_V@
+FF_AVUTIL_V = @FF_AVUTIL_V@
+FF_POSTPROC_V = @FF_POSTPROC_V@
+FF_SWRESAMPLE_V = @FF_SWRESAMPLE_V@
+FF_SWSCALE_V = @FF_SWSCALE_V@
+GETOPTW_PREFIX = @GETOPTW_PREFIX@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -240,7 +244,6 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBSOX_SO = @LIBSOX_SO@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -253,13 +256,14 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+POSTPROC_SO = @POSTPROC_SO@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SODIR = @SODIR@
-SOX_PREFIX = @SOX_PREFIX@
 STRIP = @STRIP@
 SWRESAMPLE_SO = @SWRESAMPLE_SO@
+SWSCALE_SO = @SWSCALE_SO@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -304,7 +308,15 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = libpbutil lib1770-2 libffsox-2 bs1770gain
+
+# according to the automake manual:
+#   Automake generates Makefiles that work depth-first in postfix order
+SUBDIRS = \
+libpbutil\
+lib1770-2\
+libff\
+libbg
+
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -776,6 +788,8 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
+#libffsox-2
+#bs1770gain
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

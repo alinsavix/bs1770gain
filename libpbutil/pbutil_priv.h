@@ -39,6 +39,10 @@ extern "C" {
 #define DERROR(x,y)                 PBU_DERROR(x,y)
 #define DMESSAGE(m)                 PBU_DMESSAGE(m)
 #define DVMESSAGE(m,...)            PBU_DVMESSAGE(m,__VA_ARGS__)
+#define DVMESSAGEW(m,...)           PBU_DVMESSAGEW(m,__VA_ARGS__)
+#define DWARNING(m)                 PBU_DWARNING(m)
+#define DVWARNING(m,...)            PBU_DVWARNING(m,__VA_ARGS__)
+#define DVWARNINGW(m,...)           PBU_DVWARNINGW(m,__VA_ARGS__)
 
 #define DDPUTS(debug,cs)            PBU_DDPUTS(debug,cs)
 #define DDPRINTF(debug,cs,...)      PBU_DDPRINTF(debug,cs,__VA_ARGS__)

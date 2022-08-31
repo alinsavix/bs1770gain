@@ -19,13 +19,80 @@
  */
 #include <pbutil.h>
 
+#if defined (PBU_BASENAME_UNICODE) // [
+static const char *pathnorm(const char *path)
+{
+  int len=strlen(path);
+  char *sp=NULL;
+  char *pp[2]={ 0 },*p;
+  const char *ss;
+  char clone[PATH_MAX];
+
+#if defined (_WIN32) // [
+  if (2<len&&':'==path[1]) {
+    ss=path+2;
+    len-=2;
+  }
+  else {
+#endif // ]
+    ss=path;
+#if defined (_WIN32) // [
+  }
+#endif // ]
+
+  if (PATH_MAX<len+1)
+    return path;
+  else {
+    strcpy(clone,ss);
+
+#if defined (_WIN32) // [
+    for (p=strtok_r(clone,"\\",&sp);p;p=strtok_r(NULL,"\\",&sp)) {
+      if (pp[0]) {
+        while (!*pp[0])
+          *pp[0]++='/';
+      }
+
+      pp[0]=p+strlen(p);
+    }
+#endif // ]
+
+    // replace each '/' by a '\\' or a '/', respectively, and remove
+    // trailing ones.
+    for (p=strtok_r(clone,"/",&sp);p;p=strtok_r(NULL,"/",&sp)) {
+      if (pp[0]) {
+        while (!*pp[0])
+          *pp[0]++='/';
+
+        pp[1]=pp[0]+1;
+      }
+
+      pp[0]=p+strlen(p);
+    }
+
+    if (!pp[0])
+      return path;
+    else if (strlen(pp[0]))
+      return path+(ss-path)+(pp[0]-clone);
+    else if (pp[1])
+      return path+(ss-path)+(pp[1]-clone);
+    else
+      return path;
+  }
+}
+#endif // ]
+
 const char *pbu_basename(const char *path)
 {
+#if ! defined (PBU_BASENAME_UNICODE) // [
   const char *p;
+#endif // ]
 
   if (NULL==path)
     return NULL;
 
+#if defined (PBU_BASENAME_UNICODE) // [
+  return pathnorm(path);
+#else // ] [
   p=path+strlen(path);
 
   // TODO: unicode.
@@ -37,12 +104,17 @@ const char *pbu_basename(const char *path)
     --p;
 
   return p;
+#endif // ]
 }
 
 #if defined (_WIN32) // [
 const wchar_t *pbu_wbasename(const wchar_t *wpath)
 {
+#if 0 && defined (PBU_BASENAME_UNICODE) // [
+  wchar_t *p;
+#else // ] [
   const wchar_t *p;
+#endif // ]
 
   if (NULL==wpath)
     return NULL;

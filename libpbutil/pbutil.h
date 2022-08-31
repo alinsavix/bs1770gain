@@ -104,61 +104,32 @@ extern "C" {
 #endif // }
 
 ///////////////////////////////////////////////////////////////////////////////
-#define __PBU_FILE__ pbu_basename(__FILE__)
-#define PBU_ERROR(m) "Error " m ": %s() - \"%s\" (%d).\n"
+#define PBU_ERROR(m) "Error: " m "."
+#define PBU_WARNING(m) "Warning: " m "."
+#define PBU_DMESSAGE(m) \
+    pbu_vwritelna(stderr,__FILE__,__LINE__,__func__,PBU_ERROR(m),NULL)
+#define PBU_DVMESSAGE(m,...) \
+    pbu_vwritelna(stderr,__FILE__,__LINE__,__func__,PBU_ERROR(m),__VA_ARGS__)
 #if defined (_WIN32) // [
-#define __PBU_FILEW__ pbu_wbasename(PBU_WIDEN(__FILE__))
-#define __pbu_funcw__ L ## __func__
-#define PBU_ERRORW(m) L"Error " m ": %s() - \"%s\" (%d).\n"
+#define PBU_ERRORW(m) L"Error: " m L"."
+#define PBU_DMESSAGEW(m) \
+    pbu_vwritelnw(stderr,__FILE__,__LINE__,__func__,PBU_ERRORW(m),NULL)
+#define PBU_DVMESSAGEW(m,...) \
+    pbu_vwritelnw(stderr,__FILE__,__LINE__,__func__,PBU_ERRORW(m),__VA_ARGS__)
 #endif // ]
-
-#if 0 // [
-#define PBU_DMESSAGE(m) fprintf(stderr,"Error " m ": " \
-    "%s(), \"%s\" (%d).\n",__func__, \
-    pbu_basename(__FILE__),__LINE__)
-#define PBU_DMESSAGEV(m,...) fprintf(stderr,"Error " m ": " \
-    "%s(), \"%s\" (%d).\n",__VA_ARGS__,__func__, \
-    pbu_basename(__FILE__),__LINE__)
-#else // ] [
-#define PBU_DMESSAGE(m) { \
-    fprintf(stderr,PBU_ERROR(m),__func__,__PBU_FILE__,__LINE__); \
-    fflush(stderr); \
-}
-#define PBU_DVMESSAGE(m,...) { \
-    fprintf(stderr,PBU_ERROR(m),__VA_ARGS__,__func__,__PBU_FILE__, \
-        __LINE__); \
-    fflush(stderr); \
-}
+#define PBU_DWARNING(m) \
+    pbu_vwritelna(stderr,__FILE__,__LINE__,__func__,PBU_WARNING(m),NULL)
+#define PBU_DVWARNING(m,...) \
+    pbu_vwritelna(stderr,__FILE__,__LINE__,__func__,PBU_WARNING(m),__VA_ARGS__)
 #if defined (_WIN32) // [
-#define PBU_DMESSAGEW(m) { \
-    fprintf(stderr,PBU_ERRORW(m),__pbu_wfunc__,__PBU_WFILE__,__LINE__); \
-    fflush(stderr); \
-}
-#define PBU_DVMESSAGEW(m,...) { \
-    fprintf(stderr,PBU_ERRORW(m),__VA_ARGS__,__pbu_wfunc__,__PBU_WFILE__, \
-        __LINE__); \
-    fflush(stderr); \
-}
-#endif // ]
-
+#define PBU_WARNINGW(m) L"Warning: " m L"."
+#define PBU_DWARNINGW(m) \
+    pbu_vwritelnw(stderr,__FILE__,__LINE__,__func__,PBU_WARNINGW(m),NULL)
+#define PBU_DVWARNINGW(m,...) \
+    pbu_vwritelnw(stderr,__FILE__,__LINE__,__func__,PBU_WARNINGW(m),\
+        __VA_ARGS__)
 #endif // ]
 #if defined (PBU_DEBUG) // [
-#if 0 // [
-  #define PBU_DMARKLN() do { \
-    fprintf(stderr,"[%s:%d:%s]\n",__PBU_FILE__,__LINE__,__func__); \
-    fflush(stderr); \
-  } while (0)
-  #define PBU_DWRITELN(cs) do { \
-    fprintf(stderr,"[%s:%d:%s] ",__PBU_FILE__,__LINE__,__func__); \
-    fputs(cs "\n",stderr); \
-    fflush(stderr); \
-  } while (0)
-  #define PBU_DVWRITELN(format, ...) do { \
-    fprintf(stderr,"[%s:%d:%s] ",__PBU_FILE__,__LINE__,__func__); \
-    fprintf(stderr,format "\n",__VA_ARGS__); \
-    fflush(stderr); \
-  } while (0)
-#else // ] [
   #define PBU_DMARKLN() \
     pbu_vwritelna(stderr,__FILE__,__LINE__,__func__,NULL)
   #define PBU_DWRITELN(cs) \
@@ -170,7 +141,6 @@ extern "C" {
     pbu_vwritelnw(stderr,__FILE__,__LINE__,__func__,cs)
   #define PBU_DVWRITELNW(format, ...) \
     pbu_vwritelnw(stderr,__FILE__,__LINE__,__func__,format,__VA_ARGS__)
-#endif // ]
 #endif // ]
   #define PBU_DPUTS(cs) \
       fputs(cs,stderr)
@@ -263,6 +233,7 @@ void pbu_free1(void *ptr);
 void pbu_free(const char *func, const char *file, int line, void *ptr);
 #endif // }
 
+//#define PBU_BASENAME_UNICODE
 #if defined (_WIN32) // [
 HANDLE pbu_msvcrt(void);
 wchar_t *pbu_wcstok_r(wchar_t *str, const wchar_t *delim, wchar_t **saveptr);
