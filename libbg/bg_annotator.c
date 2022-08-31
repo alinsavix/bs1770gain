@@ -629,7 +629,8 @@ int bg_track_annotation_create(bg_tree_t *tree)
   memcpy(tp,tree->target.path,len1*sizeof tp[0]);
   tp+=len1;
 
-  if (FFPATHSEP!=tp[-1])
+	// Guarding by "len1" proposed by Hadrien Lacour <hadrien.lacour@posteo.net>.
+  if (len1&&FFPATHSEP!=tp[-1])
     *tp++=FFPATHSEP;
 
   tree->temp.basename=tp;
