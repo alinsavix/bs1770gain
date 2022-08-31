@@ -128,6 +128,14 @@ static int bg_track_accept(bg_tree_t *tree, bg_visitor_t *vis)
   return vis->vmt->dispatch_track(vis,tree);
 }
 
+#if defined (BG_TRACK_ID) // [
+static void bg_track_track_id(bg_tree_t *tree, int *id)
+{
+  if (id)
+    tree->track.album.id=++*id;
+}
+#endif // ]
+
 static bg_tree_vmt_t bg_track_vmt={
 #if defined (PBU_DEBUG) // [
   .id=FFL("track"),
@@ -139,6 +147,9 @@ static bg_tree_vmt_t bg_track_vmt={
     .create=bg_track_annotation_create,
     .destroy=bg_track_annotation_destroy,
   },
+#if defined (BG_TRACK_ID) // [
+  .track_id=bg_track_track_id,
+#endif // ]
 };
 
 ///////////////////////////////////////////////////////////////////////////////

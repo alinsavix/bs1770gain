@@ -25,7 +25,7 @@
 # AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes = `default-includes'])
 # AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 
-AC_INIT([bs1770gain], [0.6.9], [pbelkner@users.sf.net], [], [http://bs1770gain.sourceforge.net/])
+AC_INIT([bs1770gain], [0.7.0], [pbelkner@users.sf.net], [], [http://bs1770gain.sourceforge.net/])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR()
 AC_PROG_CC
@@ -271,7 +271,7 @@ else # ] [
 fi # ]
 # test for dynload ]
 
-if test "xno" != "x$win32"; then # [
+if test "x$win32" = "xyes"; then # [
   unset withval
   AC_ARG_WITH(getoptw,
       AS_HELP_STRING([--with-getoptw=[DIR]],[path to getoptW installation]),
@@ -338,7 +338,20 @@ else # ] [
   else # ] [
     LIBS="${LIBS} -lm"
   fi # ]
+  #############################################################################
 #  LIBS=" ${LIBS} -pthread"
+  AC_CHECK_HEADER(pthread.h,
+    AC_CHECK_LIB(pthread, pthread_create, [pthread=yes LIBS="${LIBS} -pthread"], pthread=no),
+    pthread=no,
+    [[#ifdef HAVE_PTHREAD
+    # include <pthread.h>
+    #endif]])
+  if test "x$pthread" == "xno" ; then # [
+    AC_MSG_ERROR([pthread not found])
+	else # ] [
+    AC_DEFINE([HAVE_PTHREAD], [1],
+        [Define to 1 if you have pthreads.])
+  fi # ]
 fi # ]
 
 AC_SUBST(SODIR)
@@ -351,6 +364,9 @@ AC_SUBST(POSTPROC_SO)
 AC_SUBST(AVFILTER_SO)
 AC_SUBST(BS1770GAIN_LDFLAGS)
 # dealing with shared objects ]
+
+#CPPFLAGS="-DDEBUG ${CPPFLAGS}"
+#CFLAGS="-g ${CFLAGS}"
 
 CFLAGS="-Werror ${CFLAGS}"
 CFLAGS="-Wall ${CFLAGS}"

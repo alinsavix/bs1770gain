@@ -72,6 +72,12 @@ static int bg_file_accept(bg_tree_t *tree, bg_visitor_t *vis)
   return vis->vmt->dispatch_file(vis,tree);
 }
 
+#if defined (BG_TRACK_ID) // [
+static void bg_file_track_id(bg_tree_t *tree FFUNUSED, int *id FFUNUSED)
+{
+}
+#endif // ]
+
 static bg_tree_vmt_t bg_file_vmt={
 #if defined (PBU_DEBUG) // [
   .id=FFL("file"),
@@ -83,4 +89,7 @@ static bg_tree_vmt_t bg_file_vmt={
     .create=bg_file_annotation_create,
     .destroy=bg_file_annotation_destroy,
   },
+#if defined (BG_TRACK_ID) // [
+  .track_id=bg_file_track_id,
+#endif // ]
 };

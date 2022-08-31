@@ -25,7 +25,17 @@
 #include <config.h>
 #endif // ]
 #include <stdio.h>
-#include <semaphore.h>
+
+#define BG_PARAM_QUIET
+#if defined (BG_PARAM_QUIET) // [
+#if defined (HAVE_PTHREAD) || defined (_WIN32) // [
+#define BG_PARAM_THREADS
+#endif // ]
+#if defined (HAVE_PTHREAD) // [
+#include <pthread.h>
+#endif // ]
+#endif // ]
+
 #include <pbutil_priv.h>
 #include <ff.h>
 #include <lib1770.h>
@@ -38,11 +48,8 @@ extern "C" {
 ///////////////////////////////////////////////////////////////////////////////
 //#define BG_LIST
 #define BG_TEMP_PREFIX FFL(".")
-#define BG_PARAM_QUIET
-#if defined (BG_PARAM_QUIET) // [
-//#define BG_PARAM_PARALLEL
-#endif // ]
 #define BG_CLOCK
+#define BG_TRACK_ID
 //#define BG_PARAM_SLEEP
 //#define BG_BWF_TAGS
 //#define BG_TREE_CREATE_CHILD_WARNING
@@ -84,6 +91,16 @@ typedef enum bg_flags_norm bg_flags_norm_t;
 typedef const struct bg_print_vmt bg_print_vmt_t;
 typedef const struct bg_print_conf bg_print_conf_t;
 typedef const struct bg_param_unit bg_param_unit_t;
+#if defined (BG_PARAM_THREADS) // [
+typedef struct bg_sync bg_sync_t;
+typedef struct bg_threads_helper bg_threads_helper_t;
+typedef int (bg_dispatch_t)(bg_tree_t *tree, bg_visitor_t *vis);
+typedef enum bg_param_request_tag bg_param_request_tag_t;
+typedef struct bg_param_request bg_param_request_t;
+typedef struct bg_param_node bg_param_node_t;
+typedef struct bg_param_list bg_param_list_t;
+typedef struct bg_param_threads bg_param_threads_t;
+#endif // ]
 typedef struct bg_param bg_param_t;
 typedef struct bg_param_argv bg_param_argv_t;
 
@@ -120,6 +137,9 @@ struct bg_tree_vmt {
   void (*destroy)(bg_tree_t *tree);
   int (*accept)(bg_tree_t *tree, bg_visitor_t *vis);
   bg_annotation_vmt_t annotation;
+#if defined (BG_TRACK_ID) // [
+  void (*track_id)(bg_tree_t *tree, int *id);
+#endif // ]
 };
 
 ////////
@@ -131,8 +151,18 @@ void bg_root_annotation_destroy(bg_tree_t *tree);
 ////////
 struct bg_album {
   // counts BG_TREE_TYPE_FILEs and BG_TREE_TYPE_TRACKs.
-  unsigned nchildren;
+	struct {
+  	unsigned max,cur;
+	} nchildren;
+
   unsigned nleafs;
+
+#if defined (BG_TRACK_ID) // [
+  struct {
+    int id;
+  } track;
+#endif // ]
+
   bg_tree_t *first;
   bg_tree_t *last;
 };
@@ -203,7 +233,11 @@ struct bg_track {
   } root;
 
   struct {
+#if defined (BG_TRACK_ID) // [
+    int id;
+#else // ] [
     unsigned long id;
+#endif // ]
   } album;
 
   struct {
@@ -247,7 +281,36 @@ int bg_tree_patha_create(bg_tree_patha_t *p, const wchar_t *path,
 void bg_tree_patha_destroy(bg_tree_patha_t *p);
 #endif // ]
 
+#if defined (BG_PARAM_THREADS) // [
 ////////
+struct bg_sync {
+#if defined (HAVE_PTHREAD) // [
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+#elif defined (_WIN32) // ] [
+  CRITICAL_SECTION cs;
+  HANDLE hEvent;
+#endif // ]
+};
+
+int bg_sync_create(bg_sync_t *sync);
+void bg_sync_destroy(bg_sync_t *sync);
+
+void bg_sync_lock(bg_sync_t *sync);
+void bg_sync_unlock(bg_sync_t *sync);
+void bg_sync_signal(bg_sync_t *sync);
+void bg_sync_wait(bg_sync_t *sync);
+
+////////
+struct bg_threads_helper {
+  unsigned nchildren;
+  bg_sync_t sync;
+};
+
+int bg_threads_helper_create(bg_threads_helper_t *helper);
+void bg_threads_helper_destroy(bg_threads_helper_t *helper);
+#endif // ]
+
 struct bg_tree {
   bg_tree_vmt_t *vmt;
   bg_param_t *param;
@@ -279,6 +342,10 @@ struct bg_tree {
     double samplepeak;
     double truepeak;
   } stats;
+
+#if defined (BG_PARAM_THREADS) // [
+  bg_threads_helper_t helper;
+#endif // ]
 
   union {
     bg_album_t album;
@@ -327,10 +394,16 @@ struct bg_visitor_vmt {
 };
 
 int bg_analyzer_create(bg_visitor_t *vis);
-int bg_muxer_create(bg_visitor_t *vis);
-
 int bg_analyzer_album_prefix(bg_visitor_t *vis, bg_tree_t *tree);
 int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree);
+#if 0 && defined (BG_PARAM_THREADS) // [
+int bg_analyzer_track(bg_visitor_t *vis, bg_tree_t *tree);
+#endif // ]
+
+int bg_muxer_create(bg_visitor_t *vis);
+#if 0 && defined (BG_PARAM_THREADS) // [
+int bg_muxer_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree);
+#endif // ]
 
 ////////
 struct bg_visitor {
@@ -469,6 +542,86 @@ struct bg_param_argv {
   unsigned lift;
 };
 
+#if defined (BG_PARAM_THREADS) // [
+////////
+enum bg_param_request_tag {
+  bg_param_request_tag_null,
+  bg_param_request_tag_kill,
+  bg_param_request_tag_visitor_run,
+};
+
+////////
+struct bg_param_request {
+  bg_param_request_tag_t tag;
+  bg_tree_t *tree;
+  bg_visitor_t *visitor;
+  bg_dispatch_t *dispatch;
+};
+
+void bg_param_request_clear(bg_param_request_t *request);
+
+////////
+struct bg_param_node {
+  bg_param_node_t *prev,*next;
+  bg_param_threads_t *threads;
+  bg_param_request_t request;
+  bg_sync_t sync;
+#if defined (_WIN32) // [
+  HANDLE hThread;
+#else // ] [
+  pthread_t thread;
+#endif // ]
+};
+
+int bg_param_node_create(bg_param_node_t *node, bg_param_threads_t *threads);
+#if 0 // [
+void bg_param_node_destroy(bg_param_node_t *node, int destroy);
+#else // ] [
+void bg_param_node_destroy(bg_param_node_t *node);
+#endif // ]
+
+void bg_param_node_request(bg_param_node_t *node, bg_param_request_tag_t tag,
+    bg_tree_t *tree, bg_visitor_t *visitor, bg_dispatch_t *dispatch);
+
+////////
+struct bg_param_list {
+  int count;
+  bg_param_node_t *head,*tail;
+};
+
+int bg_param_list_create(bg_param_list_t *list, int n, bg_param_node_t *nodes,
+    bg_param_threads_t *threads);
+#if 0 // [
+void bg_param_list_destroy(bg_param_list_t *list, int destroy);
+#else
+void bg_param_list_destroy(bg_param_list_t *list);
+#endif // ]
+
+bg_param_node_t *bg_param_list_unlink(bg_param_list_t *list,
+    bg_param_node_t *node);
+bg_param_node_t *bg_param_list_pop(bg_param_list_t *list);
+bg_param_node_t *bg_param_list_push(bg_param_list_t *list,
+    bg_param_node_t *node);
+
+////////
+struct bg_param_threads {
+  bg_sync_t sync;
+  bg_param_node_t *nodes;
+
+  struct {
+    bg_param_list_t free;
+    bg_param_list_t active;
+  } list;
+};
+
+int bg_param_threads_create(bg_param_threads_t *threads, int n);
+void bg_param_threads_destroy(bg_param_threads_t *threads);
+
+void bg_param_threads_visitor_run(bg_param_threads_t *threads,
+    bg_visitor_t *visitor, bg_tree_t *tree, bg_dispatch_t *dispatch);
+void bg_param_threads_drain(bg_param_threads_t *threads);
+#endif // ]
+
 ////////
 struct bg_param {
   struct {
@@ -582,13 +735,9 @@ struct bg_param {
 #if defined (BG_PARAM_QUIET) // [
   int quiet;
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-  int parallel;
-#if defined (_WIN32) // [
-  HANDLE hSem;
-#else // ] [
-  sem_t sem;
-#endif // ]
+#if defined (BG_PARAM_THREADS) // [
+  int nthreads;
+  bg_param_threads_t threads;
 #endif // ]
 #if defined (BG_PARAM_SLEEP) // [
   int sleep;

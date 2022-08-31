@@ -72,9 +72,21 @@ int bg_tree_common_create(bg_tree_t *tree, bg_param_t *param,
     goto e_stats;
   }
 
+#if defined (BG_PARAM_THREADS) // [
+  if (param->nthreads&&bg_threads_helper_create(&tree->helper)<0) {
+    DMESSAGE("creating threads");
+    goto e_threads;
+  }
+#endif // ]
+
   /////////////////////////////////////////////////////////////////////////////
   return 0;
 //cleanup:
+#if defined (BG_PARAM_THREADS) // [
+  if (param->nthreads)
+    bg_threads_helper_destroy(&tree->helper);
+e_threads:
+#endif // ]
   bg_tree_stats_destroy(tree);
 e_stats:
 #if defined (_WIN32) // [
@@ -91,6 +103,11 @@ e_path:
 
 void bg_tree_common_destroy(bg_tree_t *tree)
 {
+#if defined (BG_PARAM_THREADS) // [
+  if (tree->param->nthreads)
+    bg_threads_helper_destroy(&tree->helper);
+#endif // ]
+
   bg_tree_stats_destroy(tree);
 #if defined (_WIN32) // [
   bg_tree_patha_destroy(&tree->utf8);

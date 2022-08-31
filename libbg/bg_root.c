@@ -60,6 +60,12 @@ static int bg_root_accept(bg_tree_t *tree, bg_visitor_t *vis)
   return vis->vmt->dispatch_root(vis,tree);
 }
 
+#if defined (BG_TRACK_ID) // [
+static void bg_root_track_id(bg_tree_t *tree FFUNUSED, int *id FFUNUSED)
+{
+}
+#endif // ]
+
 static bg_tree_vmt_t bg_root_vmt={
 #if defined (PBU_DEBUG) // [
   .id=FFL("root"),
@@ -71,4 +77,7 @@ static bg_tree_vmt_t bg_root_vmt={
     .create=bg_root_annotation_create,
     .destroy=bg_root_annotation_destroy,
   },
+#if defined (BG_TRACK_ID) // [
+  .track_id=bg_root_track_id,
+#endif // ]
 };
