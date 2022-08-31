@@ -271,11 +271,11 @@ bg_print_conf_t bg_print_conf[BG_FLAGS_AGG_MAX_OFFSET]={
       bg_print_conf_samplepeak_relative,
       bg_print_conf_samplepeak_absolute),
   BG_CONF2(BG_FLAGS_AGG_TRUEPEAK,
-      "truepeak (relative/absolute)",
+      "true peak (relative/absolute)",
       "  %%%ds: %%.2f %%sFS / %%f\n",
       tp,
       1,
-      "<truepeak %sfs=\"%.2f\" amplitude=\"%.2f\"/>\n",
+      "<true-peak %sfs=\"%.2f\" amplitude=\"%.2f\"/>\n",
       bg_print_conf_truepeak_relative,
       bg_print_conf_truepeak_absolute),
 };

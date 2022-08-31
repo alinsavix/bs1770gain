@@ -282,21 +282,65 @@ static int input_stats_add(void *data, int upsampled, AVFrame *frame)
 
   if (frame) {
     for (ff_iter_first(&i,frame);i.vmt->valid(&i);i.vmt->next(&i)) {
-      if (upsampled)
+      if (upsampled) {
+#if defined (FF_UPSAMPLE_MODIFYX) // [
+        i.vmt->norm(&i,NULL,&tree->stats.truepeak,upsampled);
+#else // ] [
         i.vmt->norm(&i,NULL,&tree->stats.truepeak);
+#endif // ]
+      }
       else if (track->filter.pre) {
+#if defined (FF_UPSAMPLE_MODIFYX) // [
+        i.vmt->norm(&i,sample,&tree->stats.samplepeak,upsampled);
+#else // ] [
         i.vmt->norm(&i,sample,&tree->stats.samplepeak);
+#endif // ]
         lib1770_pre_add_sample(track->filter.pre,sample);
       }
-      else
+      else {
+#if defined (FF_UPSAMPLE_MODIFYX) // [
+        i.vmt->norm(&i,NULL,&tree->stats.samplepeak,0);
+#else // ] [
         i.vmt->norm(&i,NULL,&tree->stats.samplepeak);
+#endif // ]
+      }
     }
   }
+#if ! defined (FF_INPUT_CALLBACK_FLUSH) // [
+#if defined (FF_UPSAMPLE_MODIFY) // [
+  else if (upsampled)
+    tree->stats.truepeak*=upsampled;
+  else
+    lib1770_pre_flush(track->filter.pre);
+#else // ] [
   else if (!upsampled&&track->filter.pre)
     lib1770_pre_flush(track->filter.pre);
+#endif // ]
+#endif // ]
 
   return 0;
 }
+
+#if defined (FF_INPUT_CALLBACK_FLUSH) // [
+static int input_stats_flush(void *data, int upsampled)
+{
+  bg_tree_t *tree=data;
+  bg_track_t *track=&tree->track;
+
+#if defined (FF_UPSAMPLE_MODIFY) // [
+  if (upsampled)
+    tree->stats.truepeak*=upsampled;
+  else
+    lib1770_pre_flush(track->filter.pre);
+  else
+#else // ] [
+  if (!upsampled&&track->filter.pre)
+    lib1770_pre_flush(track->filter.pre);
+#endif // ]
+
+  return 0;
+}
+#endif // ]
 
 static ff_input_callback_t bg_input_callback={
   .path=input_path,
@@ -313,4 +357,7 @@ static ff_input_callback_t bg_input_callback={
   .stats.create=input_stats_create,
   .stats.destroy=input_stats_destroy,
   .stats.add=input_stats_add,
+#if defined (FF_INPUT_CALLBACK_FLUSH) // [
+  .stats.flush=input_stats_flush,
+#endif // ]
 };

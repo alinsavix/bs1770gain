@@ -28,6 +28,15 @@ int ff_resampler_create(ff_resampler_t *res,
 {
   int64_t ochannel_layout=ocodecpar->channel_layout;
 
+#if defined (FF_RESAMPLER_RATE) // [
+  /////////////////////////////////////////////////////////////////////////////
+  res->irate=icodecpar->sample_rate;
+  res->orate=ocodecpar->sample_rate;
+#endif // ]
+#if defined (FF_RESAMPLER_NB_SAMPLES) // [
+  res->nb_samples=0;
+#endif // ]
+
   /////////////////////////////////////////////////////////////////////////////
   if (!ochannel_layout||!icodecpar->channel_layout) {
     DVMESSAGE("invalid channel layout: output=%I64d input=%I64d",
@@ -87,9 +96,75 @@ void resampler_destroy(ff_resampler_t *res)
   swr_free(&res->ctx);
 }
 
+//#define FF_RESAMPLER_GET_BUFFER
 int resampler_apply(ff_resampler_t *res, AVFrame *frame)
 {
   int err;
+
+#if defined (FF_RESAMPLER_RATE) // [
+  /////////////////////////////////////////////////////////////////////////////
+  if (frame) {
+    int nb_samples=(uint64_t)res->orate/res->irate*frame->nb_samples;
+
+    if (!res->frame->nb_samples) {
+#if defined (FF_RESAMPLER_NB_SAMPLES) // [
+      res->frame->nb_samples=res->nb_samples=nb_samples;
+#else // ] [
+      res->frame->nb_samples=nb_samples;
+#endif // ]
+
+#if defined (FF_RESAMPLER_GET_BUFFER) // [
+      err=av_frame_get_buffer(res->frame,0);
+
+      if (err<0) {
+        DMESSAGE("getting frame buffer");
+        goto e_buffer;
+      }
+#endif // ]
+    }
+    else if (res->frame->nb_samples<nb_samples) {
+#if defined (FF_RESAMPLER_NB_SAMPLES) // [
+      if (res->nb_samples<nb_samples) {
+#endif // ]
+        uint64_t channel_layout=res->frame->channel_layout;
+        int channels=res->frame->channels;
+        int format=res->frame->format;
+        int sample_rate=res->frame->sample_rate;
+
+        av_frame_free(&res->frame);
+        res->frame=av_frame_alloc();
+
+        if (!res->frame) {
+          DMESSAGE("allocating frame");
+          goto e_frame;
+        }
+
+#if defined (FF_RESAMPLER_NB_SAMPLES) // [
+        res->frame->nb_samples=res->nb_samples=nb_samples;
+#else // ] [
+        res->frame->nb_samples=nb_samples;
+#endif // ]
+        res->frame->channel_layout=channel_layout;
+        res->frame->channels=channels;
+        res->frame->format=format;
+        res->frame->sample_rate=sample_rate;
+
+#if defined (FF_RESAMPLER_GET_BUFFER) // [
+        err=av_frame_get_buffer(res->frame,0);
+
+        if (err<0) {
+          DMESSAGE("getting frame buffer");
+          goto e_buffer;
+        }
+#endif // ]
+#if defined (FF_RESAMPLER_NB_SAMPLES) // [
+      }
+      else
+        res->frame->nb_samples=nb_samples;
+#endif // ]
+    }
+  }
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   err=swr_convert_frame(res->ctx,res->frame,frame);
@@ -102,5 +177,11 @@ int resampler_apply(ff_resampler_t *res, AVFrame *frame)
   /////////////////////////////////////////////////////////////////////////////
   return 0;
 econvert:
+#if defined (FF_RESAMPLER_RATE) // [
+#if defined (FF_RESAMPLER_GET_BUFFER) // [
+e_buffer:
+#endif // ]
+e_frame:
+#endif // ]
   return -1;
 }

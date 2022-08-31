@@ -178,8 +178,8 @@ static void bg_usage(const ffchar_t *path, FILE *f)
   FFPUTS(" -s,--shortterm:  calculate maximum shortterm loudness\n",f);
   FFPUTS(" -m,--momentary:  calculate maximum momentary loudness\n",f);
   FFPUTS(" -r,--range:  calculate loudness range\n",f);
-  FFPUTS(" -p,--samplepeak:  calculate maximum sample peak\n",f);
-  FFPUTS(" -t,--truepeak:  calculate maximum true peak\n",f);
+  FFPUTS(" -p,--sample-peak:  calculate maximum sample peak\n",f);
+  FFPUTS(" -t,--true-peak:  calculate maximum true peak\n",f);
   FFPUTS(" -b <timestamp>,--begin=<timestamp>:  begin decoding at\n"
       "   timestamp (in microseconds, format: hh:mm:ss.ms)\n",f);
   FFPUTS(" -d <duration>,--duration=<duration>:  let decoding\n"
@@ -537,8 +537,10 @@ int main(int argc, char *const *argv)
     { FFL("integrated"),no_argument,NULL,FFL('i') },
     { FFL("momentary"),no_argument,NULL,FFL('m') },
     { FFL("range"),no_argument,NULL,FFL('r') },
-    { FFL("samplepeak"),no_argument,NULL,FFL('p') },
     { FFL("shortterm"),no_argument,NULL,FFL('s') },
+    { FFL("sample-peak"),no_argument,NULL,FFL('p') },
+    { FFL("samplepeak"),no_argument,NULL,FFL('p') },
+    { FFL("true-peak"),no_argument,NULL,FFL('t') },
     { FFL("truepeak"),no_argument,NULL,FFL('t') },
     { FFL("apply"),optional_argument,NULL,FFL('a') },
 #if defined (_WIN32) // [

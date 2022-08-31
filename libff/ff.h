@@ -240,6 +240,8 @@ const char *ff_dynload_path(void);
 // reading/decoding and re-encoding/writing.
 #define FF_FLAC_HACK
 #define FF_STREAM_METADATA
+#define FF_RESAMPLER_RATE
+#define FF_RESAMPLER_NB_SAMPLES
 
 #if defined (HAVE_FF_DYNLOAD) // [
 ///////////////////////////////////////////////////////////////////////////////
@@ -479,6 +481,14 @@ void ff_output_destroy(ff_inout_t *out);
 
 ///////////////////////////////////////////////////////////////////////////////
 struct ff_resampler {
+#if defined (FF_RESAMPLER_RATE) // [
+  uint32_t irate,orate;
+#endif // ]
+#if defined (FF_RESAMPLER_NB_SAMPLES) // [
+  // because the resampler might reduce the frame's nb_samples we remember
+  // how many nb_samples we've allocated.
+  int nb_samples;
+#endif // ]
   SwrContext *ctx;
   AVFrame *frame;
 };

@@ -101,31 +101,36 @@ exit:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static double INT16_SCALE=1.0/MAXOF(int16_t);
-static double INT32_SCALE=1.0/MAXOF(int32_t);
+#define FF_INT16_SCALE (1.0/MAXOF(int16_t))
+#define FF_INT32_SCALE (1.0/MAXOF(int32_t))
+#define FF_SCALE_INT_NEG
+#if defined (FF_SCALE_INT_NEG) // [
+#define FF_INT16_SCALE_NEG (1.0/(1.0+MAXOF(int16_t)))
+#define FF_INT32_SCALE_NEG (1.0/(1.0+MAXOF(int32_t)))
+#endif // ]
 
 static void ff_iter_norm(ff_iter_t *i FFUNUSED, double *x, double *max,
-    int ch, double y)
+    int ch, double sample)
 {
   if (x) {
 #if ! defined (LIB1770_LFE) // [
     if (ch<3) {
 #endif // ]
-      x[ch]=y;
+      x[ch]=sample;
 #if ! defined (LIB1770_LFE) // [
     }
     else if (3<ch)
-      x[ch-1]=y;
+      x[ch-1]=sample;
 #endif // ]
   }
 
   if (max) {
-    if (y<0) {
-      if (y<-*max)
-        *max=-y;
+    if (sample<0) {
+      if (sample<-*max)
+        *max=-sample;
     }
-    else if (*max<y)
-      *max=y;
+    else if (*max<sample)
+      *max=sample;
   }
 }
 
@@ -156,9 +161,22 @@ static void ff_iter_s16i_next(ff_iter_t *i)
 static void ff_iter_s16i_norm(ff_iter_t *i, double *x, double *max)
 {
   int ch;
+#if defined (FF_SCALE_INT_NEG) // [
+  int16_t sample;
+#endif // ]
 
-  for (ch=0;ch<i->frame->channels;++ch)
-    ff_iter_norm(i,x,max,ch,INT16_SCALE*i->i.s16.rp[ch]);
+  for (ch=0;ch<i->frame->channels;++ch) {
+#if defined (FF_SCALE_INT_NEG) // [
+    sample=i->i.s16.rp[ch];
+
+    if (sample<0)
+      ff_iter_norm(i,x,max,ch,FF_INT16_SCALE_NEG*sample);
+    else
+      ff_iter_norm(i,x,max,ch,FF_INT16_SCALE*sample);
+#else // ] [
+    ff_iter_norm(i,x,max,ch,FF_INT16_SCALE*i->i.s16.rp[ch]);
+#endif // ]
+  }
 }
 
 static ff_iter_vmt_t ff_iter_s16i_vmt={
@@ -196,9 +214,22 @@ static void ff_iter_s32i_next(ff_iter_t *i)
 static void ff_iter_s32i_norm(ff_iter_t *i, double *x, double *max)
 {
   int ch;
+#if defined (FF_SCALE_INT_NEG) // [
+  int32_t sample;
+#endif // ]
 
-  for (ch=0;ch<i->frame->channels;++ch)
-    ff_iter_norm(i,x,max,ch,INT32_SCALE*i->i.s32.rp[ch]);
+  for (ch=0;ch<i->frame->channels;++ch) {
+#if defined (FF_SCALE_INT_NEG) // [
+    sample=i->i.s32.rp[ch];
+
+    if (sample<0)
+      ff_iter_norm(i,x,max,ch,FF_INT32_SCALE_NEG*sample);
+    else
+      ff_iter_norm(i,x,max,ch,FF_INT32_SCALE*sample);
+#else // ] [
+    ff_iter_norm(i,x,max,ch,FF_INT32_SCALE*i->i.s32.rp[ch]);
+#endif // ]
+  }
 }
 
 static ff_iter_vmt_t ff_iter_s32i_vmt={
@@ -324,9 +355,22 @@ static void ff_iter_s16p_next(ff_iter_t *i)
 static void ff_iter_s16p_norm(ff_iter_t *i, double *x, double *max)
 {
   int ch;
+#if defined (FF_SCALE_INT_NEG) // [
+  int16_t sample;
+#endif // ]
 
-  for (ch=0;ch<i->frame->channels;++ch)
-    ff_iter_norm(i,x,max,ch,INT16_SCALE**i->p.s16.rp[ch]);
+  for (ch=0;ch<i->frame->channels;++ch) {
+#if defined (FF_SCALE_INT_NEG) // [
+    sample=*i->p.s16.rp[ch];
+
+    if (sample<0)
+      ff_iter_norm(i,x,max,ch,FF_INT16_SCALE_NEG*sample);
+    else
+      ff_iter_norm(i,x,max,ch,FF_INT16_SCALE*sample);
+#else // ] [
+    ff_iter_norm(i,x,max,ch,FF_INT16_SCALE**i->p.s16.rp[ch]);
+#endif // ]
+  }
 }
 
 static ff_iter_vmt_t ff_iter_s16p_vmt={
@@ -372,9 +416,22 @@ static void ff_iter_s32p_next(ff_iter_t *i)
 static void ff_iter_s32p_norm(ff_iter_t *i, double *x, double *max)
 {
   int ch;
+#if defined (FF_SCALE_INT_NEG) // [
+  int32_t sample;
+#endif // ]
 
-  for (ch=0;ch<i->frame->channels;++ch)
-    ff_iter_norm(i,x,max,ch,INT32_SCALE**i->p.s32.rp[ch]);
+  for (ch=0;ch<i->frame->channels;++ch) {
+#if defined (FF_SCALE_INT_NEG) // [
+    sample=*i->p.s32.rp[ch];
+
+    if (sample<0)
+      ff_iter_norm(i,x,max,ch,FF_INT32_SCALE_NEG*sample);
+    else
+      ff_iter_norm(i,x,max,ch,FF_INT32_SCALE*sample);
+#else // ] [
+    ff_iter_norm(i,x,max,ch,FF_INT32_SCALE**i->p.s32.rp[ch]);
+#endif // ]
+  }
 }
 
 static ff_iter_vmt_t ff_iter_s32p_vmt={
@@ -417,12 +474,12 @@ static void ff_iter_fltp_next(ff_iter_t *i)
     ++i->p.flt.rp[ch];
 }
 
-static void ff_iter_fltp_norm(ff_iter_t *i, double *sample, double *max)
+static void ff_iter_fltp_norm(ff_iter_t *i, double *x, double *max)
 {
   int ch;
 
   for (ch=0;ch<i->frame->channels;++ch)
-    ff_iter_norm(i,sample,max,ch,*i->p.flt.rp[ch]);
+    ff_iter_norm(i,x,max,ch,*i->p.flt.rp[ch]);
 }
 
 static ff_iter_vmt_t ff_iter_fltp_vmt={
