@@ -230,6 +230,8 @@ void bg_param_set_process(bg_param_t *param)
   param->count.cur=0u;
 }
 
+//#define BG_PARAM_LOOP_INNER
+#if defined (BG_PARAM_LOOP_INNER) // [
 static int bg_param_loop_inner(bg_param_t *param, ffchar_t const *argv)
 {
   int err=-1;
@@ -274,23 +276,69 @@ e_prefix:
 e_root:
   return err;
 }
+#endif // ]
 
 int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 {
   int err=-1;
 
+#if ! defined (BG_PARAM_LOOP_INNER) // [
+  /////////////////////////////////////////////////////////////////////////////
+  if (bg_root_create(&param->root,param)<0) {
+    DMESSAGE("creating root");
+    goto e_root;
+  }
+
+  param->tos=&param->root;
+
+  if (param->process) {
+    ///////////////////////////////////////////////////////////////////////////
+    if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
+      DMESSAGE("prefix");
+      goto e_prefix;
+    }
+  }
+#endif // ]
+
   for (param->argv.cur=param->argv.min;param->argv.cur<param->argv.max;
       ++param->argv.cur) {
+#if defined (BG_PARAM_LOOP_INNER) // [
+    ///////////////////////////////////////////////////////////////////////////
     if (bg_param_loop_inner(param,*argv++)<0) {
         DMESSAGE("inner loop");
         goto e_inner;
     }
+#else // ] [
+    ///////////////////////////////////////////////////////////////////////////
+    if (bg_pilot_loop(&param->pilot,*argv++)<0) {
+      DMESSAGE("looping");
+      goto e_loop;
+    }
+#endif // ]
   }
+
+#if ! defined (BG_PARAM_LOOP_INNER) // [
+  if (param->process) {
+    ///////////////////////////////////////////////////////////////////////////
+    if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
+      DMESSAGE("suffix");
+      goto e_suffix;
+    }
+  }
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   err=0;
 //cleanup:
+#if defined (BG_PARAM_LOOP_INNER) // [
 e_inner:
+#else // ] [
+e_suffix:
+e_loop:
+e_prefix:
+  param->root.vmt->destroy(&param->root);
+e_root:
+#endif // ]
   return err;
 }
 
