@@ -781,6 +781,8 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
   out->cb.out=ocb;
   out->cb.data=odata;
   out->printer=NULL;
+  out->ai=-1;
+  out->vi=-1;
 
   /////////////////////////////////////////////////////////////////////////////
   out->fmt.ctx=NULL;

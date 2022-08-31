@@ -38,13 +38,50 @@
 #define DLOPEN_FLAG (RTLD_NOW|RTLD_GLOBAL)
 #endif // ]
 
+#if defined (_WIN32) // [
+#define FFDLOPEN(path,flag) LoadLibraryW(path)
+#define FFDLSYM(handle,symbol) GetProcAddress(handle,symbol)
+#else // ] [
+#define FFDLSYM(handle,symbol) dlsym(handle,symbol)
+#define FFDLOPEN(path,flag) dlopen(path,flag)
+#endif // ]
+
+#define FF_DYNLOAD_FREE_LIST
+
 ///////////////////////////////////////////////////////////////////////////////
-static struct _ff_avutil {
+typedef struct ff_dynload_node ff_dynload_node_t;
+
+struct ff_dynload_node {
+  ff_dynload_node_t *prev;
+#if defined (PBU_DEBUG) // [
+  ffchar_t *id;
+#endif // ]
 #if defined (_WIN32) // [
   HANDLE hLib;
 #else // ] [
   void *hLib;
 #endif // ]
+};
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+static ff_dynload_node_t *ff_dynload_tail;
+
+static void ff_dynload_list_append(ff_dynload_node_t *node,
+    ffchar_t *id FFUNUSED)
+{
+  node->prev=ff_dynload_tail;
+#if defined (PBU_DEBUG) // [
+  node->id=id;
+FFVWRITELN("\"%s\"",id);
+#endif // ]
+
+  ff_dynload_tail=node;
+}
+#endif // ]
+
+///////////////////////////////////////////////////////////////////////////////
+static struct _ff_avutil {
+  ff_dynload_node_t node;
   unsigned (*avutil_version)(void);
   AVFrame *(*av_frame_alloc)(void);
   void (*av_frame_free)(AVFrame **frame);
@@ -553,11 +590,7 @@ AVBufferRef *av_buffer_ref(AVBufferRef *buf)
 
 ///////////////////////////////////////////////////////////////////////////////
 static struct _ff_avcodec {
-#if defined (_WIN32) // [
-  HANDLE hLib;
-#else // ] [
-  void *hLib;
-#endif // ]
+  ff_dynload_node_t node;
   unsigned (*avcodec_version)(void);
 #if (LIBAVCODEC_VERSION_MAJOR<58) // [
   void (*avcodec_register_all)(void);
@@ -912,11 +945,7 @@ int av_packet_copy_props(AVPacket *dst, const AVPacket *src)
 
 ///////////////////////////////////////////////////////////////////////////////
 static struct _ff_avformat {
-#if defined (_WIN32) // [
-  HANDLE hLib;
-#else // ] [
-  void *hLib;
-#endif // ]
+  ff_dynload_node_t node;
   unsigned (*avformat_version)(void);
 #if (LIBAVFORMAT_VERSION_MAJOR<58) // [
   void (*av_register_all)(void);
@@ -1138,11 +1167,7 @@ int avformat_query_codec(const AVOutputFormat *ofmt, enum AVCodecID codec_id,
 
 ///////////////////////////////////////////////////////////////////////////////
 static struct _ff_swresample {
-#if defined (_WIN32) // [
-  HANDLE hLib;
-#else // ] [
-  void *hLib;
-#endif // ]
+  ff_dynload_node_t node;
   unsigned (*swresample_version)(void);
   ////
   struct SwrContext *(*swr_alloc)(void);
@@ -1225,11 +1250,7 @@ int swr_convert_frame(SwrContext *swr, AVFrame *output, const AVFrame *input)
 
 ///////////////////////////////////////////////////////////////////////////////
 static struct _ff_swscale {
-#if defined (_WIN32) // [
-  HANDLE hLib;
-#else // ] [
-  void *hLib;
-#endif // ]
+  ff_dynload_node_t node;
   unsigned (*swscale_version)(void);
 } swscale;
 
@@ -1245,11 +1266,7 @@ unsigned swscale_version(void)
 
 ///////////////////////////////////////////////////////////////////////////////
 static struct _ff_postproc {
-#if defined (_WIN32) // [
-  HANDLE hLib;
-#else // ] [
-  void *hLib;
-#endif // ]
+  ff_dynload_node_t node;
   unsigned (*postproc_version)(void);
 } postproc;
 
@@ -1265,11 +1282,7 @@ unsigned postproc_version(void)
 
 ///////////////////////////////////////////////////////////////////////////////
 static struct _ff_avfilter {
-#if defined (_WIN32) // [
-  HANDLE hLib;
-#else // ] [
-  void *hLib;
-#endif // ]
+  ff_dynload_node_t node;
   unsigned (*avfilter_version)(void);
 #if (LIBAVFILTER_VERSION_MAJOR<7) // [
   void (*avfilter_register_all)(void);
@@ -1449,19 +1462,23 @@ static int avutil_load(void)
     SIZE_AVUTIL=(sizeof AVUTIL)/(sizeof AVUTIL[0]),
   };
 
-  if (!avutil.hLib) {
+  if (!avutil.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVUTIL)) {
       FFVMESSAGE("loading %s",AVUTIL);
       return -1;
-   }
+    }
 
     FFSTRCPY(pp,AVUTIL);
-    avutil.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    avutil.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!avutil.hLib&&!(avutil.hLib=FFDLOPEN(AVUTIL,DLOPEN_FLAG))) {
+    if (!avutil.node.hLib&&!(avutil.node.hLib=FFDLOPEN(AVUTIL,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&avutil.node,FFL("avutil"));
+#endif // ]
   }
 
   return 0;
@@ -1480,19 +1497,23 @@ static int avcodec_load(void)
     return -1;
   else if (swresample_load()<0)
     return -1;
-  else if (!avcodec.hLib) {
+  else if (!avcodec.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVCODEC)) {
       FFVMESSAGE("loading %s",AVCODEC);
       return -1;
     }
 
     FFSTRCPY(pp,AVCODEC);
-    avcodec.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    avcodec.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!avcodec.hLib&&!(avcodec.hLib=FFDLOPEN(AVCODEC,DLOPEN_FLAG))) {
+    if (!avcodec.node.hLib&&!(avcodec.node.hLib=FFDLOPEN(AVCODEC,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&avcodec.node,FFL("avcodec"));
+#endif // ]
   }
 
   return 0;
@@ -1511,19 +1532,23 @@ static int avformat_load(void)
     return -1;
   else if (avcodec_load()<0)
     return -1;
-  else if (!avformat.hLib) {
+  else if (!avformat.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVFORMAT)) {
       FFVMESSAGE("loading %s",AVFORMAT);
       return -1;
     }
 
     FFSTRCPY(pp,AVFORMAT);
-    avformat.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    avformat.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!avformat.hLib&&!(avformat.hLib=FFDLOPEN(AVFORMAT,DLOPEN_FLAG))) {
+    if (!avformat.node.hLib&&!(avformat.node.hLib=FFDLOPEN(AVFORMAT,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&avformat.node,FFL("avformat"));
+#endif // ]
   }
 
   return 0;
@@ -1540,20 +1565,24 @@ static int swresample_load(void)
 
   if (avutil_load()<0)
     return -1;
-  else if (!swresample.hLib) {
+  else if (!swresample.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_SWRESAMPLE)) {
       FFVMESSAGE("loading %s",SWRESAMPLE);
       return -1;
    }
 
     FFSTRCPY(pp,SWRESAMPLE);
-    swresample.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    swresample.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!swresample.hLib
-        &&!(swresample.hLib=FFDLOPEN(SWRESAMPLE,DLOPEN_FLAG))) {
+    if (!swresample.node.hLib
+        &&!(swresample.node.hLib=FFDLOPEN(SWRESAMPLE,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&swresample.node,FFL("swresample"));
+#endif // ]
   }
 
   return 0;
@@ -1570,19 +1599,23 @@ static int swscale_load(void)
 
   if (avutil_load()<0)
     return -1;
-  else if (!swscale.hLib) {
+  else if (!swscale.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_SWSCALE)) {
       FFVMESSAGE("loading %s",SWSCALE);
       return -1;
    }
 
     FFSTRCPY(pp,SWSCALE);
-    swscale.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    swscale.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!swscale.hLib&&!(swscale.hLib=FFDLOPEN(SWSCALE,DLOPEN_FLAG))) {
+    if (!swscale.node.hLib&&!(swscale.node.hLib=FFDLOPEN(SWSCALE,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&swscale.node,FFL("swscale"));
+#endif // ]
   }
 
   return 0;
@@ -1599,19 +1632,23 @@ static int postproc_load(void)
 
   if (avutil_load()<0)
     return -1;
-  else if (!postproc.hLib) {
+  else if (!postproc.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_POSTPROC)) {
       FFVMESSAGE("loading %s",POSTPROC);
       return -1;
     }
 
     FFSTRCPY(pp,POSTPROC);
-    postproc.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    postproc.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!postproc.hLib&&!(postproc.hLib=FFDLOPEN(POSTPROC,DLOPEN_FLAG))) {
+    if (!postproc.node.hLib&&!(postproc.node.hLib=FFDLOPEN(POSTPROC,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&postproc.node,FFL("postproc"));
+#endif // ]
   }
 
   return 0;
@@ -1638,19 +1675,23 @@ static int avfilter_load(void)
     return -1;
   else if (swscale_load()<0)
     return -1;
-  else if (!avfilter.hLib) {
+  else if (!avfilter.node.hLib) {
     if ((path+SIZE_PATH)<=(pp+SIZE_AVFILTER)) {
       FFVMESSAGE("loading %s",AVFILTER);
       return -1;
     }
 
     FFSTRCPY(pp,AVFILTER);
-    avfilter.hLib=FFDLOPEN(path,DLOPEN_FLAG);
+    avfilter.node.hLib=FFDLOPEN(path,DLOPEN_FLAG);
 
-    if (!avfilter.hLib&&!(avfilter.hLib=FFDLOPEN(AVFILTER,DLOPEN_FLAG))) {
+    if (!avfilter.node.hLib&&!(avfilter.node.hLib=FFDLOPEN(AVFILTER,DLOPEN_FLAG))) {
       FFVMESSAGE("loading %s",path);
       return -1;
     }
+
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+    ff_dynload_list_append(&avfilter.node,FFL("avfilter"));
+#endif // ]
   }
 
   return 0;
@@ -1664,7 +1705,7 @@ static int avutil_load_sym(void *p, const char *sym)
   else if (avutil_load()<0)
     return -1;
   else
-    return load(avutil.hLib,sym,p);
+    return load(avutil.node.hLib,sym,p);
 }
 
 static int avcodec_load_sym(void *p, const char *sym)
@@ -1674,7 +1715,7 @@ static int avcodec_load_sym(void *p, const char *sym)
   else if (avcodec_load()<0)
     return -1;
   else
-    return load(avcodec.hLib,sym,p);
+    return load(avcodec.node.hLib,sym,p);
 }
 
 static int avformat_load_sym(void *p, const char *sym)
@@ -1684,7 +1725,7 @@ static int avformat_load_sym(void *p, const char *sym)
   else if (avformat_load()<0)
     return -1;
   else
-    return load(avformat.hLib,sym,p);
+    return load(avformat.node.hLib,sym,p);
 }
 
 static int swresample_load_sym(void *p, const char *sym)
@@ -1694,7 +1735,7 @@ static int swresample_load_sym(void *p, const char *sym)
   else if (swresample_load()<0)
     return -1;
   else
-    return load(swresample.hLib,sym,p);
+    return load(swresample.node.hLib,sym,p);
 }
 
 static int swscale_load_sym(void *p, const char *sym)
@@ -1704,7 +1745,7 @@ static int swscale_load_sym(void *p, const char *sym)
   else if (swscale_load()<0)
     return -1;
   else
-    return load(swscale.hLib,sym,p);
+    return load(swscale.node.hLib,sym,p);
 }
 
 static int postproc_load_sym(void *p FFUNUSED, const char *sym FFUNUSED)
@@ -1714,7 +1755,7 @@ static int postproc_load_sym(void *p FFUNUSED, const char *sym FFUNUSED)
   else if (postproc_load()<0)
     return -1;
   else
-    return load(postproc.hLib,sym,p);
+    return load(postproc.node.hLib,sym,p);
 }
 
 static int avfilter_load_sym(void *p FFUNUSED, const char *sym FFUNUSED)
@@ -1724,7 +1765,7 @@ static int avfilter_load_sym(void *p FFUNUSED, const char *sym FFUNUSED)
   else if (avfilter_load()<0)
     return -1;
   else
-    return load(avfilter.hLib,sym,p);
+    return load(avfilter.node.hLib,sym,p);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1865,61 +1906,73 @@ exit:
 
 void ff_unload(void)
 {
-  if (avfilter.hLib) {
+#if defined (FF_DYNLOAD_FREE_LIST) // [
+  while (ff_dynload_tail) {
+FFVWRITELN("\"%s\"",ff_dynload_tail->id);
 #if defined (_WIN32) // [
-    FreeLibrary(avfilter.hLib);
+    FreeLibrary(ff_dynload_tail->hLib);
 #else // ] [
-    dlclose(avfilter.hLib);
+    dlclose(ff_dynload_tail->hLib);
+#endif // ]
+    ff_dynload_tail=ff_dynload_tail->prev;
+  }
+#else // ] [
+  if (avfilter.node.hLib) {
+#if defined (_WIN32) // [
+    FreeLibrary(avfilter.node.hLib);
+#else // ] [
+    dlclose(avfilter.node.hLib);
 #endif // ]
 	}
 
-  if (postproc.hLib) {
+  if (postproc.node.hLib) {
 #if defined (_WIN32) // [
-    FreeLibrary(postproc.hLib);
+    FreeLibrary(postproc.node.hLib);
 #else // ] [
-    dlclose(postproc.hLib);
+    dlclose(postproc.node.hLib);
 #endif // ]
 	}
 
-  if (swscale.hLib) {
+  if (swscale.node.hLib) {
 #if defined (_WIN32) // [
-    FreeLibrary(swscale.hLib);
+    FreeLibrary(swscale.node.hLib);
 #else // ] [
-    dlclose(swscale.hLib);
+    dlclose(swscale.node.hLib);
 #endif // ]
 	}
 
-  if (swresample.hLib) {
+  if (avformat.node.hLib) {
 #if defined (_WIN32) // [
-    FreeLibrary(swresample.hLib);
+    FreeLibrary(avformat.node.hLib);
 #else // ] [
-    dlclose(swresample.hLib);
+    dlclose(avformat.node.hLib);
 #endif // ]
 	}
 
-  if (avformat.hLib) {
+  if (avcodec.node.hLib) {
 #if defined (_WIN32) // [
-    FreeLibrary(avformat.hLib);
+    FreeLibrary(avcodec.node.hLib);
 #else // ] [
-    dlclose(avformat.hLib);
+    dlclose(avcodec.node.hLib);
 #endif // ]
 	}
 
-  if (avcodec.hLib) {
+  if (swresample.node.hLib) {
 #if defined (_WIN32) // [
-    FreeLibrary(avcodec.hLib);
+    FreeLibrary(swresample.node.hLib);
 #else // ] [
-    dlclose(avcodec.hLib);
+    dlclose(swresample.node.hLib);
 #endif // ]
 	}
 
-  if (avutil.hLib) {
+  if (avutil.node.hLib) {
 #if defined (_WIN32) // [
-    FreeLibrary(avutil.hLib);
+    FreeLibrary(avutil.node.hLib);
 #else // ] [
-    dlclose(avutil.hLib);
+    dlclose(avutil.node.hLib);
 #endif // ]
 	}
+#endif // ]
 }
 //#else // ] [
 //#error 55

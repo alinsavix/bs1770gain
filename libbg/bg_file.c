@@ -55,17 +55,13 @@ e_basename:
 ///////////////////////////////////////////////////////////////////////////////
 static void bg_file_destroy(bg_tree_t *tree)
 {
-#if defined (BG_PURGE) // [
   bg_param_t *param=tree->param;
-#endif // ]
 
   if (tree->parent)
     bg_album_pop(tree->parent);
 
-#if defined (BG_PURGE) // [
   if (!param->process)
-    param->argv.cur->purge=tree->depth;
-#endif // ]
+    tree->argv->lift=tree->depth;
 
   bg_tree_common_destroy(tree);
   free(tree);

@@ -38,10 +38,7 @@ extern "C" {
 //#define BG_LIST
 #define BG_CHANNEL_LFE 3
 #define BG_TEMP_PREFIX FFL(".")
-#define BG_PURGE
-#if defined (BG_PURGE) // [
-#define BG_PURGEEX
-#endif // ]
+#define BG_CLOCK
 //#define BG_PARAM_SLEEP
 //#define BG_BWF_TAGS
 //#define BG_TREE_CREATE_CHILD_WARNING
@@ -80,9 +77,7 @@ typedef const struct bg_print_vmt bg_print_vmt_t;
 typedef const struct bg_print_conf bg_print_conf_t;
 typedef const struct bg_param_unit bg_param_unit_t;
 typedef struct bg_param bg_param_t;
-#if defined (BG_PURGE) // [
 typedef struct bg_param_argv bg_param_argv_t;
-#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 int64_t bg_parse_time(const ffchar_t *s);
@@ -128,9 +123,7 @@ void bg_root_annotation_destroy(bg_tree_t *tree);
 ////////
 struct bg_album {
   // counts BG_TREE_TYPE_FILEs and BG_TREE_TYPE_TRACKs.
-#if defined (BG_PURGE) // [
   unsigned nchildren;
-#endif // ]
   unsigned nleafs;
   bg_tree_t *first;
   bg_tree_t *last;
@@ -147,10 +140,6 @@ bg_tree_t *bg_album_pop(bg_tree_t *tree);
 
 int bg_album_annotation_create(bg_tree_t *tree);
 void bg_album_annotation_destroy(bg_tree_t *tree);
-
-#if ! defined (BG_PURGE) // [
-const ffchar_t *bg_album_target_purge(bg_tree_t *tree);
-#endif // ]
 
 ////////
 enum bg_track_tag {
@@ -254,6 +243,7 @@ void bg_tree_patha_destroy(bg_tree_patha_t *p);
 struct bg_tree {
   bg_tree_vmt_t *vmt;
   bg_param_t *param;
+  bg_param_argv_t *argv;
   bg_tree_path_t source;
 
 #if defined (_WIN32) // [
@@ -271,9 +261,7 @@ struct bg_tree {
   bg_tree_path_t target;
   bg_tree_path_t temp;
   bg_tree_t *parent;
-#if defined (BG_PURGE) // [
   unsigned depth;
-#endif // ]
   bg_tree_t *next;
   bg_tree_t *prev;
 
@@ -468,22 +456,18 @@ struct bg_param_unit {
 #endif // ]
 };
 
-#if defined (BG_PURGE) // [
 ////////
 struct bg_param_argv {
-  unsigned purge;
+  unsigned lift;
 };
-#endif // ]
 
 ////////
 struct bg_param {
-#if defined (BG_PURGE) // [
   struct {
     bg_param_argv_t *min;
     bg_param_argv_t *cur;
     bg_param_argv_t *max;
   } argv;
-#endif // ]
 
   struct count {
     unsigned long cur;
@@ -501,7 +485,6 @@ struct bg_param {
 
   ff_printer_t printer;
   int loglevel;
-  int purged;
 
   struct {
 #if defined (_WIN32) // [
@@ -558,7 +541,9 @@ struct bg_param {
     double value;
   } weight;
 
+#if defined (BG_CLOCK) // [
   int time;
+#endif // ]
   int lfe;
 #if defined (_WIN32) && defined (BG_WIN32_CREATE_LOCALE) // [
   _locale_t locale;
@@ -594,14 +579,12 @@ struct bg_param {
 int bg_param_create(bg_param_t *param);
 void bg_param_destroy(bg_param_t *param);
 
-#if defined (BG_PURGE) // [
 int bg_param_alloc_arguments(bg_param_t *param, size_t size);
 void bg_param_free_argumets(bg_param_t *param);
-#endif // ]
 void bg_param_set_unit_ebu(bg_param_t *param);
 void bg_param_set_unit_db(bg_param_t *param);
 void bg_param_set_process(bg_param_t *param);
-int bg_param_loop(bg_param_t *param, ffchar_t *const *argv, int i, int argc);
+int bg_param_loop(bg_param_t *param, ffchar_t *const *argv);
 
 ///////////////////////////////////////////////////////////////////////////////
 struct bg_print_conf {

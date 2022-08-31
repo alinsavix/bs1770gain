@@ -29,26 +29,20 @@
 #endif // ]
 #include <bg.h>
 
-#if defined (BG_PURGE) // [
 ///////////////////////////////////////////////////////////////////////////////
 static bg_tree_t *bg_tree_annotation_parent(bg_tree_t *tree)
 {
   bg_param_t *param=tree->param;
 
-  return param->argv.cur->purge<tree->depth?tree->parent
-    :param->argv.cur->purge==tree->depth?&param->root:NULL;
+  return tree->argv->lift<tree->depth?tree->parent
+      :tree->argv->lift==tree->depth?&param->root:NULL;
 }
-#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 int bg_file_annotation_create(bg_tree_t *tree)
 {
   const bg_param_t *param=tree->param;
-#if defined (BG_PURGE) // [
   bg_tree_t *parent=bg_tree_annotation_parent(tree);
-#else // ] [
-  bg_tree_t *parent=tree->parent;
-#endif // ]
   size_t len1,len2;
   ssize_t size;
   ffchar_t *tp;
@@ -517,11 +511,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
 {
   bg_param_t *param=tree->param;
   bg_track_t *track=&tree->track;
-#if defined (BG_PURGE) // [
   bg_tree_t *parent=bg_tree_annotation_parent(tree);
-#else // ] [
-  bg_tree_t *parent=tree->parent;
-#endif // ]
   size_t len1,len2;
   // before determining the suffix we need to have the file re-opened.
   const ffchar_t *sfx;
@@ -733,13 +723,8 @@ void bg_track_annotation_destroy(bg_tree_t *tree FFUNUSED)
 ///////////////////////////////////////////////////////////////////////////////
 int bg_album_annotation_create(bg_tree_t *tree)
 {
-#if defined (BG_PURGE) // [
   bg_tree_t *parent=bg_tree_annotation_parent(tree);
   const ffchar_t *basename=tree->source.basename;
-#else // ] [
-  bg_tree_t *parent=tree->parent;
-  const ffchar_t *basename;
-#endif // ]
   size_t len1,len2,size;
   ffchar_t *tp;
 
@@ -749,9 +734,6 @@ int bg_album_annotation_create(bg_tree_t *tree)
 
   if (tree->param->output.dirname) {
     ///////////////////////////////////////////////////////////////////////////
-#if ! defined (BG_PURGE) // [
-    basename=bg_album_target_purge(tree);
-#endif // ]
     len1=parent&&parent->target.path?FFSTRLEN(parent->target.path):0u;
     len2=basename?FFSTRLEN(basename):0u;
     size=(len1?len1+1u:0u)+(len2?len2+1u:0u);

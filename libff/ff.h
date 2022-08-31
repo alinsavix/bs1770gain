@@ -73,8 +73,6 @@ extern "C" {
 #define FFWARNING(m) PBU_DWARNINGW(L##m)
 #define FFVWARNING(m,...) PBU_DVWARNINGW(L##m,__VA_ARGS__)
 #define FFVWRITELN(m,...) PBU_DVWRITELNW(L##m,__VA_ARGS__)
-#define FFDLOPEN(path,flag) LoadLibraryW(path)
-#define FFDLSYM(handle,symbol) GetProcAddress(handle,symbol)
 #define FFSTRTOK_R(str,delim,saveptr) wcstok(str,delim)
 #if ! defined (PATH_MAX) // [
 #define PATH_MAX MAX_PATH
@@ -115,8 +113,6 @@ typedef wchar_t ffchar_t;
 #define FFWARNING(m) PBU_DWARNING(m)
 #define FFVWARNING(m,...) PBU_DVWARNING(m,__VA_ARGS__)
 #define FFVWRITELN(m,...) PBU_DVWRITELN(m,__VA_ARGS__)
-#define FFDLOPEN(path,flag) dlopen(path,flag)
-#define FFDLSYM(handle,symbol) dlsym(handle,symbol)
 #define FFSTRTOK_R(str,delim,saveptr) strtok_r(str,delim,saveptr)
 
 typedef char ffchar_t;
