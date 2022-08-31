@@ -61,6 +61,22 @@ int bg_param_create(bg_param_t *param)
 #if defined (BG_PARAM_SKIP_SCAN) // [
   param->skip_scan=0;
 #endif // ]
+#if defined (BG_PARAM_SCRIPT) // [
+  param->script=NULL;
+#endif // ]
+#if defined (BG_PARAM_REFERENCE) // [
+  param->reference=NULL;
+#endif // ]
+
+#if defined (BG_PARAM_SHELL) // [
+#if defined (_WIN32) // [
+  param->shell.interpreter=NULL;
+  param->shell.parameter=L"-c";
+#else // ] [
+  param->shell.interpreter="/bin/sh";
+  param->shell.parameter="-c";
+#endif // ]
+#endif // ]
 
   if (bg_pilot_create(&param->pilot,20,&bg_pilot_callback,param)<0) {
     _DMESSAGE("creating pilot");

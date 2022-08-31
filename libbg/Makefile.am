@@ -1,4 +1,5 @@
 AM_CPPFLAGS=
+#AM_CPPFLAGS+=-g
 AM_CPPFLAGS+=-I$(top_srcdir)/libpbutil
 AM_CPPFLAGS+=-I$(top_srcdir)/libff
 AM_CPPFLAGS+=-I$(top_srcdir)/lib1770-2
@@ -6,6 +7,8 @@ AM_CPPFLAGS+=-I$(top_srcdir)/lib1770-2
 bin_PROGRAMS=
 bin_PROGRAMS+=bs1770gain
 bs1770gain_SOURCES=bgx.c
+#bs1770gain_LDFLAGS=
+#bs1770gain_LDFLAGS+=-g
 bs1770gain_LDADD=
 bs1770gain_LDADD+=libbg.a
 bs1770gain_LDADD+=$(top_builddir)/libff/libff.a

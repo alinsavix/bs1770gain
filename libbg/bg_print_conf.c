@@ -30,9 +30,19 @@ double bg_print_conf_norm(bg_tree_t *tree)
 ////////
 double bg_print_conf_momentary_mean(bg_tree_t *tree)
 {
-
+#if 1 // [
   return lib1770_stats_get_mean(tree->stats.momentary,
       tree->param->momentary.mean.gate);
+#else // ] [
+  double mean;
+
+_WRITELNV("%p",tree);
+  mean=lib1770_stats_get_mean(tree->stats.momentary,
+      tree->param->momentary.mean.gate);
+_WRITELNV("%p: %.02lf",tree,mean);
+
+  return mean;
+#endif // ]
 }
 
 double bg_print_conf_momentary_mean_relative(bg_tree_t *tree)

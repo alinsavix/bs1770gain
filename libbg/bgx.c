@@ -20,10 +20,6 @@
  * MA  02110-1301  USA
  */
 #if defined (_WIN32) // [
-#if defined (BG_SYSTEM) // [
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif // ]
 #include <fcntl.h>
 #include <getoptW.h>
 #else // ] [
@@ -222,6 +218,11 @@ static void bg_usage(const ffchar_t *path, FILE *f)
 #else // ] [
   _FPRINTF(f," -f <file>,--file=<file>:  write analysis to a log file\n");
 #endif // ]
+#if defined (BG_PARAM_REFERENCE) // [
+  _FPRINTF(f," --reference=<path to a refernce tree>:  path to a tree\n"
+      "   structural equivalent to the input tree and its's leafes may\n"
+      "   serve as a reference to it's correponding input leafes.\n");
+#endif // ]
 #if defined (BG_PARAM_SKIP_SCAN) // [
   _FPRINTF(f," --skip-scan:  skip counting files.\n");
 #endif // ]
@@ -229,6 +230,10 @@ static void bg_usage(const ffchar_t *path, FILE *f)
   _FPRINTF(f," --script=<script>:  run <script> on track. if not explicitely\n"
       "   provided implies option --apply. <script> might be provided\n"
       "   as a string or as a file name.\n");
+#endif // ]
+#if defined (BG_PARAM_SHELL) // [
+  _FPRINTF(f," --shell=<path to interpreter>:  interpret <script> according\n"
+      "   to interpreter.\n");
 #endif // ]
 #if defined (BG_PARAM_QUIET) // [
   _FPRINTF(f," --quiet:  supress any output except error messages.\n");
@@ -459,11 +464,17 @@ int main(int argc, char *const *argv)
 #if defined (_WIN32) // [
     BG_ARG_UTF_16,
 #endif // ]
+#if defined (BG_PARAM_REFERENCE) // [
+    BG_REFERENCE,
+#endif // ]
 #if defined (BG_PARAM_SKIP_SCAN) // [
     BG_SKIP_SCAN,
 #endif // ]
 #if defined (BG_PARAM_SCRIPT) // [
     BG_SCRIPT,
+#endif // ]
+#if defined (BG_PARAM_SHELL) // [
+    BG_SHELL,
 #endif // ]
     BG_ARG_DRC,
     BG_ARG_LOGLEVEL,
@@ -576,8 +587,14 @@ int main(int argc, char *const *argv)
 #if defined (BG_PARAM_SKIP_SCAN) // [
     { FFL("skip-scan"),optional_argument,NULL,BG_SKIP_SCAN },
 #endif // ]
+#if defined (BG_PARAM_REFERENCE) // [
+    { FFL("reference"),required_argument,NULL,BG_REFERENCE },
+#endif // ]
 #if defined (BG_PARAM_SCRIPT) // [
     { FFL("script"),required_argument,NULL,BG_SCRIPT },
+#endif // ]
+#if defined (BG_PARAM_SHELL) // [
+    { FFL("shell"),required_argument,NULL,BG_SHELL },
 #endif // ]
     { FFL("unit"),required_argument,NULL,BG_ARG_UNIT },
     { FFL("audio"),required_argument,NULL,BG_ARG_AUDIO },
@@ -917,6 +934,11 @@ int main(int argc, char *const *argv)
 
       break;
 #endif // ]
+#if defined (BG_PARAM_REFERENCE) // [
+    case BG_REFERENCE:
+      param.reference=optarg;
+      break;
+#endif // ]
 #if defined (BG_PARAM_SKIP_SCAN) // [
     case BG_SKIP_SCAN:
       param.skip_scan=1;
@@ -925,6 +947,11 @@ int main(int argc, char *const *argv)
 #if defined (BG_PARAM_SCRIPT) // [
     case BG_SCRIPT:
       script=optarg;
+      break;
+#endif // ]
+#if defined (BG_PARAM_SHELL) // [
+    case BG_SHELL:
+      param.shell.interpreter=optarg;
       break;
 #endif // ]
     case BG_ARG_DRC:
@@ -1293,13 +1320,6 @@ int main(int argc, char *const *argv)
 
 #if defined (BG_PARAM_SCRIPT) // [
   if (script) {
-#if 0 && defined (_WIN32) // [
-    FILE *f;
-#endif // ]
-#if ! defined (BG_SYSTEM) // [
-    size_t size;
-#endif // ]
-
     if (!param.output.dirname&&!param.overwrite) {
       _FPRINTF(stderr,"Error: option --script requires option -o/--output"
           " or option --overwrite.\n\n");
@@ -1307,78 +1327,7 @@ int main(int argc, char *const *argv)
       goto e_arg;
     }
 
-#if defined (BG_SYSTEM) // [
     param.script=script;
-#else // ] [
-#if defined (_WIN32) // [
-    struct _stat buf;
-
-    if (!_wstat(script,&buf)) {
-      char *script_temp;
-
-      if (!(script_temp=malloc(buf.st_size+1))) {
-        _DWARNING("allocating temporary script");
-        goto e_script;
-      }
-
-      f=_wfopen(script,L"r");
-      fread(script_temp,buf.st_size,1,f);
-      fclose(f);
-
-      script_temp[buf.st_size]='\0';
-
-      // eat any carriage return or line feed character from the end.
-      while (--buf.st_size
-          &&('\r'==script_temp[buf.st_size]||'\n'==script_temp[buf.st_size]))
-        script_temp[buf.st_size]='\0';
-
-      size=MultiByteToWideChar(
-        CP_UTF8,      // UINT                              CodePage,
-        0,            // DWORD                             dwFlags,
-        script_temp,  // _In_NLS_string_(cbMultiByte)LPCCH lpMultiByteStr,
-        -1,           // int                               cbMultiByte,
-        NULL,         // LPWSTR                            lpWideCharStr,
-        0             // int                               cchWideChar
-      );
-
-      if (!(param.script=malloc(size*sizeof param.script[0]))) {
-        _DWARNING("allocating script");
-        goto e_script;
-      }
-
-      MultiByteToWideChar(
-        CP_UTF8,      //UINT                              CodePage,
-        0,            //DWORD                             dwFlags,
-        script_temp,  //_In_NLS_string_(cbMultiByte)LPCCH lpMultiByteStr,
-        -1,           //int                               cbMultiByte,
-        param.script, //LPWSTR                            lpWideCharStr,
-        size          //int                               cchWideChar
-      );
-
-      free(script_temp);
-    }
-    else {
-      size=wcslen(script)+1;
-
-      if (!(param.script=malloc(size*sizeof *param.script))) {
-        _DMESSAGE("allocating script");
-        goto e_script;
-      }
-
-      wcscpy(param.script,script);
-    }
-#else // ] [
-    size=strlen(script)+1;
-
-    if (!(param.script=malloc(size))) {
-      _DMESSAGE("allocating script");
-      goto e_script;
-    }
-
-    strcpy(param.script,script);
-#endif // ]
-#endif // ]
-_DWRITELNV("script: \"%" PBU_PRIs "\"",param.script);
     param.flags.mode|=BG_FLAGS_MODE_APPLY;
   }
 #endif // ]
@@ -1835,10 +1784,6 @@ e_dynload:
 #if defined (__linux__) && defined (__GNUC__) // [
 e_libc:
 #endif // ]
-#endif // ]
-#if defined (BG_PARAM_SCRIPT) && ! defined (BG_SYSTEM) // [
-  free(param.script);
-e_script:
 #endif // ]
   bg_param_destroy(&param);
 e_arg:
