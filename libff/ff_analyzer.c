@@ -23,6 +23,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 #define FF_ANALYZER_CREATE_OCHANNELS
+#define FF_ANALYZER_OCODECPAR_PTR
 int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
 {
   ff_input_callback_t *cb=in->cb.in;
@@ -31,7 +32,11 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   const ff_param_decode_t *(*decode)(const void *)=cb?cb->decode:NULL;
   int64_t channel_layout=decode?decode(data)->request.channel_layout:-1ll;
   int (*create)(void *, const AVCodecParameters *)=cb?cb->stats.create:NULL;
+#if defined (FF_ANALYZER_OCODECPAR_PTR) // [
+  AVCodecParameters *icodecpar,*ocodecpar;
+#else // ] [
   AVCodecParameters *icodecpar,ocodecpar;
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (in->ai<0) {
@@ -64,14 +69,53 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   a->in=in;
 
   /////////////////////////////////////////////////////////////////////////////
-//DVWRITELN("%d",icodecpar->channels);
   if (0ll<channel_layout&&channel_layout!=(int)icodecpar->channel_layout) {
+#if defined (FF_ANALYZER_OCODECPAR_PTR) // [
+    /*
+     * from "avcodec.h":
+     *
+     * sizeof(AVCodecParameters) is not a part of the public ABI,
+     * this struct must be allocated with avcodec_parameters_alloc()
+     * and freed with avcodec_parameters_free().
+     */
+    ocodecpar=avcodec_parameters_alloc();
+
+    if (!ocodecpar) {
+      DMESSAGE("ocodecpar");
+      goto e_normalizer_ocodecpar;
+    }
+
+    if (avcodec_parameters_copy(ocodecpar,icodecpar)<0) {
+      DMESSAGE("copying codecpar");
+      avcodec_parameters_free(&ocodecpar);
+      goto e_normalizer_ocodecpar_copy;
+    }
+
+    ocodecpar->channel_layout=channel_layout;
+#if defined (FF_ANALYZER_CREATE_OCHANNELS) // [
+    ocodecpar->channels=av_get_channel_layout_nb_channels(channel_layout);
+#endif // ]
+
+    ///////////////////////////////////////////////////////////////////////////
+    if (ff_resampler_create(&a->normalizer,ocodecpar,icodecpar)<0) {
+      DMESSAGE("creating normalizer");
+      avcodec_parameters_free(&ocodecpar);
+      goto e_normalizer;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    if (create&&create(data,ocodecpar)<0) {
+      DMESSAGE("creating statistics");
+      avcodec_parameters_free(&ocodecpar);
+      goto e_stats;
+    }
+
+    avcodec_parameters_free(&ocodecpar);
+#else // ] [
     ocodecpar=*icodecpar;
     ocodecpar.channel_layout=channel_layout;
 #if defined (FF_ANALYZER_CREATE_OCHANNELS) // [
-DVWRITELN("%I64d",ocodecpar.channel_layout);
-    ocodecpar.channels
-        =av_get_channel_layout_nb_channels(ocodecpar.channel_layout);
+    ocodecpar.channels=av_get_channel_layout_nb_channels(channel_layout);
 #endif // ]
 
     ///////////////////////////////////////////////////////////////////////////
@@ -85,6 +129,7 @@ DVWRITELN("%I64d",ocodecpar.channel_layout);
       DMESSAGE("creating statistics");
       goto e_stats;
     }
+#endif // ]
   }
   else {
     ///////////////////////////////////////////////////////////////////////////
@@ -114,17 +159,51 @@ DVWRITELN("%I64d",ocodecpar.channel_layout);
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  if (upsample<1)
-    a->upsampler.ctx=NULL;
-  else {
+  if (1<upsample) {
+#if defined (FF_ANALYZER_OCODECPAR_PTR) // [
+    /*
+     * from "avcodec.h":
+     *
+     * sizeof(AVCodecParameters) is not a part of the public ABI,
+     * this struct must be allocated with avcodec_parameters_alloc()
+     * and freed with avcodec_parameters_free().
+     */
+    ocodecpar=avcodec_parameters_alloc();
+
+    if (!ocodecpar) {
+      DMESSAGE("ocodecpar");
+      goto e_upsampler_ocodecpar;
+    }
+
+    if (avcodec_parameters_copy(ocodecpar,icodecpar)<0) {
+      DMESSAGE("copying codecpar");
+      avcodec_parameters_free(&ocodecpar);
+      goto e_upsampler_ocodecpar_copy;
+    }
+
+    ocodecpar->sample_rate*=upsample;
+    ocodecpar->format=AV_SAMPLE_FMT_DBLP;
+
+    if (ff_resampler_create(&a->upsampler,ocodecpar,icodecpar)<0) {
+      DMESSAGE("creating upsampler");
+      avcodec_parameters_free(&ocodecpar);
+      goto e_upsampler;
+    }
+
+    avcodec_parameters_free(&ocodecpar);
+#else // ] [
     ocodecpar=*icodecpar;
     ocodecpar.sample_rate*=upsample;
+    ocodecpar.format=AV_SAMPLE_FMT_DBLP;
 
     if (ff_resampler_create(&a->upsampler,&ocodecpar,icodecpar)<0) {
       DMESSAGE("creating upsampler");
       goto e_upsampler;
     }
+#endif // ]
   }
+  else
+    a->upsampler.ctx=NULL;
 
   /////////////////////////////////////////////////////////////////////////////
   return 0;
@@ -132,6 +211,10 @@ DVWRITELN("%I64d",ocodecpar.channel_layout);
   if (a->upsampler.ctx)
     resampler_destroy(&a->upsampler);
 e_upsampler:
+#if defined (FF_ANALYZER_OCODECPAR_PTR) // [
+e_upsampler_ocodecpar_copy:
+e_upsampler_ocodecpar:
+#endif // ]
   av_frame_free(&a->frame);
 e_frame:
   av_packet_free(&a->pkt);
@@ -140,8 +223,12 @@ e_packet:
     cb->stats.destroy(data);
 e_stats:
   if (a->normalizer.ctx)
-   resampler_destroy(&a->normalizer);
+    resampler_destroy(&a->normalizer);
 e_normalizer:
+#if defined (FF_ANALYZER_OCODECPAR_PTR) // [
+e_normalizer_ocodecpar_copy:
+e_normalizer_ocodecpar:
+#endif // ]
 e_args:
   return -1;
 }
@@ -173,6 +260,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
   int err;
 
   if (a->normalizer.ctx) {
+    // normalize.
     err=resampler_apply(&a->normalizer,frame);
 
     if (err<0) {
@@ -181,15 +269,29 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
     }
 
     if (add) {
+      // add to normalized non-upsample statistics.
       err=add(data,0,a->normalizer.frame);
 
       if (err<0) {
-        DVMESSAGE("adding normalized statistics: %s (%d)",av_err2str(err),err);
+        DVMESSAGE("adding normalized statistics: %s (%d)",
+            av_err2str(err),err);
         goto exit;
+      }
+
+      if (!frame) {
+        // we need to flush normalized non-upsample statistics.
+        err=add(data,0,NULL);
+
+        if (err<0) {
+          DVMESSAGE("flushing normalized statistics: %s (%d)",
+              av_err2str(err),err);
+          goto exit;
+        }
       }
     }
   }
   else if (add) {
+    // add non-normalized non-upsample statistics.
     err=add(data,0,frame);
 
     if (err<0) {
@@ -199,6 +301,7 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
   }
 
   if (a->upsampler.ctx) {
+    // upsample.
     err=resampler_apply(&a->upsampler,frame);
 
     if (err<0) {
@@ -207,13 +310,26 @@ static int ff_analyzer_process_frame(ff_analyzer_t *a, AVFrame *frame)
     }
 
     if (add) {
+      // add to upsample statistics.
       err=add(data,1,a->upsampler.frame);
 
       if (err<0) {
-        DVMESSAGE("adding upsampled statistics: %s (%d)",av_err2str(err),err);
+        DVMESSAGE("adding upsampled statistics: %s (%d)",
+            av_err2str(err),err);
         goto exit;
       }
     }
+
+      if (!frame) {
+        // we need to flush upsample statistics.
+        err=add(data,1,NULL);
+
+        if (err<0) {
+          DVMESSAGE("flushing upsampled statistics: %s (%d)",
+              av_err2str(err),err);
+          goto exit;
+        }
+      }
   }
 
   err=0;
@@ -256,7 +372,7 @@ static int ff_analyzer_send_packet(ff_analyzer_t *a, AVPacket *pkt)
 
       switch (err) {
       case 0:
-        // 0: success, a frame was returned
+        // 0: success, a frame was returned we need to process.
         err=ff_analyzer_process_frame(a,a->frame);
 #if defined (FF_FRAME_UNREF) // [
         av_frame_unref(a->frame);
@@ -269,7 +385,14 @@ static int ff_analyzer_send_packet(ff_analyzer_t *a, AVPacket *pkt)
 
         continue;
       case AVERROR_EOF:
-        // we need to flush the encoder.
+        // we need to flush processing.
+        err=ff_analyzer_process_frame(a,NULL);
+
+        if (err<0) {
+          DVMESSAGE("processing frame: %s (%d)",av_err2str(err),err);
+          goto e_loop;
+        }
+
         a->state=FF_ANALYZER_DECODER_SEND_PACKET;
         return err;
       case AVERROR(EAGAIN):
