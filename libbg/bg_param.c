@@ -237,6 +237,50 @@ void bg_param_set_process(bg_param_t *param)
   param->count.cur=0u;
 }
 
+static int bg_param_loop_inner(bg_param_t *param, ffchar_t const *argv)
+{
+  int err=-1;
+
+  if (param->process) {
+    ///////////////////////////////////////////////////////////////////////////
+    if (bg_root_create(&param->root,param)<0) {
+      DMESSAGE("creating root");
+      goto e_root;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
+      DMESSAGE("prefix");
+      goto e_prefix;
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (bg_pilot_loop(&param->pilot,argv)<0) {
+    DMESSAGE("looping");
+    goto e_loop;
+  }
+
+  if (param->process) {
+    ///////////////////////////////////////////////////////////////////////////
+    if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
+      DMESSAGE("suffix");
+      goto e_suffix;
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  err=0;
+//cleanup:
+e_suffix:
+e_loop:
+e_prefix:
+  if (param->process)
+    param->root.vmt->destroy(&param->root);
+e_root:
+  return err;
+}
+
 int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 {
   int err=-1;
@@ -245,48 +289,16 @@ int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 
   for (param->argv.cur=param->argv.min;param->argv.cur<param->argv.max;
       ++param->argv.cur) {
-    if (param->process) {
-      if (bg_root_create(&param->root,param)<0) {
-        DMESSAGE("creating root");
-        goto e_root;
-      }
-
-      if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
-        DMESSAGE("prefix");
-        goto e_prefix;
-      }
+    if (bg_param_loop_inner(param,*argv++)<0) {
+        DMESSAGE("inner loop");
+        goto e_inner;
     }
-
-    if (bg_pilot_loop(&param->pilot,*argv++)<0) {
-      DMESSAGE("looping");
-      goto e_loop;
-    }
-
-    if (param->process) {
-      if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
-        DMESSAGE("suffix");
-        goto e_suffix;
-      }
-    }
-
-    err=0;
-  e_suffix:
-  e_loop:
-  e_prefix:
-    if (param->process)
-      param->root.vmt->destroy(&param->root);
-
-    if (err)
-      goto error;
-
-    err=-1;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   err=0;
 //cleanup:
-error:
-e_root:
+e_inner:
   return err;
 }
 
