@@ -1,7 +1,6 @@
 ##
- # configure.ac.template
+ # configure.ac
 
- #
  # This program is free software; you can redistribute it and/or
  # modify it under the terms of the GNU General Public
  # License as published by the Free Software Foundation; either
@@ -26,13 +25,13 @@
 # AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes = `default-includes'])
 # AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 
-AC_INIT([bs1770gain], [0.6.3], [nobody@example.com], [], [http://bs1770gain.sourceforge.net/])
+AC_INIT([bs1770gain], [0.6.4], [nobody@example.com], [], [http://bs1770gain.sourceforge.net/])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR()
 AC_PROG_CC
 AC_PROG_RANLIB
 
-# test for win32 {
+# test for win32 [
 AC_MSG_CHECKING([for win32])
 tmp=`mktemp`
 cat << _ACEOF | gcc -xc -o "$tmp" -
@@ -40,11 +39,11 @@ cat << _ACEOF | gcc -xc -o "$tmp" -
 
 int main()
 { 
-#if defined (_WIN32) // {
+#if defined (_WIN32) // [
   puts("yes");
-#else // } {
+#else // ] [
   puts("no");
-#endif // }
+#endif // ]
   return 0;
 }
 _ACEOF
@@ -53,7 +52,7 @@ win32="`$tmp`"
 rm -f "$tmp"
 AM_CONDITIONAL([WIN32], [test x$win32 = xyes])
 AC_MSG_RESULT($win32)
-# }
+# ]
 
 LIBS_INITIAL=${LIBS}
 
@@ -319,7 +318,7 @@ if test "x$win32" = "xyes"; then # [
   AVFILTER_SO=avfilter-$FF_AVFILTER_V.dll
   # not needed:
   #LDFLAGS=" ${LDFLAGS} -static-libgcc -static-libstdc++"
-  # -mwindows for linking a windows application.
+  # -mwindows for linking a windows application, i.e. WinMain().
   # -municode for linking wmain() instead of main,() i.e. an unicode
   #   application. Just -municode is needed:
   #LDFLAGS=" ${LDFLAGS} -mwindows -municode"
@@ -334,11 +333,11 @@ else # ] [
   SWSCALE_SO=libswscale.so.$FF_SWSCALE_V
   POSTPROC_SO=libpostproc.so.$FF_POSTPROC_V
   AVFILTER_SO=libavfilter.so.$FF_AVFILTER_V
-	if test "x$dynload" = "yes"; then # [
-	  LIBS="${LIBS} -ld"
-	else # ] [
-	  LIBS="${LIBS} -lm"
-	fi # ]
+  if test "x$dynload" = "yes"; then # [
+    LIBS="${LIBS} -ld"
+  else # ] [
+    LIBS="${LIBS} -lm"
+  fi # ]
 fi # ]
 
 AC_SUBST(SODIR)
