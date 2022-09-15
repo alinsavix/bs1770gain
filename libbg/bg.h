@@ -47,6 +47,15 @@ extern "C" {
 
 ///////////////////////////////////////////////////////////////////////////////
 //#define BG_LIST
+#if ! defined (_WIN32) // [
+//#define BG_UTF8_ITER
+#if defined (BG_UTF8_ITER) // [
+//#define BG_UTF8_ITER_WCS
+#define BG_UTF8_ITER_MASK
+#else // ] [
+#define BG_CHAR_NEXTA
+#endif // ]
+#endif // ]
 #define BG_TEMP_PREFIX FFL(".")
 #define BG_CLOCK
 #define BG_TRACK_ID
@@ -91,6 +100,13 @@ typedef enum bg_flags_norm bg_flags_norm_t;
 typedef const struct bg_print_vmt bg_print_vmt_t;
 typedef const struct bg_print_conf bg_print_conf_t;
 typedef const struct bg_param_unit bg_param_unit_t;
+#if defined (BG_UTF8_ITER) // [
+typedef const struct bg_utf8_iter_vmt bg_utf8_iter_vmt_t;
+#if defined (BG_UTF8_ITER_MASK) // [
+typedef enum bg_utf8_iter_mask bg_utf8_iter_mask_t;
+#endif // ]
+typedef struct bg_utf8_iter bg_utf8_iter_t;
+#endif // ]
 #if defined (BG_PARAM_THREADS) // [
 typedef struct bg_sync bg_sync_t;
 typedef struct bg_threads_helper bg_threads_helper_t;
@@ -279,6 +295,49 @@ struct bg_tree_patha {
 int bg_tree_patha_create(bg_tree_patha_t *p, const wchar_t *path,
     unsigned int codepage);
 void bg_tree_patha_destroy(bg_tree_patha_t *p);
+#endif // ]
+
+#if defined (BG_UTF8_ITER) // [
+///////////////////////////////////////////////////////////////////////////////
+struct bg_utf8_iter_vmt {
+	int (*valid)(bg_utf8_iter_t *i);
+	const uint8_t *(*next)(bg_utf8_iter_t *i);
+	void (*apply)(bg_utf8_iter_t *i);
+	void (*flush)(bg_utf8_iter_t *i);
+};
+
+#if defined (BG_UTF8_ITER_MASK) // [
+enum bg_utf8_iter_mask {
+  // cf. e.g. "https://en.wikipedia.org/wiki/UTF-8#Description".
+  BG_UTF8_ITER_MASK_ONE_BYTE=~(1u<<7u),
+  BG_UTF8_ITER_MASK_TWO_BYTES=~(1u<<5u),
+  BG_UTF8_ITER_MASK_THREE_BYTES=~(1u<<4u),
+  BG_UTF8_ITER_MASK_FOUR_BYTES=~(1u<<3u),
+	BG_UTF8_ITER_MBS_SIZE=4,
+};
+#else // ] [
+#error not implemented yet
+#endif // ]
+
+struct bg_utf8_iter {
+	bg_utf8_iter_vmt_t *vmt;
+#if defined (BG_UTF8_ITER_MASK) // [
+	uint8_t mbs[BG_UTF8_ITER_MBS_SIZE];
+#endif // ]
+	const uint8_t *rp;
+	uint8_t *wp;
+	size_t *size;
+#if defined (BG_UTF8_ITER_WCS) // [
+	uint8_t wcs;
+#endif // ]
+};
+
+void bg_utf8_iter_first(bg_utf8_iter_t *i, const char *rp, char *wp,
+		size_t *size);
+#elif defined (BG_CHAR_NEXTA) // ] [
+const char *bg_char_nexta(const char *str);
+#elif defined (_WIN32) // ] [
+#define bg_char_nexta(str) CharNextA(str)
 #endif // ]
 
 #if defined (BG_PARAM_THREADS) // [

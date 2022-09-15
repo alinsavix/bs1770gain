@@ -306,6 +306,11 @@ emerge:
 #if defined (_WIN32) // [
 const char *bg_tree_in_basanamen(bg_tree_t *tree)
 {
+#if 0 // [
+fprintf(stdout,"oem: %d %p (%s:%d:%s)\n",tree->param->oem,tree->oem.basename,
+    __FILE__,__LINE__,__func__);
+fflush(stdout);
+#endif // ]
   return tree->oem.basename?tree->oem.basename:tree->utf8.basename;
 }
 

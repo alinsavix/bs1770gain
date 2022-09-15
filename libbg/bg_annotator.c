@@ -529,42 +529,129 @@ e_path:
   return len;
 }
 #else // ] [
-static int bg_title_next(char *title, int special)
+#if defined (BG_UTF8_ITER) // [
+#if ! defined (_WIN32) // [
+#define BG_TITLE_NEXT_UTF8_ITER
+#endif // ]
+// TODO: consider
+//   https://www.gnu.org/software/libunistring/manual/libunistring.html
+#endif // ]
+#if 0 // [
+static int bg_title_next(const char *title, int special)
 {
   int len=0;
+#if defined (BG_TITLE_NEXT_UTF8_ITER) // [
+  const char *next;
+  size_t size;
+  bg_utf8_iter_t i;
+#elif defined (_WIN32) // ] [
+  const char *next;
+#endif // ]
 
+#if ! defined (BG_TITLE_NEXT_UTF8_ITER) // ] [
   while (*title) {
-    switch (*title) {
-    case '.':
-    case ',':
-    case '/':
-    case '\\':
-    case '(':
-    case ')':
-    case '[':
-    case ']':
-    case '&':
-    case ':':
-    case ' ':
-    case '?':
-    case '\'':
-      if (special)
-        return len;
+#else // ] [
+  size=0;
+  bg_utf8_iter_first(&i,title,NULL,&size);
 
-      break;
-    default:
-      if (!special)
-        return len;
+  while (i.vmt->valid(&i)) {
+    i.vmt->apply(&i);
 
-      break;
+    if (1==size) {
+#endif // ]
+      switch (*title) {
+      case '.':
+      case ',':
+      case '/':
+      case '\\':
+      case '(':
+      case ')':
+      case '[':
+      case ']':
+      case '&':
+      case ':':
+      case ' ':
+      case '?':
+      case '\'':
+        if (special)
+          return len;
+
+        break;
+      default:
+        if (!special)
+          return len;
+
+        break;
+      }
+#if defined (BG_TITLE_NEXT_UTF8_ITER) // [
     }
+    else if (!special)
+      return len;
 
+    size=0;
+    next=(const char *)i.vmt->next(&i);
+    len+=next-title;
+    title=next;
+  }
+#else // ] [
+#if defined (_WIN32) // [
+    next=CharNextA(title);
+    len+=next-title;
+    title=next;
+#else // ] [
     ++len;
     ++title;
+#endif // ]
+  }
+#endif // ]
+
+  return len;
+}
+#else // ] [
+static int bg_title_next(const char *title, int special)
+{
+  int len=0;
+  const char *next;
+
+  while (*title) {
+    next=bg_char_nexta(title);
+
+    if (1==next-title) {
+      switch (*title) {
+      case '.':
+      case ',':
+      case '/':
+      case '\\':
+      case '(':
+      case ')':
+      case '[':
+      case ']':
+      case '&':
+      case ':':
+      case ' ':
+      case '?':
+      case '\'':
+        if (special)
+          return len;
+
+        break;
+      default:
+        if (!special)
+          return len;
+
+        break;
+      }
+    }
+    else if (!special)
+      return len;
+
+    len+=next-title;
+    title=next;
   }
 
   return len;
 }
+#endif // ]
 
 static int bg_title_length(char *title, wchar_t *wtitle, size_t leni)
 {
@@ -604,7 +691,7 @@ static int bg_title_length(char *title, wchar_t *wtitle, size_t leni)
       CP_UTF8,        // UINT                              CodePage,
       0ul,            // DWORD                             dwFlags,
       title,          // _In_NLS_string_(cbMultiByte)LPCCH lpMultiByteStr,
-      next,             // int                               cbMultiByte,
+      next,           // int                               cbMultiByte,
       wtitle,         // LPWSTR                            lpWideCharStr,
       leni            // int                               cchWideChar
     );
@@ -624,8 +711,11 @@ static int bg_title_length(char *title, wchar_t *wtitle, size_t leni)
   }
 
   if (op) {
-    while (*op) {
 #if defined (_WIN32) // [
+    _wcslwr(op);
+#else // ] [
+    while (*op) {
+#if 0 && defined (_WIN32) // [
 #if defined (BG_WIN32_CREATE_LOCALE) // [
       *op=_towlower_l(*op,tree->param->locale);
 #else // ] [
@@ -638,6 +728,7 @@ static int bg_title_length(char *title, wchar_t *wtitle, size_t leni)
       ++op;
 #endif // ]
     }
+#endif // ]
   }
 
   return leno;

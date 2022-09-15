@@ -455,8 +455,28 @@ read:
     case AVERROR_EOF:
       goto eof;
     default:
+#if 0 // [
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\02_all_stand_up_never_say_never.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\03_the_oriental.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\01_blues_and_rhythm.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\04_creepin_up_on_you.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\06_solid_gold.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\07_green.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\05_heavy_traffic.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\08_jam_side_down.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\09_diggin_burt_bacharach.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\12_i_don_t_remember_anymore.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\10_do_it_again.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\11_another_day.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\13_money_don_t_matter.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
+Error: decoding frame: Error number 0 occurred (0:"F:\r128\audio\contemp\status_quo\2002_heavy_traffic\14_rhythm_of_life.mp3"). (ff_analyzer.c:461:ff_analyzer_loop)
       DVMESSAGE("decoding frame: %s (%d)",av_err2str(err),err);
       goto e_loop;
+#else // ] [
+      DVWARNING("decoding frame: %s (%d:\"%s\")",av_err2str(err),err,
+          a->in->cb.in->path(a->in->cb.data));
+      goto eof;
+#endif // ]
     }
   }
 eof:

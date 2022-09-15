@@ -65,19 +65,19 @@
 #define PACKAGE_NAME "bs1770gain"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "bs1770gain 0.7.0"
+#define PACKAGE_STRING "bs1770gain 0.8.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "bs1770gain"
 
 /* Define to the home page for this package. */
-#define PACKAGE_URL "http://bs1770gain.sourceforge.net/"
+#define PACKAGE_URL "https://github.com/alinsavix/bs1770gain"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.7.0"
+#define PACKAGE_VERSION "0.8.0"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.7.0"
+#define VERSION "0.8.0"

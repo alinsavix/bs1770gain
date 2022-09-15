@@ -315,6 +315,13 @@ e_annotate:
 int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
 {
   int err=-1;
+#if defined (BG_PARAM_THREADS) // [
+//#if defined (BG_PARAM_QUIET) // [
+//  int verbose=!tree->param->quiet&&!tree->param->suppress.progress;
+//#else // ] [
+  int verbose=!tree->param->suppress.progress;
+//#endif // ]
+#endif // ]
   bg_param_t *param=tree->param;
   bg_tree_t *cur;
   bg_visitor_t muxer;
@@ -419,6 +426,18 @@ DMARKLN();
 #if defined (BG_PARAM_THREADS) // [
     if (param->nthreads)
       bg_param_threads_drain(&param->threads);
+
+    if (verbose) {
+#if defined (_WIN32) // [
+      if (tree->utf8.path)
+        fprintf(stdout,"\"%s\"\n",tree->utf8.path);
+#else // ] [
+      if (tree->source.path)
+        fprintf(stdout,"\"%s\"\n",tree->source.path);
+#endif // ]
+
+      fflush(stdout);
+    }
 #endif // ]
   }
 

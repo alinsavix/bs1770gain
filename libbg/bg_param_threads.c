@@ -307,19 +307,35 @@ void bg_param_threads_visitor_run(bg_param_threads_t *threads,
 
   bg_sync_lock(&threads->sync); // {
 
+#if 0 // [
   while (!threads->list.free.count) {
+#else // ] [
+  while (!threads->list.free.tail) {
+#endif // ]
     if (!threads->list.active.count) {
       DMESSAGE("something went wrong");
       exit(1);
     }
 
     bg_sync_wait(&threads->sync);
+#if 1 // [
+  }
+
+  if (!threads->list.free.count) {
+    DVMESSAGE("empty free list: %d %p",threads->list.free.count,
+        threads->list.free.tail);
+    exit(1);
+  }
+#else // ] [
   }
 
   if (!threads->list.free.tail) {
-    DMESSAGE("empty free list");
+    DVMESSAGE("empty free list: %d %p",threads->list.free.count,
+        threads->list.free.tail);
     exit(1);
   }
+#endif // ]
+
 
   node=bg_param_list_pop(&threads->list.free);
   bg_param_list_push(&threads->list.active,node);

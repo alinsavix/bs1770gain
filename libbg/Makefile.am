@@ -43,6 +43,7 @@ libbg_a_SOURCES+=$(top_srcdir)/lib1770-2/lib1770.h
 libbg_a_SOURCES+=$(top_srcdir)/libpbutil/pbutil.h
 libbg_a_SOURCES+=$(top_srcdir)/libpbutil/pbutil_priv.h
 libbg_a_SOURCES+=bg_sync.c
+libbg_a_SOURCES+=bg_utf8_iter.c
 libbg_a_SOURCES+=bg_threads_helper.c
 libbg_a_SOURCES+=bg_param_threads.c
 libbg_a_SOURCES+=bg_param.c
@@ -68,6 +69,7 @@ libbg_a_SOURCES+=bg_basename.c
 libbg_a_SOURCES+=bg_wcs2str.c
 libbg_a_SOURCES+=bg_pathnorm.c
 libbg_a_SOURCES+=bg_parse_time.c
+libbg_a_SOURCES+=bg_char_nexta.c
 
 if FF_DYNLOAD
 # https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html
