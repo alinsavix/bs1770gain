@@ -1,5 +1,5 @@
 /*
- * bs1770gain_read.c
+ * bs1770gain.h
 
  *
  * This library is free software; you can redistribute it and/or
@@ -17,26 +17,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
+#ifndef __BS1770GAIN_PRIV_H__
+#define __BS1770GAIN_PRIV_H__ // {
+#include <ffsox_priv.h>
 #include <bs1770gain.h>
+#ifdef __cpluplus
+extern "C" {
+#endif
 
-AVCodec *bs1770gain_find_decoder(enum AVCodecID id)
-{
-  AVCodec *p;
+///////////////////////////////////////////////////////////////////////////////
+typedef bs1770gain_block_options_t block_options_t;
+typedef bs1770gain_options_t options_t;
+typedef bs1770gain_tag_t tag_t;
+typedef bs1770gain_tree_vmt_t tree_vmt_t;
+typedef bs1770gain_tree_t tree_t;
+typedef bs1770gain_head_t head_t;
+typedef bs1770gain_stats_t stats_t;
+typedef bs1770gain_album_t album_t;
+typedef bs1770gain_track_t track_t;
+//typedef bs1770gain_read_t read_t;
 
-  switch (id) {
-    case AV_CODEC_ID_MP1:
-      p=avcodec_find_decoder_by_name("mp1float");
-      break;
-    case AV_CODEC_ID_MP2:
-      p=avcodec_find_decoder_by_name("mp2float");
-      break;
-    case AV_CODEC_ID_MP3:
-      p=avcodec_find_decoder_by_name("mp3float");
-      break;
-    default:
-      p=NULL;
-      break;
-  }
-
-  return NULL==p?avcodec_find_decoder(id):p;
+#ifdef __cpluplus
 }
+#endif
+#endif // }

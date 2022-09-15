@@ -1,5 +1,5 @@
 /*
- * ffsox_basename.c
+ * ffsox_packet_consumer.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -19,35 +19,50 @@
  */
 #include <ffsox_priv.h>
 
-static read_vmt_t vmt;
+static packet_consumer_vmt_t vmt;
 
-int ffsox_read_create(read_t *ni, ffsox_source_t *si, int stream_index)
+int ffsox_packet_consumer_create(packet_consumer_t *pc, source_t *si,
+    int stream_index)
 {
-  if (ffsox_node_create(&ni->node)<0) {
+  if (ffsox_node_create(&pc->node)<0) {
     MESSAGE("creating node");
     goto base;
   }
 
-  ni->vmt=ffsox_read_get_vmt();
-  ni->s.fc=si->f.fc;
-  ni->s.stream_index=stream_index;
-  ni->s.st=ni->s.fc->streams[stream_index];
-  ni->s.cc=ni->s.st->codec;
-  ni->s.codec=ni->s.cc->codec;
-  ni->write=NULL;
-  ni->prev=NULL;
+  pc->vmt=ffsox_packet_consumer_get_vmt();
+  pc->si.fc=si->f.fc;
+  pc->si.stream_index=stream_index;
+  pc->si.st=pc->si.fc->streams[stream_index];
+  pc->si.cc=pc->si.st->codec;
+  pc->si.codec=pc->si.cc->codec;
+
+  // link us to the packet consumer list.
+  if (ffsox_source_append(si,pc)<0) {
+    MESSAGE("appending packet consumer");
+    goto append;
+  }
 
   return 0;
+append:
+  vmt.parent->cleanup(&pc->node);
 base:
   return -1;
 }
 
 ////////
-static void read_set_packet(read_t *n, AVPacket *pkt)
+static node_t *packet_consumer_prev(packet_consumer_t *pc)
 {
+  return NULL==pc->prev?NULL:&pc->prev->node;
 }
 
-const read_vmt_t *ffsox_read_get_vmt(void)
+static int packet_consumer_set_packet(packet_consumer_t *pc, AVPacket *pkt)
+{
+  MESSAGE("not implemented");
+
+  return -1;
+}
+
+const packet_consumer_vmt_t *ffsox_packet_consumer_get_vmt(void)
 {
   const node_vmt_t *parent;
 
@@ -55,8 +70,9 @@ const read_vmt_t *ffsox_read_get_vmt(void)
     parent=ffsox_node_get_vmt();
     vmt.node=*parent;
     vmt.parent=parent;
-    vmt.name="read";
-    vmt.set_packet=read_set_packet;
+    vmt.name="packet_consumer";
+    vmt.prev=packet_consumer_prev;
+    vmt.set_packet=packet_consumer_set_packet;
   }
 
   return &vmt;

@@ -1,5 +1,5 @@
 /*
- * ffsox_basename.c
+ * ffsox_packet_consumer_list.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -19,22 +19,8 @@
  */
 #include <ffsox_priv.h>
 
-const char *ffsox_basename(const char *path)
+void ffsox_packet_consumer_list_free(packet_consumer_list_t *n)
 {
-  const char *p;
-
-  if (NULL==path)
-    return NULL;
-
-  p=path+strlen(path);
-
-  // TODO: unicode.
-  while (path<p&&('/'==p[-1]||'\\'==p[-1]))
-    --p;
-
-  // TODO: unicode.
-  while (path<p&&('/'!=p[-1]&&'\\'!=p[-1]))
-    --p;
-
-  return p;
+  ffsox_node_destroy(&n->consumer->node);
+  free(n);
 }

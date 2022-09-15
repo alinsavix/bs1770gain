@@ -1,5 +1,5 @@
 /*
- * ffsox_wstrtok.c
+ * ffsox_stream.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -17,36 +17,29 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#if defined (WIN32) // {
-#include <ffsox.h>
+#include <ffsox_priv.h>
 
-static wchar_t *ffsox_wcstok(wchar_t *str, const wchar_t *delim,
-    wchar_t **saveptr)
+int ffsox_stream_new(stream_t *s, sink_t *so, AVCodec *codec)
 {
-  return wcstok(str,delim);
-}
+  s->fc=so->f.fc;
+  s->stream_index=s->fc->nb_streams;
 
-wchar_t *ffsox_wcstok_r(wchar_t *str, const wchar_t *delim,
-    wchar_t **saveptr)
-{
-  typedef typeof (wcstok_s) *wcstok_s_t;
-  static wcstok_s_t wcstok_s=NULL;
-  HANDLE hLib;
-
-  if (NULL==wcstok_s) {
-    if (NULL==(hLib=ffsox_msvcrt()))
-      goto wcstok;
-
-    if (NULL==(wcstok_s=(wcstok_s_t)GetProcAddress(hLib,"wcstok_s")))
-      goto wcstok;
-
-    goto wcstok_s;
-  wcstok:
-    wcstok_s=ffsox_wcstok;
-    goto wcstok_s;
+  if (NULL==(s->st=avformat_new_stream(s->fc,codec))) {
+    MESSAGE("creating output stream");
+    goto st;
   }
-wcstok_s:
-  return wcstok_s(str,delim,saveptr);
+
+  s->cc=s->st->codec;
+  s->codec=s->cc->codec;
+
+  return 0;
+st:
+  return -1;
 }
 
-#endif // }
+int ffsox_stream_interleaved_write(stream_t *s, AVPacket *pkt)
+{
+  pkt->stream_index=s->stream_index;
+
+  return av_interleaved_write_frame(s->fc,pkt);
+}

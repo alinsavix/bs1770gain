@@ -1,5 +1,5 @@
 /*
- * ffsox_strtok.c
+ * ffsox_convert.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -17,33 +17,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#if defined (WIN32) // {
-#include <ffsox.h>
+#include <ffsox_priv.h>
 
-static char *ffsox_strtok(char *str, const char *delim, char **saveptr)
+void ffsox_convert_setup(convert_t *convert, frame_t *fr, frame_t *fw)
 {
-  return strtok(str,delim);
+  int nb_samples1,nb_samples2;
+
+  convert->fr=fr;
+  convert->fw=fw;
+  convert->channels=av_frame_get_channels(fr->frame);
+
+  nb_samples1=fr->frame->nb_samples-fr->nb_samples.frame;
+  nb_samples2=fw->frame->nb_samples-fw->nb_samples.frame;
+  convert->nb_samples=PBU_MIN(nb_samples1,nb_samples2);
 }
-
-char *ffsox_strtok_r(char *str, const char *delim, char **saveptr)
-{
-  typedef typeof (strtok_s) *strtok_s_t;
-  static strtok_s_t strtok_s=NULL;
-  HANDLE hLib;
-
-  if (NULL==strtok_s) {
-    if (NULL==(hLib=ffsox_msvcrt()))
-      goto strtok;
-
-    if (NULL==(strtok_s=(strtok_s_t)GetProcAddress(hLib,"strtok_s")))
-      goto strtok;
-
-    goto strtok_s;
-  strtok:
-    strtok_s=ffsox_strtok;
-    goto strtok_s;
-  }
-strtok_s:
-  return strtok_s(str,delim,saveptr);
-}
-#endif // }

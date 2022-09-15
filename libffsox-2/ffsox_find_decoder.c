@@ -1,5 +1,5 @@
 /*
- * ffsox_basename.c
+ * ffsox_read.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -17,10 +17,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#include <ffsox_priv.h>
+#include <ffsox.h>
 
-void ffsox_read_list_free(read_list_t *n)
+AVCodec *ffsox_find_decoder(enum AVCodecID id)
 {
-  ffsox_node_destroy(&n->read->node);
-  free(n);
+  AVCodec *p;
+
+  switch (id) {
+    case AV_CODEC_ID_MP1:
+      p=avcodec_find_decoder_by_name("mp1float");
+      break;
+    case AV_CODEC_ID_MP2:
+      p=avcodec_find_decoder_by_name("mp2float");
+      break;
+    case AV_CODEC_ID_MP3:
+      p=avcodec_find_decoder_by_name("mp3float");
+      break;
+    default:
+      p=NULL;
+      break;
+  }
+
+  return NULL==p?avcodec_find_decoder(id):p;
 }
