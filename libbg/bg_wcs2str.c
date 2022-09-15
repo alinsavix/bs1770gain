@@ -1,5 +1,7 @@
 /*
  * bg_wcs2str.c
+ *
+
 
  *
  * This program is free software; you can redistribute it and/or

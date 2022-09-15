@@ -1,5 +1,7 @@
 /*
- * bg_tree_path
+ * bg_tree_path.c
+ *
+
 
  *
  * This program is free software; you can redistribute it and/or

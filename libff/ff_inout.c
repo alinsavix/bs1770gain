@@ -1,5 +1,7 @@
 /*
  * ff_inout.c
+ *
+
 
  *
  * This program is free software; you can redistribute it and/or
@@ -573,6 +575,185 @@ int ff_input_progress(ff_inout_t *in, AVPacket *pkt)
 
 ///////////////////////////////////////////////////////////////////////////////
 //#define FF_QUERY_CODEC
+static int ff_output_add_vstream(ff_inout_t *out)
+{
+  ff_output_callback_t *ocb=out->cb.out;
+  void *odata=out->cb.data;
+  const ff_analyzer_t *a=ocb&&ocb->analyzer?ocb->analyzer(odata):NULL;
+  ff_inout_t *in=a->in;
+  AVStream *istream=in->fmt.ctx->streams[in->vi];
+  AVStream *ostream;
+  int err=-1;
+
+#if defined (FF_QUERY_CODEC) // [
+  // err is interpreted as a boolean.
+  if (out->fmt.ctx->oformat->query_codec)
+    err=out->fmt.ctx->oformat->query_codec(istream->codecpar->codec_id,1);
+  else
+    err=0;
+
+  if (err) {
+#endif // ]
+    istream=in->fmt.ctx->streams[in->vi];
+    out->vi=out->fmt.ctx->nb_streams;
+
+    // if succeeding the stream will be added to out->fmt.ctx and hence
+    // will be destroyed by calling avformat_free_context().
+    ostream=avformat_new_stream(out->fmt.ctx,NULL);
+
+    if (!ostream) {
+      DVMESSAGE("creating video output stream: %s (%d)",av_err2str(err),err);
+      goto e_video;
+    }
+
+    // we're going to remux.
+    err=avcodec_parameters_copy(ostream->codecpar,istream->codecpar);
+
+    if (err<0) {
+      DMESSAGE("copying codec parametrs");
+      goto e_video;
+    }
+
+    ostream->id=out->vi;
+    ostream->time_base=istream->time_base;
+    ostream->codecpar->codec_tag=0;
+    // needed to copy embedded album art:
+    ostream->disposition=istream->disposition;
+#if defined (FF_QUERY_CODEC) // [
+  }
+  else {
+    // the video is lost.
+    DWARNING("unable to remux video stream");
+    in->vi=-1;
+  }
+#endif // ]
+
+  return 0;
+e_video:
+  return -1;
+}
+
+#define FF_CODECPAR_ALLOC
+#if defined (FF_FLAC_HACK) // [
+static int ff_output_add_astream(ff_inout_t *out,
+    enum AVSampleFormat sample_fmt)
+#else // ] [
+static int ff_output_add_astream(ff_inout_t *out)
+#endif // ]
+{
+  ff_output_callback_t *ocb=out->cb.out;
+  void *odata=out->cb.data;
+  const ff_analyzer_t *a=ocb&&ocb->analyzer?ocb->analyzer(odata):NULL;
+  ff_inout_t *in=a->in;
+  ff_input_callback_t *icb=in->cb.in;
+  void *idata=in->cb.data;
+  const ff_param_decode_t *decode=icb&&icb->decode?icb->decode(idata):NULL;
+  int64_t channel_layout=decode?decode->request.channel_layout:-1ll;
+  AVStream *istream=in->fmt.ctx->streams[in->ai];
+  AVStream *ostream;
+#if defined (FF_CODECPAR_ALLOC) // [
+  // from "avcodec.h":
+  // sizeof(AVCodecParameters) is not a part of the public ABI, this
+  // struct must be allocated with avcodec_parameters_alloc() and
+  // freed with avcodec_parameters_free().
+  AVCodecParameters *codecpar;
+#else // ] [
+  AVCodecParameters codecpar;
+#endif // ]
+  int err=-1;
+
+  out->ai=out->fmt.ctx->nb_streams;
+
+  // if succeeding the stream will be added to out->fmt.ctx and hence
+  // will be destroyed by calling avformat_free_context().
+  ostream=avformat_new_stream(out->fmt.ctx,NULL);
+
+  if (!ostream) {
+    DVMESSAGE("creating audio output stream: %s (%d)",av_err2str(err),err);
+    goto e_audio;
+  }
+
+  ostream->id=out->ai;
+
+  if (!in->audio.ctx) {
+    out->audio.ctx=NULL;
+    err=avcodec_parameters_copy(ostream->codecpar,istream->codecpar);
+
+    if (err<0) {
+      DMESSAGE("copying codec parametrs");
+      goto e_audio;
+    }
+
+    ostream->time_base=istream->time_base;
+    ostream->codecpar->codec_tag=0;
+
+    // "avformat.h" states w.r.t. field "duration" of "struct AVStream":
+    // Encoding: May be set by the caller before avformat_write_header() to
+    // provide a hint to the muxer about the estimated duration.
+    //
+    // Unfortunately this doesn't seem to work with FLAC streams when
+    // picking some interval.
+    // Cf. "https://trac.ffmpeg.org/ticket/7864".
+    ff_inout_interval(in,NULL,&ostream->duration,ostream);
+  }
+  else {
+#if defined (FF_FLAC_HACK) // [
+    if (AV_SAMPLE_FMT_NONE==sample_fmt) {
+      sample_fmt=ocb&&ocb->sample_fmt
+          ?ocb->sample_fmt(odata):AV_SAMPLE_FMT_NONE;
+    }
+#endif // ]
+
+#if defined (FF_CODECPAR_ALLOC) // [
+    codecpar=avcodec_parameters_alloc();
+
+    if (!codecpar) {
+      DMESSAGE("allocating codecpar");
+      goto e_audio;
+    }
+
+#if 0 // [
+    codecpar=*istream->codecpar;
+#else // ] [
+    if (avcodec_parameters_copy(codecpar,istream->codecpar)<0) {
+      DMESSAGE("copying codecpar");
+      goto e_audio;
+    }
+#endif // ]
+
+    codecpar->codec_id=ocb&&ocb->codec_id
+        ?ocb->codec_id(odata,out->fmt.ctx->oformat):AV_CODEC_ID_FLAC;
+    codecpar->format=sample_fmt;
+
+    if (0ll<=channel_layout)
+      codecpar->channel_layout=channel_layout;
+
+    err=ff_audio_create(&out->audio,out,NULL,codecpar);
+    avcodec_parameters_free(&codecpar);
+#else // ] [
+    codecpar=*istream->codecpar;
+    codecpar.codec_id=ocb&&ocb->codec_id
+        ?ocb->codec_id(odata,out->fmt.ctx->oformat):AV_CODEC_ID_FLAC;
+    codecpar.format=sample_fmt;
+
+    if (0ll<=channel_layout)
+      codecpar.channel_layout=channel_layout;
+
+    err=ff_audio_create(&out->audio,out,NULL,&codecpar);
+#endif // ]
+    fflush(stderr);
+
+    if (err<0) {
+      DVMESSAGE("creating audio encoder: %s (%d)",av_err2str(err),err);
+      goto e_audio;
+    }
+  }
+
+  return 0;
+e_audio:
+  return -1;
+}
+
 #if defined (FF_FLAC_HACK) // [
 int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata,
     enum AVSampleFormat sample_fmt)
@@ -587,19 +768,13 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
       =ocb&&ocb->sample_fmt?ocb->sample_fmt(odata):AV_SAMPLE_FMT_NONE;
 #endif // ]
   ff_inout_t *in=a->in;
-  ff_input_callback_t *icb=in->cb.in;
-  void *idata=in->cb.data;
-  const ff_param_decode_t *decode=icb&&icb->decode?icb->decode(idata):NULL;
-  int64_t channel_layout=decode?decode->request.channel_layout:-1ll;
 #if defined (FF_STREAM_METADATA) // [
   void (*metadata)(void *,AVDictionary **,const AVDictionary *,
-			ff_metadata_type_t)=ocb?ocb->metadata:NULL;
+      ff_metadata_type_t)=ocb?ocb->metadata:NULL;
 #else // ] [
   void (*metadata)(void *,AVDictionary **,const AVDictionary *)=
       ocb?ocb->metadata:NULL;
 #endif // ]
-  AVStream *istream,*ostream;
-  AVCodecParameters codecpar;
   int err;
 
   /////////////////////////////////////////////////////////////////////////////
@@ -618,113 +793,35 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  if (0<=in->vi) {
-    istream=in->fmt.ctx->streams[in->vi];
-
-#if defined (FF_QUERY_CODEC) // [
-    // err is interpreted as a boolean.
-    if (out->fmt.ctx->oformat->query_codec)
-      err=out->fmt.ctx->oformat->query_codec(istream->codecpar->codec_id,1);
-    else
-      err=0;
-
-    if (err) {
-#endif // ]
-      istream=in->fmt.ctx->streams[in->vi];
-      out->vi=out->fmt.ctx->nb_streams;
-
-      // if succeeding the stream will be added to out->fmt.ctx and hence
-      // will be destroyed by calling avformat_free_context().
-      ostream=avformat_new_stream(out->fmt.ctx,NULL);
-
-      if (!ostream) {
-        DVMESSAGE("creating video output stream: %s (%d)",av_err2str(err),err);
-        goto e_video;
-      }
-
-      // we're going to remux.
-      err=avcodec_parameters_copy(ostream->codecpar,istream->codecpar);
-
-      if (err<0) {
-        DMESSAGE("copying codec parametrs");
-        goto e_video;
-      }
-
-      ostream->id=out->vi;
-      ostream->time_base=istream->time_base;
-      ostream->codecpar->codec_tag=0;
-			// needed to copy embedded album art:
-      ostream->disposition=istream->disposition;
-#if defined (FF_QUERY_CODEC) // [
+  if (0<=in->vi&&in->vi<in->ai) {
+    err=ff_output_add_vstream(out);
+    
+    if (err<0) {
+      DMESSAGE("creating video output stream");
+      goto e_video1;
     }
-    else {
-      // the video is lost.
-      DWARNING("unable to remux video stream");
-      in->vi=-1;
-    }
-#endif // ]
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (0<=in->ai) {
-    istream=in->fmt.ctx->streams[in->ai];
-    out->ai=out->fmt.ctx->nb_streams;
-
-    // if succeeding the stream will be added to out->fmt.ctx and hence
-    // will be destroyed by calling avformat_free_context().
-    ostream=avformat_new_stream(out->fmt.ctx,NULL);
-
-    if (!ostream) {
-      DVMESSAGE("creating audio output stream: %s (%d)",av_err2str(err),err);
+#if defined (FF_FLAC_HACK) // [
+    err=ff_output_add_astream(out,sample_fmt);
+#else // ] [
+    err=ff_output_add_astream(out);
+#endif // ]
+    
+    if (err<0) {
+      DMESSAGE("creating audio output stream");
       goto e_audio;
     }
+  }
 
-    ostream->id=out->ai;
+  if (0<=in->ai&&in->ai<in->vi) {
+    err=ff_output_add_vstream(out);
 
-    if (!in->audio.ctx) {
-      out->audio.ctx=NULL;
-      err=avcodec_parameters_copy(ostream->codecpar,istream->codecpar);
-
-      if (err<0) {
-        DMESSAGE("copying codec parametrs");
-        goto e_audio;
-      }
-
-      ostream->time_base=istream->time_base;
-      ostream->codecpar->codec_tag=0;
-
-      // "avformat.h" states w.r.t. field "duration" of "struct AVStream":
-      // Encoding: May be set by the caller before avformat_write_header() to
-      // provide a hint to the muxer about the estimated duration.
-      //
-      // Unfortunately this doesn't seem to work with FLAC streams when
-      // picking some interval.
-      // Cf. "https://trac.ffmpeg.org/ticket/7864".
-      ff_inout_interval(in,NULL,&ostream->duration,ostream);
-    }
-    else {
-#if defined (FF_FLAC_HACK) // [
-      if (AV_SAMPLE_FMT_NONE==sample_fmt) {
-        sample_fmt=ocb&&ocb->sample_fmt
-            ?ocb->sample_fmt(odata):AV_SAMPLE_FMT_NONE;
-      }
-#endif // ]
-
-      codecpar=*istream->codecpar;
-      codecpar.codec_id=ocb&&ocb->codec_id
-          ?ocb->codec_id(odata,out->fmt.ctx->oformat):AV_CODEC_ID_FLAC;
-      codecpar.format=sample_fmt;
-
-      if (0ll<=channel_layout)
-        codecpar.channel_layout=channel_layout;
-
-      err=ff_audio_create(&out->audio,out,NULL,&codecpar);
-      fflush(stderr);
-
-      if (err<0) {
-        DVMESSAGE("creating audio encoder: %s (%d)",av_err2str(err),err);
-        goto e_audio;
-      }
+    if (err<0) {
+      DMESSAGE("creating video output stream");
+      goto e_video2;
     }
   }
 
@@ -751,22 +848,22 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
   /////////////////////////////////////////////////////////////////////////////
   if (metadata) {
 #if defined (FF_STREAM_METADATA) // [
-		if (0<=out->vi&&0<=in->vi) {
-    	metadata(odata,&out->fmt.ctx->streams[out->vi]->metadata,
-					in->fmt.ctx->streams[in->vi]->metadata,FF_METADATA_TYPE_VIDEO);
-		}
+    if (0<=out->vi&&0<=in->vi) {
+      metadata(odata,&out->fmt.ctx->streams[out->vi]->metadata,
+          in->fmt.ctx->streams[in->vi]->metadata,FF_METADATA_TYPE_VIDEO);
+    }
 
-		if (0<=out->ai&&0<=in->ai) {
-    	metadata(odata,&out->fmt.ctx->streams[out->ai]->metadata,
-					in->fmt.ctx->streams[in->ai]->metadata,FF_METADATA_TYPE_AUDIO);
-		}
+    if (0<=out->ai&&0<=in->ai) {
+      metadata(odata,&out->fmt.ctx->streams[out->ai]->metadata,
+          in->fmt.ctx->streams[in->ai]->metadata,FF_METADATA_TYPE_AUDIO);
+    }
 
     metadata(odata,&out->fmt.ctx->metadata,in->fmt.ctx->metadata,
-				FF_METADATA_TYPE_FORMAT);
+        FF_METADATA_TYPE_FORMAT);
 #else // ] [
     metadata(odata,&out->fmt.ctx->metadata,in->fmt.ctx->metadata);
 #endif // ]
-	}
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   err=avformat_write_header(out->fmt.ctx,NULL);
@@ -786,8 +883,9 @@ e_header:
 e_open:
   if (out->audio.ctx)
     ff_audio_destroy(&out->audio);
+e_video2:
 e_audio:
-e_video:
+e_video1:
   avformat_free_context(out->fmt.ctx);
 e_format:
   return -1;

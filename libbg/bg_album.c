@@ -1,5 +1,7 @@
 /*
- * bgx.c
+ * bg_album.c
+ *
+
 
  *
  * This program is free software; you can redistribute it and/or
