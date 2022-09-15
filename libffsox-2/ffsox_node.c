@@ -38,21 +38,26 @@ void ffsox_node_destroy(node_t *n)
 ////////
 static void node_cleanup(node_t *n)
 {
+  (void)n;
 }
 
 static node_t *node_prev(node_t *n)
 {
+  (void)n;
   return NULL;
 }
 
 static node_t *node_next(node_t *n)
 {
+  (void)n;
+
   return NULL;
 }
 
 static int node_run(node_t *n)
 {
   MESSAGE("running node");
+  (void)n;
 
   return -1;
 }
