@@ -279,7 +279,7 @@ static int input_stats_add(void *data, int upsampled, AVFrame *frame)
 
   if (frame) {
     for (ff_iter_first(&i,frame);i.vmt->valid(&i);i.vmt->next(&i)) {
-DWRITELN("{");
+//DWRITELN("{");
       if (upsampled) {
 #if defined (FF_UPSAMPLE_MODIFYX) // [
         i.vmt->norm(&i,NULL,&tree->stats.truepeak,upsampled);
@@ -288,15 +288,15 @@ DWRITELN("{");
 #endif // ]
       }
       else if (track->filter.pre) {
-DWRITELN(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//DWRITELN(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 #if defined (FF_UPSAMPLE_MODIFYX) // [
         i.vmt->norm(&i,sample,&tree->stats.samplepeak,upsampled);
 #else // ] [
         i.vmt->norm(&i,sample,&tree->stats.samplepeak);
 #endif // ]
-DWRITELN("================================================");
+//DWRITELN("================================================");
         lib1770_pre_add_sample(track->filter.pre,sample);
-DWRITELN("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+//DWRITELN("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
       }
       else {
 #if defined (FF_UPSAMPLE_MODIFYX) // [
@@ -305,7 +305,7 @@ DWRITELN("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
         i.vmt->norm(&i,NULL,&tree->stats.samplepeak);
 #endif // ]
       }
-DWRITELN("}");
+//DWRITELN("}");
     }
   }
 #if ! defined (FF_INPUT_CALLBACK_FLUSH) // [

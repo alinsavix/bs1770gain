@@ -345,7 +345,7 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "    prefix \"<prefix>\" default: \"" BG_TEMP_PREFIX "\".)\n",f);
   FFPUTS(" --suppress-hierarchy:  suppress printing results up the\n"
       "    hierarchy.\n",f);
-  FFPUTS(" --suppress-progess:  suppress printing processing"
+  FFPUTS(" --suppress-progress:  suppress printing processing"
       " progress\n",f);
   /////////////////////////////////////////////////////////////////////////////
   FFPUTC('\n',f);

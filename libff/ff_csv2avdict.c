@@ -126,6 +126,7 @@ utf16be:
     goto error;
   }
 
+DVWRITELN("*** \"%s\" ***",b->buf);
   return b;
 utf8:
   // UTF-8
