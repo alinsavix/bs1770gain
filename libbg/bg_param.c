@@ -77,7 +77,6 @@ int bg_param_create(bg_param_t *param)
   }
 
   param->loglevel=AV_LOG_QUIET;
-  param->purged=0;
 #if defined (_WIN32) // [
   param->codec.name[0]=L'\0';
 #else // ] [
@@ -117,7 +116,9 @@ int bg_param_create(bg_param_t *param)
   param->preamp=0.0;
   param->weight.enabled=0;
   param->weight.value=1.0;
+#if defined (BG_CLOCK) // [
   param->time=0;
+#endif // ]
 #if defined (LIB1770_LFE) // [
   param->lfe=LIB1770_LFE;
 #elif defined (BG_CHANNEL_LFE) // ] [
@@ -177,7 +178,6 @@ void bg_param_destroy(bg_param_t *param)
   bg_pilot_destroy(&param->pilot);
 }
 
-#if defined (BG_PURGE) // [
 int bg_param_alloc_arguments(bg_param_t *param, size_t size)
 {
   /////////////////////////////////////////////////////////////////////////////
@@ -211,7 +211,6 @@ void bg_param_free_argumets(bg_param_t *param)
 {
   free(param->argv.min);
 }
-#endif // ]
 
 void bg_param_set_unit_ebu(bg_param_t *param)
 {
@@ -225,86 +224,68 @@ void bg_param_set_unit_db(bg_param_t *param)
 
 void bg_param_set_process(bg_param_t *param)
 {
-#if defined (BG_PURGE) // [
   bg_param_argv_t *cur;
 
   if (1<param->argv.max-param->argv.min) {
     for (cur=param->argv.min;cur<param->argv.max;++cur)
-      ++cur->purge;
+      ++cur->lift;
   }
 
   ff_printer_clear(&param->printer);
-#endif // ]
   param->process=1;
   param->count.max=param->count.cur;
   param->count.cur=0u;
 }
 
-int bg_param_loop(bg_param_t *param, ffchar_t *const *argv, int i, int argc)
+int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 {
   int err=-1;
-#if defined (BG_PURGE) // [
-  bg_param_argv_t *cur;
-#endif // ]
-
-  if (bg_root_create(&param->root,param)<0) {
-    DMESSAGE("creating root");
-    goto e_root;
-  }
 
   param->tos=&param->root;
 
-  if (param->process) {
-    if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
-      DMESSAGE("prefix");
-      goto e_prefix;
+  for (param->argv.cur=param->argv.min;param->argv.cur<param->argv.max;
+      ++param->argv.cur) {
+    if (param->process) {
+      if (bg_root_create(&param->root,param)<0) {
+        DMESSAGE("creating root");
+        goto e_root;
+      }
+
+      if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
+        DMESSAGE("prefix");
+        goto e_prefix;
+      }
     }
-  }
 
-#if defined (BG_PURGE) // [
-  param->argv.cur=param->argv.min;
-#endif // ]
-
-  while (i<argc) {
-    if (bg_pilot_loop(&param->pilot,argv[i++])<0) {
+    if (bg_pilot_loop(&param->pilot,*argv++)<0) {
       DMESSAGE("looping");
       goto e_loop;
     }
 
-#if defined (BG_PURGE) // [
-    ++param->argv.cur;
-
-    if (param->argv.max<param->argv.cur) {
-      DMESSAGE("overflow");
-      goto e_overflow;
+    if (param->process) {
+      if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
+        DMESSAGE("suffix");
+        goto e_suffix;
+      }
     }
-#endif // ]
-  }
 
-  if (param->process) {
-    if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
-      DMESSAGE("suffix");
-      goto e_suffix;
-    }
+    err=0;
+  e_suffix:
+  e_loop:
+  e_prefix:
+    if (param->process)
+      param->root.vmt->destroy(&param->root);
+
+    if (err)
+      goto error;
+
+    err=-1;
   }
-#if 1 && defined (BG_PURGE) // [
-  else if (1u<param->root.album.nchildren) {
-    // it's getting bottom-up.
-    for (cur=param->argv.min;cur<param->argv.max;++cur)
-      cur->purge=0;
-  }
-#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   err=0;
 //cleanup:
-e_suffix:
-#if defined (BG_PURGE) // [
-e_overflow:
-#endif // ]
-e_loop:
-e_prefix:
-  param->root.vmt->destroy(&param->root);
+error:
 e_root:
   return err;
 }

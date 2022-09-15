@@ -31,10 +31,9 @@ int bg_tree_common_create(bg_tree_t *tree, bg_param_t *param,
   /////////////////////////////////////////////////////////////////////////////
   tree->vmt=NULL;
   tree->param=param;
+  tree->argv=param->argv.cur;
   tree->parent=parent;
-#if defined (BG_PURGE) // [
   tree->depth=parent?1u+parent->depth:0u;
-#endif // ]
   tree->next=NULL;
   tree->prev=NULL;
 

@@ -10,7 +10,9 @@ bs1770gain_LDADD+=libbg.a
 bs1770gain_LDADD+=$(top_builddir)/libff/libff.a
 bs1770gain_LDADD+=$(top_builddir)/lib1770-2/lib1770_2.a
 bs1770gain_LDADD+=$(top_builddir)/libpbutil/libpbutil.a
+if FF_DYNLOAD
 nodist_bs1770gain_SOURCES=bg_version.h
+endif
 
 noinst_PROGRAMS=
 
@@ -26,8 +28,10 @@ noinst_PROGRAMS=
 #pilot_LDADD+=$(top_builddir)/lib1770-2/lib1770_2.a
 #pilot_LDADD+=$(top_builddir)/libpbutil/libpbutil.a
 
+if FF_DYNLOAD
 noinst_PROGRAMS+=bg_version
 bg_version_SOURCES=bg_version.c
+endif
 
 noinst_LIBRARIES=libbg.a
 libbg_a_SOURCES=
@@ -62,8 +66,10 @@ libbg_a_SOURCES+=bg_wcs2str.c
 libbg_a_SOURCES+=bg_pathnorm.c
 libbg_a_SOURCES+=bg_parse_time.c
 
+if FF_DYNLOAD
 # https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html
 BUILT_SOURCES=bg_version.h
 CLEANFILES=bg_version.h
 bg_version.h: bg_version
 	./$< > ./$@
+endif

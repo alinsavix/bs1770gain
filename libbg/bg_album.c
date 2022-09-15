@@ -74,12 +74,11 @@ void bg_album_destroy(bg_tree_t *tree)
   if (tree->parent&&tree!=bg_album_pop(tree->parent))
     DWARNING("tree not at end of list");
 
-#if defined (BG_PURGE) // [
   if (!tree->param->process&&1u<tree->album.nchildren) {
     // it's getting bottom-up.
-    tree->param->argv.cur->purge=tree->depth+1;
+    if (!tree->param->process)
+      tree->argv->lift=tree->depth+1;
   }
-#endif // ]
 
   bg_album_content_destroy(tree);
   bg_tree_common_destroy(tree);
@@ -91,9 +90,7 @@ int bg_album_content_create(bg_tree_t *tree, bg_tree_vmt_t *vmt)
   bg_album_t *album=&tree->album;
 
   tree->vmt=vmt;
-#if defined (BG_PURGE) // [
   album->nchildren=0u;
-#endif // ]
   album->nleafs=0u;
   album->first=NULL;
   album->last=NULL;
@@ -128,9 +125,7 @@ int bg_album_push(bg_tree_t *tree, bg_tree_t *child)
     album->first=child;
 
   album->last=child;
-#if defined (BG_PURGE) // [
   ++album->nchildren;
-#endif // ]
 
   return 0;
 }
@@ -154,27 +149,6 @@ bg_tree_t *bg_album_pop(bg_tree_t *tree)
 
   return last;
 }
-
-#if ! defined (BG_PURGE) // [
-///////////////////////////////////////////////////////////////////////////////
-const ffchar_t *bg_album_target_purge(bg_tree_t *tree)
-{
-  switch (tree->vmt->type) {
-  case BG_TREE_TYPE_ALBUM:
-#if 0 // [
-  case BG_TREE_TYPE_ROOT:
-#endif // ]
-    break;
-  default:
-    DVMESSAGE("unexpected tree type: %d",tree->vmt->type);
-    goto e_type;
-  }
-
-  return tree->source.basename;
-e_type:
-  return NULL;
-}
-#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 static int bg_album_accept(bg_tree_t *tree, bg_visitor_t *vis)

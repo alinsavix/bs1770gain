@@ -31,23 +31,25 @@
 #endif // ]
 #include <locale.h>
 #include <bg.h>
+#if defined (HAVE_FF_DYNLOAD) // [
 #include "bg_version.h"
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 /*
  * once meant as an example program on how to deal with "libbg.a" (and in
- * turn with "libff.a".) finally serving as bs1770gain's implementation.
+ * turn with "libff.a") finally serving as bs1770gain's implementation.
  */
 #if 1 // [
 #if 1 // [
-#define BS1770GAIN_GARBAGE \
+#define BG_GARBAGE \
     ""
 #else // ] [
-#define BS1770GAIN_GARBAGE \
+#define BG_GARBAGE \
     ""
 #endif // ]
-#define BS1770GAIN_NANO_GARBAGE \
-
+#define BG_NANO_GARBAGE \
+""
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -61,8 +63,8 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
   _FFPUTS(FFSTR(PACKAGE_VERSION),f);
 #endif // ]
 
-#if defined (BS1770GAIN_NANO_GARBAGE) // [
-  _FFPUTS(FFSTR(BS1770GAIN_NANO_GARBAGE),f);
+#if defined (BG_NANO_GARBAGE) // [
+  _FFPUTS(FFSTR(BG_NANO_GARBAGE),f);
 #endif // ]
 #if defined (PACKAGE_URL) // [
   _FFPUTS(FFSTR(PACKAGE_URL),f);
@@ -74,10 +76,10 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
 #else // ] [
   fputws(L"Compiled for Windows 32 bit",f);
 #endif // ]
-#elif defined (BG_POSIX_SYSNAME) // ] [
+#elif defined (HAVE_FF_DYNLOAD) && defined (BG_POSIX_SYSNAME) // ] [
   fprintf(f,"Compiled for %s",BG_POSIX_SYSNAME);
 #else // ] [
-  fputs("Compiled ",f);
+  fputs("Compiled",f);
 #endif // ]
 #if defined (__GNUC__) // [
   FFPRINTF(f," by means of gcc %d.%d.%d",__GNUC__,
@@ -97,7 +99,7 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
         BG_WINDOWS_MINOR,
         BG_WINDOWS_BUILD_NUMBER);
   }
-#else // ] [
+#elif defined (HAVE_FF_DYNLOAD) // ] [
   fputs(" on\n",f);
 
   if (BG_POSIX_NODENAME[0])
@@ -118,10 +120,13 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
 #endif // ]
 
   fputs("expecting\n",f);
-#if defined (BG_GNU_LIBC_VERSION) // [
+#else // ] [
+  fputs(" expecting\n",f);
+#endif // ]
+
+#if defined (HAVE_FF_DYNLOAD) && defined (BG_GNU_LIBC_VERSION) // [
   fprintf(f,"           libc:  %s (%s),\n",
       BG_GNU_LIBC_VERSION,BG_GNU_LIBC_RELEASE);
-#endif // ]
 #endif // ]
   FFPRINTF(f,"      libavutil:  %d.%d.%d,\n",
       LIBAVUTIL_VERSION_MAJOR,
@@ -312,7 +317,9 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "    debug, or\n"
       "    trace\n",f);
   FFPUTS(" --xml:  print results in xml format\n",f);
+#if defined (BG_CLOCK) // [
   FFPUTS(" --time:  print out duration of program invocation\n",f);
+#endif // ]
   FFPUTS(" --norm=<float>:  norm loudness to float.\n",f);
 #if 0 // [
   FFPUTS(" --preamp=<preamp>:\n",f);
@@ -441,7 +448,9 @@ int main(int argc, char *const *argv)
     BG_ARG_LOGLEVEL,
     BG_ARG_NORM,
     BG_ARG_PREAMP,
+#if defined (BG_CLOCK) // [
     BG_ARG_TIME,
+#endif // ]
     BG_ARG_EBU,
     BG_ARG_SUFFIX,
     BG_ARG_ATSC,
@@ -500,6 +509,13 @@ int main(int argc, char *const *argv)
     BG_FLAG_HELP_ARG_SUFFIX=1<<2,
     BG_FLAG_HELP_ARG_CODEC=1<<3,
   };
+
+#if defined (BG_CLOCK) // [
+  enum {
+    BG_MIN=60,
+    BG_HOUR=60*BG_MIN,
+  };
+#endif // ]
 
 #if defined (HAVE_FF_DYNLOAD) // [
   static const ffchar_t TOOLS[]=FFL("bs1770gain-tools");
@@ -629,6 +645,9 @@ int main(int argc, char *const *argv)
 #endif // ]
   const AVCodec *codec;
   const AVOutputFormat *oformat;
+#if defined (BG_CLOCK) // [
+  double t1,t2,sec;
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (argc<2) {
@@ -903,6 +922,11 @@ int main(int argc, char *const *argv)
       param.flags.norm=BG_FLAGS_NORM_NULL;
       param.norm=FFATOF(optarg);
       break;
+#if defined (BG_CLOCK) // [
+    case BG_ARG_TIME:
+      param.time=1;
+      break;
+#endif // ]
     case BG_ARG_PREAMP:
       param.preamp=FFATOF(optarg);
       break;
@@ -938,9 +962,6 @@ int main(int argc, char *const *argv)
       break;
     case BG_ARG_XML:
       param.print.vmt=&bg_print_xml_vmt;
-      break;
-    case BG_ARG_TIME:
-      param.time=1;
       break;
     case BG_ARG_MATRIX:
       if (!FFSTRCASECMP(FFL("front-left"),optarg))
@@ -1438,19 +1459,11 @@ int main(int argc, char *const *argv)
   av_log_set_level(param.loglevel);
 
   /////////////////////////////////////////////////////////////////////////////
-#if defined (BG_PURGE) // [
   if (bg_param_alloc_arguments(&param,argc-optind)<0) {
     fputs("Error: setting arguments.\n\n",stderr);
     bg_usage(argv[0],stderr);
     goto e_arguments;
   }
-#else // ] [
-  if (optind==argc) {
-    fputs("Error: nothing to analyze.\n\n",stderr);
-    bg_usage(argv[0],stderr);
-    goto e_analyzer;
-  }
-#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (!param.suppress.progress) {
@@ -1461,11 +1474,18 @@ int main(int argc, char *const *argv)
     fflush(stdout);
   }
 
+#if defined (BG_CLOCK) // [
   /////////////////////////////////////////////////////////////////////////////
-  if (bg_param_loop(&param,argv,optind,argc)<0) {
+  t1=clock();
+#endif // ]
+
+  /////////////////////////////////////////////////////////////////////////////
+//DWRITELN("scanning {");
+  if (bg_param_loop(&param,argv+optind)<0) {
     DMESSAGE("counting");
     goto e_count;
   }
+//DWRITELN("scanning }");
 
   if (!param.suppress.progress) {
     ///////////////////////////////////////////////////////////////////////////
@@ -1486,15 +1506,14 @@ int main(int argc, char *const *argv)
     fflush(stdout);
   }
 
-#if ! defined (BG_PURGE) // [
-  ff_printer_clear(&param.printer);
-#endif // ]
   bg_param_set_process(&param);
 
-  if (bg_param_loop(&param,argv,optind,argc)<0) {
+//DWRITELN("processing {");
+  if (bg_param_loop(&param,argv+optind)<0) {
     DMESSAGE("processing");
     goto e_process;
   }
+//DWRITELN("processing }");
 
   if (!param.suppress.progress) {
     ///////////////////////////////////////////////////////////////////////////
@@ -1510,16 +1529,39 @@ int main(int argc, char *const *argv)
     fflush(stdout);
   }
 
+#if defined (BG_CLOCK) // [
+  /////////////////////////////////////////////////////////////////////////////
+  t2=clock();
+
+  if (param.time&&!param.suppress.progress) {
+    if (&bg_print_xml_vmt==param.print.vmt)
+      fputs("<!-- ",stdout);
+
+    sec=(t2-t1)/CLOCKS_PER_SEC;
+
+    if (sec<1.0)
+      fprintf(stdout, "Duration: %.0f ms.",1000.0*sec);
+    else if (sec<BG_MIN)
+      fprintf(stdout, "Duration: %.3f sec.",sec);
+    else if (sec<BG_HOUR)
+      fprintf(stdout, "Duration: %.3f min.",sec/BG_MIN);
+    else
+      fprintf(stdout, "Duration: %.3f h.",sec/BG_HOUR);
+
+    if (&bg_print_xml_vmt==param.print.vmt)
+      fputs(" -->",stdout);
+
+    fputc('\n',stdout);
+    fflush(stdout);
+  }
+#endif // ]
+
   code=0;
 //cleanup:
 e_process:
 e_count:
-#if defined (BG_PURGE) // [
   bg_param_free_argumets(&param);
 e_arguments:
-#else // ] [
-e_analyzer:
-#endif // ]
   if (fpath)
     fclose(param.result.f);
 e_file:
