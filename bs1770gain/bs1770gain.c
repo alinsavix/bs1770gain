@@ -46,7 +46,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 void bs1770gain_usage(char **argv, int code)
 {
+#if defined (PACKAGE_VERSION) // {
 
+      PACKAGE_VERSION);
+#else // } {
+
+#endif // }
+#if defined (PACKAGE_URL) // {
+  fprintf(stderr,"%s\n",PACKAGE_URL);
+#endif // }
   fprintf(stderr,"\n");
   fprintf(stderr,"Usage:  %s [options] <file/dir> [<file/dir> ...]\n",
       pbu_basename(argv[0]));
