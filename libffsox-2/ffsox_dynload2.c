@@ -956,23 +956,23 @@ static int avutil_load(void *p,const char *sym)
 #if defined (_WIN32) // [
     wcscpy(pp,AVUTIL);
     avutil.hLib=LoadLibraryW(path);
-		DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
+		//DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
 #else // ] [
     strcpy(pp,AVUTIL);
     avutil.hLib=dlopen(path,DLOPEN_FLAG);
-		DVWRITELN("%p \"%s\"",avutil.hLib,path);
+		//DVWRITELN("%p \"%s\"",avutil.hLib,path);
 #endif // ]
 
 #if defined (_WIN32) // [
     if (!avutil.hLib&&!(avutil.hLib=LoadLibraryW(AVUTIL))) {
       PBU_DMESSAGE("loading avutil");
-		  DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
+		  //DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
       return -1;
     }
 #else // ] [
     if (!avutil.hLib&&!(avutil.hLib=dlopen(AVUTIL,DLOPEN_FLAG))) {
       PBU_DMESSAGE("loading avutil");
-		  DVWRITELN(L"%p \"%s\"",avutil.hLib,path);
+		  //DVWRITELN("%p \"%s\"",avutil.hLib,path);
       return -1;
     }
 #endif // ]
@@ -1003,23 +1003,23 @@ static int swresample_load(void *p, const char *sym)
 #if defined (_WIN32) // [
     wcscpy(pp,SWRESAMPLE);
     swresample.hLib=LoadLibraryW(path);
-		DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
+		//DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
 #else // ] [
     strcpy(pp,SWRESAMPLE);
     swresample.hLib=dlopen(path,DLOPEN_FLAG);
-		DVWRITELN("%p \"%s\"",avutil.hLib,path);
+		//DVWRITELN("%p \"%s\"",avutil.hLib,path);
 #endif // ]
 
 #if defined (_WIN32) // [
     if (!swresample.hLib&&!(swresample.hLib=LoadLibraryW(SWRESAMPLE))) {
       PBU_DMESSAGE("loading swresample");
-		  DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
+		  //DVWRITELNW(L"%p \"%s\"",avutil.hLib,path);
       return -1;
     }
 #else // ] [
     if (!swresample.hLib&&!(swresample.hLib=dlopen(SWRESAMPLE,DLOPEN_FLAG))) {
       PBU_DMESSAGE("loading swresample");
-		  DVWRITELN("%p \"%s\"",avutil.hLib,path);
+		  //DVWRITELN("%p \"%s\"",avutil.hLib,path);
       return -1;
     }
 #endif // ]
@@ -1151,6 +1151,7 @@ static int libsox_load(void *p, const char *sym)
       return -1;
     }
 
+//DMARKLN();
 #if defined (_WIN32) // [
     wcscpy(pp,LIBSOX);
     libsox.hLib=LoadLibraryW(path);
@@ -1158,6 +1159,7 @@ static int libsox_load(void *p, const char *sym)
     strcpy(pp,LIBSOX);
     libsox.hLib=dlopen(path,DLOPEN_FLAG);
 #endif // ]
+//DMARKLN();
 
 #if defined (_WIN32) // [
     if (!libsox.hLib&&!(libsox.hLib=LoadLibraryW(LIBSOX))) {
@@ -1169,6 +1171,7 @@ static int libsox_load(void *p, const char *sym)
       return -1;
     }
 #else // ] [
+//DMARKLN();
     if (!libsox.hLib&&!(libsox.hLib=dlopen(LIBSOX,DLOPEN_FLAG))) {
       PBU_DMESSAGE("loading libsox");
 #if defined (PBU_DEBUG) // [
@@ -1178,6 +1181,7 @@ static int libsox_load(void *p, const char *sym)
       return -1;
     }
 #endif // ]
+//DMARKLN();
   }
 
   return load(libsox.hLib,sym,p);

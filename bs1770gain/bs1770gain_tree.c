@@ -84,6 +84,7 @@ int bs1770gain_tree_analyze(tree_t *tree, const char *odirname,
 #endif // ]
   analyze_config_t ac;
 
+//DMARKLN();
   TRACE_PUSH();
   album=bs1770gain_album_new(NULL==parent?NULL:parent->path,odirname,options);
 
@@ -151,9 +152,9 @@ int bs1770gain_tree_analyze(tree_t *tree, const char *odirname,
       ac.lfe=options->lfe;
 #endif // ]
 
-//DMARKLN();
+DMARKLN();
       if (ffsox_analyze(&ac,options->audio,ac.vi=options->video)<0) {
-//DMARKLN();
+DMARKLN();
 #if defined (W_WIN32) // [
         if (options->utf16)
           pbu_vwritelnw(f,__FILE__,__LINE__,__func__,

@@ -67,7 +67,14 @@ void pbu_mkdir(char *path)
     p2=p1;
 
     // TODO: unicode.
+		// For the following fix thanks to <hadrien.lacour@posteo.net>.
+#if 0 // [
     while (0!=*p2&&'/'!=*p2&&'\\'!=*p2)
+#elif defined (_WIN32) // ] [
+    while (0!=*p2&&'\\'!=*p2)
+#else // ] [
+    while (0!=*p2&&'/'!=*p2)
+#endif // ]
       ++p2;
 
     if (0==*p2) {

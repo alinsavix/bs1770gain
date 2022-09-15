@@ -26,7 +26,7 @@
 # AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes = `default-includes'])
 # AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 
-AC_INIT([bs1770gain], [0.5.1], [nobody@example.com], [], [http://bs1770gain.sourceforge.net/])
+AC_INIT([bs1770gain], [0.5.2], [nobody@example.com], [], [http://bs1770gain.sourceforge.net/])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR()
 AC_PROG_CC
@@ -54,6 +54,8 @@ rm -f "$tmp"
 AM_CONDITIONAL([WIN32], [test x$win32 = xyes])
 AC_MSG_RESULT($win32)
 # }
+
+LIBS_INITIAL=${LIBS}
 
 # test for FFmpeg [
 unset withval
@@ -118,8 +120,7 @@ if test "x$sox" != "xno"; then # [
   AC_CHECK_HEADER(sox.h,
     AC_CHECK_LIB(sox, sox_version, [sox=yes LIBS="${LIBS} -lsox"], sox=no),
     sox=no)
-fi # ]
-if test "x$sox" == "xno" ; then # [
+else # ] [
   AC_MSG_ERROR([SoX not found])
 fi # ]
 # test for SoX ]
@@ -214,6 +215,8 @@ AC_ARG_ENABLE(dynload, AS_HELP_STRING([--enable-dynload], [load FFmpeg and SoX d
     dynload=yes, dynload=no)
 AM_CONDITIONAL([FFSOX_DYNLOAD], [test x$dynload = xyes])
 if test "x$dynload" = "xyes"; then # [
+  # revert LIBS to it's initial state
+  LIBS=${LIBS_INITIAL}
   AC_DEFINE([HAVE_FFSOX_DYNLOAD], [1],
       [Define to 1 if SoX and FFmpeg should be loaded dynamically.])
   # test for dl [

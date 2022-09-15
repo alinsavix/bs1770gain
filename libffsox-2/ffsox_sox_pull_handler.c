@@ -32,8 +32,10 @@ static int getopts(sox_effect_t *e, int argc, char *argv[])
 {
   priv_t *priv=e->priv;
 
+//DMARKLN();
   priv->cb=1<argc?(void *)argv[1]:NULL;
   priv->data=2<argc?(void *)argv[2]:NULL;
+//DMARKLN();
 
   return SOX_SUCCESS;
 }
@@ -49,20 +51,26 @@ static int flow(sox_effect_t *e, sox_sample_t const *ibuf, sox_sample_t *obuf,
 
   (void)obuf;
 
+//DMARKLN();
   if (NULL!=cb) {
+//DMARKLN();
     data=priv->data;
     rp=ibuf;
     mp=rp+*isamp;
     scale=1.0/MAXOF(*rp);
 
+//DMARKLN();
     while (rp<mp)
+//{DMARKLN();
       cb(data,scale*(*rp++));
+//DMARKLN();}
   }
 
   /* Outputting is the last `effect' in the effect chain so always passes
    * 0 samples on to the next effect (as there isn't one!) */
   *osamp = 0;
 
+//DMARKLN();
   return SOX_SUCCESS; /* All samples priv successfully */
 }
 

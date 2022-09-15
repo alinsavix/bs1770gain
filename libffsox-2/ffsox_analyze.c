@@ -47,6 +47,7 @@ int ffsox_analyze(analyze_config_t *ac, int ai, int vi)
 #endif // }
   char buf[32];
 
+//DMARKLN();
 #if defined (W_WIN32) // [
   if (ac->utf16) {
     fflush(ac->f);
@@ -55,20 +56,24 @@ int ffsox_analyze(analyze_config_t *ac, int ai, int vi)
 #endif // ]
 
   // create a source.
+//DMARKLN();
   if (ffsox_source_create(&si,ac->path,ai,vi,progress,ac->f)<0) {
     DMESSAGE("creating source");
     goto si;
   }
 
+//DMARKLN();
   if (0!=ac->dump&&NULL!=ac->f)
     av_dump_format(si.f.fc,0,si.f.path,0);
 
+//DMARKLN();
   // create a frame reader.
   if (NULL==(fr=ffsox_frame_reader_new(&si,si.ai,ac->stereo,ac->drc))) {
     DMESSAGE("creating frame reader");
     goto fr;
   }
 
+//DMARKLN();
   // create a BS.1770 collector.
   memset(&cc,0,sizeof cc);
   cc.aggregate=ac->aggregate;
@@ -81,46 +86,56 @@ int ffsox_analyze(analyze_config_t *ac, int ai, int vi)
   cc.lfe=ac->lfe;
 #endif // ]
 
+//DMARKLN();
   if (ffsox_collect_create(&collect,&cc)<0) {
     DMESSAGE("creating collector");
     goto collect;
   }
 
+//DMARKLN();
   // create a SoX reader.
   intercept.data=&collect;
   intercept.channel=ffsox_collect_channel;
   intercept.sample=ffsox_collect_sample;
 
+//DMARKLN();
   if (NULL==(read=ffsox_sox_reader_new(fr,collect.scale,&intercept))) {
     DMESSAGE("creating SoX reader");
     goto sa;
   }
 
+//DMARKLN();
   signal=read->signal;
 
+//DMARKLN();
   // create the SoX chain.
   if (NULL==(chain=sox_create_effects_chain(&read->encoding,NULL))) {
     DMESSAGE("creating SoX chain");
     goto chain;
   }
 
+//DMARKLN();
   // add the SoX read effect to the SoX chain.
   n=0;
   opts[n++]=(char *)read;
 
+//DMARKLN();
   if (SOX_SUCCESS!=ffsox_sox_add_effect_fn(chain,&signal,&signal,
       n,opts,ffsox_sox_read_handler)) {
     DMESSAGE("creating SoX read effect");
     goto effect;
   }
 
+//DMARKLN();
   // add the SoX rate effect to the SoX chain.
   if (0!=(AGGREGATE_TRUEPEAK&aggregate->flags)) {
 #if defined (FFSOX_ANALYZE_CASCADE) // {
 //#error FFSOX_ANALYZE_CASCADE
     rate=signal.rate;
 
+//DMARKLN();
     while ((rate*=2.0)<=FFSOX_ANALYZE_RATE) {
+//DMARKLN();
       //rate*=2;
       n=0;
       sprintf(buf,"%.0f",rate);
@@ -133,10 +148,12 @@ int ffsox_analyze(analyze_config_t *ac, int ai, int vi)
       }
     }
 #else // } {
+//DMARKLN();
     n=0;
     sprintf(buf,"%.0f",FFSOX_ANALYZE_RATE);
     opts[n++]=buf;
 
+//DMARKLN();
     if (SOX_SUCCESS!=ffsox_sox_add_effect_name(chain,&signal,&signal,
         n,opts,"rate")) {
       DMESSAGE("creating SoX rate effect");
@@ -145,14 +162,17 @@ int ffsox_analyze(analyze_config_t *ac, int ai, int vi)
 #endif // }
   }
 
+//DMARKLN();
   // add the SoX pull effect to the SoX chain.
   n=0;
 
+//DMARKLN();
   if (0!=(AGGREGATE_TRUEPEAK&aggregate->flags)) {
     opts[n++]=(char *)ffsox_collect_truepeak;
     opts[n++]=(char *)&collect;
   }
 
+//DMARKLN();
   if (SOX_SUCCESS!=ffsox_sox_add_effect_fn(chain,&signal,&signal,
       n,opts,ffsox_sox_pull_handler)) {
     DMESSAGE("creating SoX pull effect");
@@ -174,14 +194,18 @@ int ffsox_analyze(analyze_config_t *ac, int ai, int vi)
 // cleanup:
 flow:
 effect:
+//DMARKLN();
   sox_delete_effects_chain(chain);
 chain:
 sa:
+//DMARKLN();
   ffsox_collect_cleanup(&collect);
 collect:
 fr:
+//DMARKLN();
   si.vmt->cleanup(&si);
 si:
+//DMARKLN();
 #if defined (W_WIN32) // [
   if (ac->utf16) {
     fflush(ac->f);
@@ -191,5 +215,6 @@ si:
 mode:
 #endif // ]
 #endif // ]
+//DMARKLN();
   return code;
 }
