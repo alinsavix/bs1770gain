@@ -21,13 +21,13 @@
  */
 #include <bg.h>
 #if defined (BG_PARAM_SCRIPT) // [
-#if ! defined (_WIN32) // [
+#if defined (_WIN32) // [
+#include <sys/types.h>
+#include <sys/stat.h>
+#else // ] [
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#elif defined (BG_SYSTEM) // ] [
-#include <sys/types.h>
-#include <sys/stat.h>
 #endif // ]
 
 //#define BG_ENVIR_DEBUG
@@ -35,7 +35,14 @@
 typedef const ffchar_t *ffenvir_t[2];
 
 #if defined (_WIN32) // [
-static size_t envira2envirp(const ffenvir_t *envira, ffchar_t *envirp)
+static void path2posix(ffchar_t *p)
+{
+  while ((p=wcsstr(p,L"\\")))
+    *p=L'/';
+}
+
+static size_t envira2envirp(const ffenvir_t *envira, ffchar_t *envirp,
+    int posix)
 {
 
   wchar_t *envir=GetEnvironmentStringsW(),*rp=envir;
@@ -65,17 +72,21 @@ static size_t envira2envirp(const ffenvir_t *envira, ffchar_t *envirp)
   }
 
   while ((*envira)[0]) {
-    if ((*envira)[1]) {
+    if ((*envira)[1][0]) {
       if (envirp) {
         wcscpy(envirp,(*envira)[0]);
         envirp+=wcslen(envirp)+1;
         envirp[-1]=L'=';
         wcscpy(envirp,(*envira)[1]);
+
+        if (posix)
+          path2posix(envirp);
+
         envirp+=wcslen(envirp)+1;
 #if defined (BG_ENVIR_DEBUG) // [
         envirp[-1]=L'#';
 #endif // ]
-    }
+      }
 
       size_loop=wcslen((*envira)[0])*sizeof *envirp;
       size_loop+=sizeof *envirp;
@@ -187,45 +198,81 @@ static void bg_process_muxer_track_annotation_destroy(bg_tree_t *tree)
   if (tree->param->output.dirname||tree->param->overwrite)
     tree->vmt->annotation.destroy(tree);
 }
+
+static void bg_process_muxer_track_comment(bg_tree_t *tree)
+{
+  bg_param_t *param=tree->param;
+  bg_track_t *track=&tree->track;
+
+#if defined (BG_PARAM_QUIET) // [
+  if (!param->quiet) {
+#endif // ]
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    if (param->skip_scan)
+      fprintf(stdout,"%s\n",bg_tree_out_basename(tree));
+    else {
+#endif // ]
+      fprintf(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
+          bg_tree_out_basename(tree));
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    }
+#endif // ]
+
+    fflush(stdout);
+#if defined (BG_PARAM_QUIET) // [
+  }
+#endif // ]
+}
+
+#define BG_ENVIR_ALBUM
 #if defined (_WIN32) // [
-static ffchar_t *bg_process_get_envirp(bg_tree_t *tree)
+static ffchar_t *bg_process_get_envirp(bg_tree_t *tree, int posix)
 #else // ] [
 static ffchar_t **bg_process_get_envirpp(bg_tree_t *tree)
 #endif // ]
 {
+#if defined (BG_ENVIR_ALBUM) // [
+  bg_tree_t *parent=tree->parent;
+#endif // ]
   ffchar_t norm[32];
-  ffchar_t momentary_mean[32];
-  ffchar_t momentary_mean_relative[32];
-  ffchar_t momentary_maximum[32];
-  ffchar_t momentary_maximum_relative[32];
-  ffchar_t momentary_range[32];
-  ffchar_t shortterm_mean[32];
-  ffchar_t shortterm_mean_relative[32];
-  ffchar_t shortterm_maximum[32];
-  ffchar_t shortterm_maximum_relative[32];
-  ffchar_t shortterm_range[32];
-  ffchar_t samplepeak_absolute[32];
-  ffchar_t samplepeak_relative[32];
-  ffchar_t truepeak_absolute[32];
-  ffchar_t truepeak_relative[32];
+  /////////////////////////////////////////////////////////////////////////////
+  ffchar_t track_momentary_mean[32];
+  ffchar_t track_momentary_mean_relative[32];
+  ffchar_t track_momentary_maximum[32];
+  ffchar_t track_momentary_maximum_relative[32];
+  ffchar_t track_momentary_range[32];
+  ////////
+  ffchar_t track_shortterm_mean[32];
+  ffchar_t track_shortterm_mean_relative[32];
+  ffchar_t track_shortterm_maximum[32];
+  ffchar_t track_shortterm_maximum_relative[32];
+  ffchar_t track_shortterm_range[32];
+  /////////////////////////////////////////////////////////////////////////////
+  ffchar_t track_samplepeak_absolute[32];
+  ffchar_t track_samplepeak_relative[32];
+  ffchar_t track_truepeak_absolute[32];
+  ffchar_t track_truepeak_relative[32];
+#if defined (BG_ENVIR_ALBUM) // [
+  ////////
+  ffchar_t album_momentary_mean[32];
+  ffchar_t album_momentary_mean_relative[32];
+  ffchar_t album_momentary_maximum[32];
+  ffchar_t album_momentary_maximum_relative[32];
+  ffchar_t album_momentary_range[32];
+  ////////
+  ffchar_t album_shortterm_mean[32];
+  ffchar_t album_shortterm_mean_relative[32];
+  ffchar_t album_shortterm_maximum[32];
+  ffchar_t album_shortterm_maximum_relative[32];
+  ffchar_t album_shortterm_range[32];
+  /////////////////////////////////////////////////////////////////////////////
+  ffchar_t album_samplepeak_absolute[32];
+  ffchar_t album_samplepeak_relative[32];
+  ffchar_t album_truepeak_absolute[32];
+  ffchar_t album_truepeak_relative[32];
+#endif // ]
 
   const ffenvir_t envir[]={
-    {FFL("BS1770GAIN_NORM"),norm},
-    {FFL("BS1770GAIN_INTEGRATED"),momentary_mean},
-    {FFL("BS1770GAIN_MOMENTARY_MEAN"),momentary_mean},
-    {FFL("BS1770GAIN_MOMENTARY_MEAN_RELATIVE"),momentary_mean_relative},
-    {FFL("BS1770GAIN_MOMENTARY_MAXIMUM"),momentary_maximum},
-    {FFL("BS1770GAIN_MOMENTARY_MAXIMUM_RELATIVE"),momentary_maximum_relative},
-    {FFL("BS1770GAIN_MOMENTARY_RANGE"),momentary_range},
-    {FFL("BS1770GAIN_SHORTTERM_MEAN"),shortterm_mean},
-    {FFL("BS1770GAIN_SHORTTERM_MEAN_RELATIVE"),shortterm_mean_relative},
-    {FFL("BS1770GAIN_SHORTTERM_MAXIMUM"),shortterm_maximum},
-    {FFL("BS1770GAIN_SHORTTERM_MAXIMUM_RELATIVE"),shortterm_maximum_relative},
-    {FFL("BS1770GAIN_SHORTTERM_RANGE"),shortterm_range},
-    {FFL("BS1770GAIN_SAMPLEPEAK_ABSOLUTE"),samplepeak_absolute},
-    {FFL("BS1770GAIN_SAMPLEPEAK_RELATIVE"),samplepeak_relative},
-    {FFL("BS1770GAIN_TRUEPEAK_ABSOLUTE"),truepeak_absolute},
-    {FFL("BS1770GAIN_TRUEPEAK_RELATIVE"),truepeak_relative},
     {FFL("BS1770GAIN_SOURCE"),tree->source.path},
     {FFL("BS1770GAIN_TARGET"),tree->target.path},
     //{FFL("BS1770GAIN_TARGET_DIRECTORY"),tree->parent->target.path},
@@ -236,6 +283,128 @@ static ffchar_t **bg_process_get_envirpp(bg_tree_t *tree)
     {FFL("BS1770GAIN_LU"),bg_print_conf_unit_lum(tree)},
     {FFL("BS1770GAIN_LRA"),bg_print_conf_unit_lram(tree)},
 #endif // ]
+    {FFL("BS1770GAIN_OVERWRITE"),tree->param->overwrite?FFL("yes"):FFL("")},
+    {FFL("BS1770GAIN_NORM"),norm},
+    ///////////////////////////////////////////////////////////////////////////
+    {FFL("BS1770GAIN_INTEGRATED"),
+        track_momentary_mean},
+    {FFL("BS1770GAIN_INTEGRATED_RELATIVE"),
+        track_momentary_mean_relative},
+    {FFL("BS1770GAIN_MOMENTARY_MEAN"),
+        track_momentary_mean},
+    {FFL("BS1770GAIN_MOMENTARY_MEAN_RELATIVE"),
+        track_momentary_mean_relative},
+    {FFL("BS1770GAIN_MOMENTARY_MAXIMUM"),
+        track_momentary_maximum},
+    {FFL("BS1770GAIN_MOMENTARY_MAXIMUM_RELATIVE"),
+        track_momentary_maximum_relative},
+    {FFL("BS1770GAIN_MOMENTARY_RANGE"),
+        track_momentary_range},
+    ////////
+    {FFL("BS1770GAIN_SHORTTERM"),
+        track_shortterm_mean},
+    {FFL("BS1770GAIN_SHORTTERM_RELATIVE"),
+        track_shortterm_mean_relative},
+    {FFL("BS1770GAIN_SHORTTERM_MEAN"),
+        track_shortterm_mean},
+    {FFL("BS1770GAIN_SHORTTERM_MEAN_RELATIVE"),
+        track_shortterm_mean_relative},
+    {FFL("BS1770GAIN_SHORTTERM_MAXIMUM"),
+        track_shortterm_maximum},
+    {FFL("BS1770GAIN_SHORTTERM_MAXIMUM_RELATIVE"),
+        track_shortterm_maximum_relative},
+    {FFL("BS1770GAIN_SHORTTERM_RANGE"),
+        track_shortterm_range},
+    ////////
+    {FFL("BS1770GAIN_SAMPLEPEAK_ABSOLUTE"),
+        track_samplepeak_absolute},
+    {FFL("BS1770GAIN_SAMPLEPEAK_RELATIVE"),
+        track_samplepeak_relative},
+    {FFL("BS1770GAIN_TRUEPEAK_ABSOLUTE"),
+        track_truepeak_absolute},
+    {FFL("BS1770GAIN_TRUEPEAK_RELATIVE"),
+        track_truepeak_relative},
+    ///////////////////////////////////////////////////////////////////////////
+    {FFL("BS1770GAIN_TRACK_INTEGRATED"),
+        track_momentary_mean},
+    {FFL("BS1770GAIN_TRACK_INTEGRATED_RELATIVE"),
+        track_momentary_mean_relative},
+    {FFL("BS1770GAIN_TRACK_MOMENTARY_MEAN"),
+        track_momentary_mean},
+    {FFL("BS1770GAIN_TRACK_MOMENTARY_MEAN_RELATIVE"),
+        track_momentary_mean_relative},
+    {FFL("BS1770GAIN_TRACK_MOMENTARY_MAXIMUM"),
+        track_momentary_maximum},
+    {FFL("BS1770GAIN_TRACK_MOMENTARY_MAXIMUM_RELATIVE"),
+        track_momentary_maximum_relative},
+    {FFL("BS1770GAIN_TRACK_MOMENTARY_RANGE"),
+        track_momentary_range},
+    ////////
+    {FFL("BS1770GAIN_TRACK_SHORTTERM"),
+        track_shortterm_mean},
+    {FFL("BS1770GAIN_TRACK_SHORTTERM_RELATIVE"),
+        track_shortterm_mean_relative},
+    {FFL("BS1770GAIN_TRACK_SHORTTERM_MEAN"),
+        track_shortterm_mean},
+    {FFL("BS1770GAIN_TRACK_SHORTTERM_MEAN_RELATIVE"),
+        track_shortterm_mean_relative},
+    {FFL("BS1770GAIN_TRACK_SHORTTERM_MAXIMUM"),
+        track_shortterm_maximum},
+    {FFL("BS1770GAIN_TRACK_SHORTTERM_MAXIMUM_RELATIVE"),
+        track_shortterm_maximum_relative},
+    {FFL("BS1770GAIN_TRACK_SHORTTERM_RANGE"),
+        track_shortterm_range},
+    ////////
+    {FFL("BS1770GAIN_TRACK_SAMPLEPEAK_ABSOLUTE"),
+        track_samplepeak_absolute},
+    {FFL("BS1770GAIN_TRACK_SAMPLEPEAK_RELATIVE"),
+        track_samplepeak_relative},
+    {FFL("BS1770GAIN_TRACK_TRUEPEAK_ABSOLUTE"),
+        track_truepeak_absolute},
+    {FFL("BS1770GAIN_TRACK_TRUEPEAK_RELATIVE"),
+        track_truepeak_relative},
+#if defined (BG_ENVIR_ALBUM) // [
+    ///////////////////////////////////////////////////////////////////////////
+    {FFL("BS1770GAIN_ALBUM_INTEGRATED"),
+        album_momentary_mean},
+    {FFL("BS1770GAIN_ALBUM_INTEGRATED_RELATIVE"),
+        album_momentary_mean_relative},
+    {FFL("BS1770GAIN_ALBUM_MOMENTARY_MEAN"),
+        album_momentary_mean},
+    {FFL("BS1770GAIN_ALBUM_MOMENTARY_MEAN_RELATIVE"),
+        album_momentary_mean_relative},
+    {FFL("BS1770GAIN_ALBUM_MOMENTARY_MAXIMUM"),
+        album_momentary_maximum},
+    {FFL("BS1770GAIN_ALBUM_MOMENTARY_MAXIMUM_RELATIVE"),
+        album_momentary_maximum_relative},
+    {FFL("BS1770GAIN_ALBUM_MOMENTARY_RANGE"),
+        album_momentary_range},
+    ////////
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM"),
+        album_shortterm_mean},
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM_RELATIVE"),
+        album_shortterm_mean_relative},
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM_MEAN"),
+        album_shortterm_mean},
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM_MEAN_RELATIVE"),
+        album_shortterm_mean_relative},
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM_MAXIMUM"),
+        album_shortterm_maximum},
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM_MAXIMUM_RELATIVE"),
+        album_shortterm_maximum_relative},
+    {FFL("BS1770GAIN_ALBUM_SHORTTERM_RANGE"),
+        album_shortterm_range},
+    ////////
+    {FFL("BS1770GAIN_ALBUM_SAMPLEPEAK_ABSOLUTE"),
+        album_samplepeak_absolute},
+    {FFL("BS1770GAIN_ALBUM_SAMPLEPEAK_RELATIVE"),
+        album_samplepeak_relative},
+    {FFL("BS1770GAIN_ALBUM_TRUEPEAK_ABSOLUTE"),
+        album_truepeak_absolute},
+    {FFL("BS1770GAIN_ALBUM_TRUEPEAK_RELATIVE"),
+        album_truepeak_relative},
+#endif // ]
+    ///////////////////////////////////////////////////////////////////////////
     {NULL,NULL}
   };
 
@@ -246,128 +415,284 @@ static ffchar_t **bg_process_get_envirpp(bg_tree_t *tree)
   ffchar_t **envirpp;
 #endif // ]
 
+  /////////////////////////////////////////////////////////////////////////////
   _SNPRINTF(norm,(sizeof norm)/(sizeof norm[0]),"%0.2lf",
       bg_print_conf_norm(tree));
 
+  /////////////////////////////////////////////////////////////////////////////
   if (BG_FLAGS_AGG_MOMENTARY_MEAN&tree->param->flags.aggregate) {
-    _SNPRINTF(momentary_mean,
-        (sizeof momentary_mean)/(sizeof momentary_mean[0]),
-        "%0.2f",
+    size=(sizeof track_momentary_mean)/(sizeof track_momentary_mean[0]);
+    _SNPRINTF(track_momentary_mean,size,"%0.2f",
       bg_print_conf_momentary_mean(tree));
-    _SNPRINTF(momentary_mean_relative,
-        (sizeof momentary_mean_relative)/(sizeof momentary_mean_relative[0]),
-        "%0.2f",
+    ////////
+    size=(sizeof track_momentary_mean_relative)
+        /(sizeof track_momentary_mean_relative[0]),
+    _SNPRINTF(track_momentary_mean_relative,size,"%0.2f",
         bg_print_conf_momentary_mean_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ///////////////////////////////////////////////////////////////////////////
+    size=(sizeof album_momentary_mean)/(sizeof album_momentary_mean[0]);
+    _SNPRINTF(album_momentary_mean,size,"%0.2f",
+      bg_print_conf_momentary_mean(parent));
+    ////////
+    size=(sizeof album_momentary_mean_relative)
+        /(sizeof album_momentary_mean_relative[0]),
+    _SNPRINTF(album_momentary_mean_relative,size,"%0.2f",
+        bg_print_conf_momentary_mean_relative(parent));
+#endif // ]
   }
   else {
-    memset(momentary_mean,0,sizeof momentary_mean);
-    memset(momentary_mean_relative,0,sizeof momentary_mean_relative);
+    size=sizeof track_momentary_mean;
+    memset(track_momentary_mean,0,size);
+    ////////
+    size=sizeof track_momentary_mean_relative;
+    memset(track_momentary_mean_relative,0,size);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_momentary_mean;
+    memset(album_momentary_mean,0,size);
+    ////////
+    size=sizeof album_momentary_mean_relative;
+    memset(album_momentary_mean_relative,0,size);
+#endif // ]
   }
 
   if (BG_FLAGS_AGG_MOMENTARY_MAXIMUM&tree->param->flags.aggregate) {
-    _SNPRINTF(momentary_maximum,
-        (sizeof momentary_maximum)/(sizeof momentary_maximum[0]),
-        "%0.2f",
+    size=(sizeof track_momentary_maximum)
+        /(sizeof track_momentary_maximum[0]);
+    _SNPRINTF(track_momentary_maximum,size,"%0.2f",
         bg_print_conf_momentary_maximum(tree));
-    _SNPRINTF(momentary_maximum_relative,
-        (sizeof momentary_maximum_relative)
-            /(sizeof momentary_maximum_relative[0]),
-        "%0.2f",
+    ////////
+    size=(sizeof track_momentary_maximum_relative)
+        /(sizeof track_momentary_maximum_relative[0]),
+    _SNPRINTF(track_momentary_maximum_relative,size,"%0.2f",
         bg_print_conf_momentary_maximum_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_momentary_maximum)
+        /(sizeof album_momentary_maximum[0]);
+    _SNPRINTF(album_momentary_maximum,size,"%0.2f",
+        bg_print_conf_momentary_maximum(parent));
+    ////////
+    size=(sizeof album_momentary_maximum_relative)
+        /(sizeof album_momentary_maximum_relative[0]),
+    _SNPRINTF(album_momentary_maximum_relative,size,"%0.2f",
+        bg_print_conf_momentary_maximum_relative(parent));
+#endif // ]
   }
   else {
-    memset(momentary_maximum,0,sizeof momentary_maximum);
-    memset(momentary_maximum_relative,0,sizeof momentary_maximum_relative);
+    size=sizeof track_momentary_maximum;
+    memset(track_momentary_maximum,0,size);
+    ////////
+    size=sizeof track_momentary_maximum_relative;
+    memset(track_momentary_maximum_relative,0,size);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_momentary_maximum;
+    memset(album_momentary_maximum,0,size);
+    ////////
+    size=sizeof album_momentary_maximum_relative;
+    memset(album_momentary_maximum_relative,0,size);
+#endif // ]
   }
 
   if (BG_FLAGS_AGG_MOMENTARY_RANGE&tree->param->flags.aggregate) {
-    _SNPRINTF(momentary_range,
-        (sizeof momentary_range)/(sizeof momentary_range[0]),
-        "%0.2f",
+    size=(sizeof track_momentary_range)/(sizeof track_momentary_range[0]);
+    _SNPRINTF(track_momentary_range,size,"%0.2f",
         bg_print_conf_momentary_range(tree));
-  }
-  else
-    memset(momentary_range,0,sizeof momentary_range);
-
-  if (BG_FLAGS_AGG_SHORTTERM_MEAN&tree->param->flags.aggregate) {
-    _SNPRINTF(shortterm_mean,
-        (sizeof shortterm_mean)/(sizeof shortterm_mean[0]),
-        "%0.2f",
-        bg_print_conf_shortterm_mean(tree));
-    _SNPRINTF(shortterm_mean_relative,
-        (sizeof shortterm_mean_relative)/(sizeof shortterm_mean_relative[0]),
-        "%0.2f",
-        bg_print_conf_shortterm_mean_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_momentary_range)/(sizeof album_momentary_range[0]);
+    _SNPRINTF(album_momentary_range,size,"%0.2f",
+        bg_print_conf_momentary_range(parent));
+#endif // ]
   }
   else {
-    memset(shortterm_mean,0,sizeof shortterm_mean);
-    memset(shortterm_mean_relative,0,sizeof shortterm_mean_relative);
+    size=sizeof track_momentary_range;
+    memset(track_momentary_range,0,size);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_momentary_range;
+    memset(album_momentary_range,0,size);
+#endif // ]
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (BG_FLAGS_AGG_SHORTTERM_MEAN&tree->param->flags.aggregate) {
+    size=(sizeof track_shortterm_mean)/(sizeof track_shortterm_mean[0]);
+    _SNPRINTF(track_shortterm_mean,size,"%0.2f",
+        bg_print_conf_shortterm_mean(tree));
+    ////////
+    size=(sizeof track_shortterm_mean_relative)
+        /(sizeof track_shortterm_mean_relative[0]),
+    _SNPRINTF(track_shortterm_mean_relative,size,"%0.2f",
+        bg_print_conf_shortterm_mean_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_shortterm_mean)/(sizeof album_shortterm_mean[0]);
+    _SNPRINTF(album_shortterm_mean,size,"%0.2f",
+        bg_print_conf_shortterm_mean(parent));
+    ////////
+    size=(sizeof album_shortterm_mean_relative)
+        /(sizeof album_shortterm_mean_relative[0]),
+    _SNPRINTF(album_shortterm_mean_relative,size,"%0.2f",
+        bg_print_conf_shortterm_mean_relative(parent));
+#endif // ]
+  }
+  else {
+    size=sizeof track_shortterm_mean;
+    memset(track_shortterm_mean,0,sizeof track_shortterm_mean);
+    ////////
+    size=sizeof track_shortterm_mean_relative;
+    memset(track_shortterm_mean_relative,0,size);
   }
 
   if (BG_FLAGS_AGG_SHORTTERM_MAXIMUM&tree->param->flags.aggregate) {
-    _SNPRINTF(shortterm_maximum,
-        (sizeof shortterm_maximum)/(sizeof shortterm_maximum[0]),
-        "%0.2f",
+    size=(sizeof track_shortterm_maximum)/(sizeof track_shortterm_maximum[0]),
+    _SNPRINTF(track_shortterm_maximum,size,"%0.2f",
         bg_print_conf_shortterm_maximum(tree));
-    _SNPRINTF(shortterm_maximum_relative,
-        (sizeof shortterm_maximum_relative)
-            /(sizeof *shortterm_maximum_relative),
-        "%0.2f",
+    ////////
+    size=(sizeof track_shortterm_maximum_relative)
+        /(sizeof *track_shortterm_maximum_relative);
+    _SNPRINTF(track_shortterm_maximum_relative,size,"%0.2f",
         bg_print_conf_shortterm_maximum_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_shortterm_maximum)/(sizeof album_shortterm_maximum[0]),
+    _SNPRINTF(album_shortterm_maximum,size,"%0.2f",
+        bg_print_conf_shortterm_maximum(parent));
+    ////////
+    size=(sizeof album_shortterm_maximum_relative)
+        /(sizeof *album_shortterm_maximum_relative);
+    _SNPRINTF(album_shortterm_maximum_relative,size,"%0.2f",
+        bg_print_conf_shortterm_maximum_relative(parent));
+#endif // ]
   }
   else {
-    memset(shortterm_maximum,0,sizeof shortterm_maximum);
-    memset(shortterm_maximum_relative,0,sizeof shortterm_maximum_relative);
+    size=sizeof track_shortterm_maximum;
+    memset(track_shortterm_maximum,0,size);
+    ////////
+    size=sizeof track_shortterm_maximum_relative;
+    memset(track_shortterm_maximum_relative,0,size);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_shortterm_maximum;
+    memset(album_shortterm_maximum,0,size);
+    ////////
+    size=sizeof album_shortterm_maximum_relative;
+    memset(album_shortterm_maximum_relative,0,size);
+#endif // ]
   }
 
   if (BG_FLAGS_AGG_SHORTTERM_RANGE&tree->param->flags.aggregate) {
-    _SNPRINTF(shortterm_range,
-        (sizeof shortterm_range)/(sizeof shortterm_range[0]),
-        "%0.2f",
+    size=(sizeof track_shortterm_range)/(sizeof track_shortterm_range[0]);
+    _SNPRINTF(track_shortterm_range,size,"%0.2f",
         bg_print_conf_shortterm_range(tree));
-  }
-  else
-    memset(shortterm_range,0,sizeof shortterm_range);
-
-  if (BG_FLAGS_AGG_SAMPLEPEAK&tree->param->flags.aggregate) {
-    _SNPRINTF(samplepeak_absolute,
-        (sizeof samplepeak_absolute)/(sizeof samplepeak_absolute[0]),
-        "%0.2f",
-        bg_print_conf_samplepeak_absolute(tree));
-    _SNPRINTF(samplepeak_relative,
-        (sizeof samplepeak_relative)/(sizeof samplepeak_relative[0]),
-        "%0.2f",
-        bg_print_conf_samplepeak_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_shortterm_range)/(sizeof album_shortterm_range[0]);
+    _SNPRINTF(album_shortterm_range,size,"%0.2f",
+        bg_print_conf_shortterm_range(parent));
+#endif // ]
   }
   else {
-    memset(samplepeak_absolute,0,sizeof samplepeak_absolute);
-    memset(samplepeak_relative,0,sizeof samplepeak_relative);
+    size=sizeof track_shortterm_range;
+    memset(track_shortterm_range,0,size);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_shortterm_range;
+    memset(album_shortterm_range,0,size);
+#endif // ]
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (BG_FLAGS_AGG_SAMPLEPEAK&tree->param->flags.aggregate) {
+    size=(sizeof track_samplepeak_absolute)
+        /(sizeof track_samplepeak_absolute[0]);
+    _SNPRINTF(track_samplepeak_absolute,size,"%0.2f",
+        bg_print_conf_samplepeak_absolute(tree));
+    ////////
+    size=(sizeof track_samplepeak_relative)
+        /(sizeof track_samplepeak_relative[0]);
+    _SNPRINTF(track_samplepeak_relative,size,"%0.2f",
+        bg_print_conf_samplepeak_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_samplepeak_absolute)
+        /(sizeof album_samplepeak_absolute[0]);
+    _SNPRINTF(album_samplepeak_absolute,size,"%0.2f",
+        bg_print_conf_samplepeak_absolute(parent));
+    ////////
+    size=(sizeof album_samplepeak_relative)
+        /(sizeof album_samplepeak_relative[0]);
+    _SNPRINTF(album_samplepeak_relative,size,"%0.2f",
+        bg_print_conf_samplepeak_relative(parent));
+#endif // ]
+  }
+  else {
+    size=sizeof track_samplepeak_absolute;
+    memset(track_samplepeak_absolute,0,sizeof track_samplepeak_absolute);
+    ////////
+    size=sizeof track_samplepeak_relative;
+    memset(track_samplepeak_relative,0,sizeof track_samplepeak_relative);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_samplepeak_absolute;
+    memset(album_samplepeak_absolute,0,sizeof album_samplepeak_absolute);
+    ////////
+    size=sizeof album_samplepeak_relative;
+    memset(album_samplepeak_relative,0,sizeof album_samplepeak_relative);
+#endif // ]
   }
 
   if (BG_FLAGS_AGG_TRUEPEAK&tree->param->flags.aggregate) {
-    _SNPRINTF(truepeak_absolute,
-        (sizeof truepeak_absolute)/(sizeof truepeak_absolute[0]),
-        "%0.2f",
+    size=(sizeof track_truepeak_absolute)
+        /(sizeof track_truepeak_absolute[0]);
+    _SNPRINTF(track_truepeak_absolute,size,"%0.2f",
         bg_print_conf_truepeak_absolute(tree));
-    _SNPRINTF(truepeak_relative,
-        (sizeof truepeak_relative)/(sizeof truepeak_relative[0]),
-        "%0.2f",
+    ////////
+    size=(sizeof track_truepeak_relative)
+        /(sizeof track_truepeak_relative[0]);
+    _SNPRINTF(track_truepeak_relative,size,"%0.2f",
         bg_print_conf_truepeak_relative(tree));
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=(sizeof album_truepeak_absolute)
+        /(sizeof album_truepeak_absolute[0]);
+    _SNPRINTF(album_truepeak_absolute,size,"%0.2f",
+        bg_print_conf_truepeak_absolute(parent));
+    ////////
+    size=(sizeof album_truepeak_relative)
+        /(sizeof album_truepeak_relative[0]);
+    _SNPRINTF(album_truepeak_relative,size,"%0.2f",
+        bg_print_conf_truepeak_relative(parent));
+#endif // ]
   }
   else {
-    memset(truepeak_absolute,0,sizeof truepeak_absolute);
-    memset(truepeak_relative,0,sizeof truepeak_relative);
+    size=sizeof track_truepeak_absolute;
+    memset(track_truepeak_absolute,0,size);
+    ////////
+    size=sizeof track_truepeak_relative;
+    memset(track_truepeak_relative,0,size);
+#if defined (BG_ENVIR_ALBUM) // [
+    ////////
+    size=sizeof album_truepeak_absolute;
+    memset(album_truepeak_absolute,0,size);
+    ////////
+    size=sizeof album_truepeak_relative;
+    memset(album_truepeak_relative,0,size);
+#endif // ]
   }
 
 #if defined (_WIN32) // [
-  size=envira2envirp(envir,NULL);
+  size=envira2envirp(envir,NULL,posix);
 
   if (!size||!(envirp=malloc(size))) {
     _DMESSAGE("allocating envirp");
     goto e_envirp_alloc;
   }
 
-  if (envira2envirp(envir,envirp)!=size) {
+  if (envira2envirp(envir,envirp,posix)!=size) {
     _DMESSAGE("initilizing envirp");
     goto e_envirp_init;
   }
@@ -400,15 +725,12 @@ e_envirpp_alloc:
 static int _bg_process_tree_run_script(bg_tree_t *tree)
 {
 #if defined (_WIN32) // [
-#if 0 // [
-  static const wchar_t CMD[]=L"/bin/sh -c";
-#else // ] [
   static const wchar_t CMD_EXEC[]=L"C:\\Windows\\system32\\cmd.exe /C ";
   static const wchar_t CMD_CALL[]=L"C:\\Windows\\system32\\cmd.exe /C call ";
 #endif // ]
-#endif // ]
 
   int err=-1;
+  bg_param_t *param=tree->param;
 #if defined (_WIN32) // [
   struct _stat buf;
   const wchar_t *CMD;
@@ -417,30 +739,64 @@ static int _bg_process_tree_run_script(bg_tree_t *tree)
   wchar_t *cmd,*wp;
   ffchar_t *envirp;
   int bRes;
+#if defined (BG_PARAM_SHELL) // [
+  int posix;
 #endif // ]
 
-#if defined (_WIN32) // [
   memset(&startup_info,0,sizeof startup_info);
   startup_info.cb=sizeof startup_info;
   memset(&process_info,0,sizeof process_info);
 
-  CMD=_wstat(tree->param->script,&buf)?CMD_EXEC:CMD_CALL;
-  wp=cmd=malloc((wcslen(CMD)+wcslen(tree->param->script)+2)*sizeof *cmd);
+#if defined (BG_PARAM_SHELL) // [
+  if (param->shell.interpreter) {
+    posix=1;
+    wp=cmd=malloc((wcslen(param->shell.interpreter)
+        +1
+        +wcslen(param->shell.parameter)
+        +1
+        +1+wcslen(param->script)+1)*sizeof *cmd);
 
-  if (!CMD) {
-    DMESSAGE("allocating cmd");
-    goto e_cmd;
+    if (!cmd) {
+      DMESSAGE("allocating cmd");
+      goto e_cmd;
+    }
+
+    wcscpy(wp,param->shell.interpreter);
+    wp+=wcslen(wp);
+    *wp++=L' ';
+    wcscpy(wp,param->shell.parameter);
+    wp+=wcslen(wp);
+    *wp++=L' ';
+    *wp++=L'"';
+    wcscpy(wp,param->script);
+    path2posix(wp);
+    wp+=wcslen(wp);
+    *wp++=L'"';
+    *wp=L'\0';
   }
+  else {
+#endif // ]
+    posix=0;
+    CMD=_wstat(param->script,&buf)?CMD_EXEC:CMD_CALL;
+    wp=cmd=malloc((wcslen(CMD)+wcslen(param->script)+2)*sizeof *cmd);
 
-  wcscpy(wp,CMD);
-  wp+=wcslen(wp);
-  *wp++=L'"';
-  wcscpy(wp,tree->param->script);
-  wp+=wcslen(wp);
-  *wp++=L'"';
-  *wp=L'\0';
+    if (!cmd) {
+      DMESSAGE("allocating cmd");
+      goto e_cmd;
+    }
 
-  if (!(envirp=bg_process_get_envirp(tree))) {
+    wcscpy(wp,CMD);
+    wp+=wcslen(wp);
+    *wp++=L'"';
+    wcscpy(wp,param->script);
+    wp+=wcslen(wp);
+    *wp++=L'"';
+    *wp=L'\0';
+#if defined (BG_PARAM_SHELL) // [
+  }
+#endif // ]
+
+  if (!(envirp=bg_process_get_envirp(tree,posix))) {
     _DMESSAGE("creating envirp");
     goto e_envirp;
   }
@@ -450,62 +806,92 @@ _DWRITELNV("envirp:\"%" PBU_PRIs "\"",envirp);
 exit(1);
 #endif // ]
 
-  bRes=CreateProcessW(
-    NULL,                       // LPCWSTR               lpApplicationName,
-    cmd,                        // LPWSTR                lpCommandLine,
-    NULL,                       // LPSECURITY_ATTRIBUTES lpProcessAttributes,
-    NULL,                       // LPSECURITY_ATTRIBUTES lpThreadAttributes,
-    TRUE,                       // BOOL                  bInheritHandles,
-    CREATE_UNICODE_ENVIRONMENT, // DWORD                 dwCreationFlags,
-    envirp,                     // LPVOID                lpEnvironment,
-    NULL,                       // LPCWSTR               lpCurrentDirectory,
-    &startup_info,              // LPSTARTUPINFOW        lpStartupInfo,
-    &process_info               // LPPROCESS_INFORMATION lpProcessInformation
-  );
+  for (;;) {
+    bRes=CreateProcessW(
+      NULL,           // LPCWSTR               lpApplicationName,
+      cmd,            // LPWSTR                lpCommandLine,
+      NULL,           // LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      NULL,           // LPSECURITY_ATTRIBUTES lpThreadAttributes,
+      TRUE,           // BOOL                  bInheritHandles,
+      CREATE_UNICODE_ENVIRONMENT,
+                      // DWORD                 dwCreationFlags,
+      envirp,         // LPVOID                lpEnvironment,
+      NULL,           // LPCWSTR               lpCurrentDirectory,
+      &startup_info,  // LPSTARTUPINFOW        lpStartupInfo,
+      &process_info   // LPPROCESS_INFORMATION lpProcessInformation
+    );
 
-  if (bRes) {
-    WaitForSingleObject(process_info.hProcess,INFINITE);
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
-    err=0;
-  }
-  else
-    _DMESSAGE("creating process");
+    if (bRes) {
+      DWORD dwExitCode;
+
+      WaitForSingleObject(process_info.hProcess,INFINITE);
+      GetExitCodeProcess(process_info.hProcess,&dwExitCode);
+//_WRITELNV("dwExitCode:%lu",dwExitCode);
+      CloseHandle(process_info.hProcess);
+      CloseHandle(process_info.hThread);
+      bg_process_muxer_track_comment(tree);
+      free(envirp);
+
+      if (!dwExitCode) {
+        err=0;
+        break;
+      }
+    }
+    else
+      _DMESSAGE("creating process");
+      free(envirp);
+      break;
+    }
 //cleanup:
-  free(envirp);
 e_envirp:
   free(cmd);
 e_cmd:
 #else // ] [
-  pid_t pid=fork();
+  for (;;) {
+    pid_t pid=fork();
 
-  if (pid<0) {
-    // something went wrong.
-    _DMESSAGE("forking");
-  }
-  else if (0<pid) {
-    // we're still the bs1770gain process. we're waiting until the shell
-    // process (cf. below) terminates.
-    waitpid(pid,NULL,0);
-    err=0;
+    if (pid<0) {
+      // something went wrong.
+      _DMESSAGE("forking");
+      break;
+    }
+    else if (0<pid) {
+      // we're still the bs1770gain process. we're waiting until the shell
+      // process (cf. below) terminates.
+      int status;
+
+      waitpid(pid,&status,0);
+      bg_process_muxer_track_comment(tree);
+//_WRITELNV("status:%d",status);
+      if (!status) {
+        err=0;
+        break;
+      }
   }
   else {
-    // we're the forked process. we're going to start a shell.
-    char *argv[]={"/bin/sh","-c",tree->param->script,NULL};
-    ffchar_t **envirpp;
+      // we're the forked process. we're going to start a shell.
+#if defined (BG_PARAM_SHELL) // [
+      char *argv[]={param->shell.interpreter,param->shell.parameter,
+          param->script,NULL};
+#else // ] [
+      char *argv[]={"/bin/sh","-c",param->script,NULL};
+#endif // ]
+      ffchar_t **envirpp;
 
-    if (!(envirpp=bg_process_get_envirpp(tree))) {
-      _DMESSAGE("creating envirpp");
-      goto e_envirpp;
+      if (!(envirpp=bg_process_get_envirpp(tree))) {
+        _DMESSAGE("creating envirpp");
+        goto e_envirpp;
+      }
+
+      err=execve(argv[0],argv,envirpp);
+      // we should never go here ...
+      free(envirpp);
+    e_envirpp:
+      _exit(EXIT_FAILURE);
     }
-
-    err=execve(argv[0],argv,envirpp);
-    // we should never go here ...
-    free(envirpp);
-  e_envirpp:
-    _exit(EXIT_FAILURE);
   }
 #endif // ]
+
   return err;
 }
 
@@ -533,7 +919,6 @@ int bg_process_tree_run_script(bg_tree_t *tree)
     bg_process_muxer_track_annotation_destroy(tree);
 e_annotate: ;
   }
-
 e_type:
 e_script:
   return err;

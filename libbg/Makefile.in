@@ -326,9 +326,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+#AM_CPPFLAGS+=-g
 AM_CPPFLAGS = -I$(top_srcdir)/libpbutil -I$(top_srcdir)/libff \
 	-I$(top_srcdir)/lib1770-2
 bs1770gain_SOURCES = bgx.c
+#bs1770gain_LDFLAGS=
+#bs1770gain_LDFLAGS+=-g
 bs1770gain_LDADD = libbg.a $(top_builddir)/libff/libff.a \
 	$(top_builddir)/lib1770-2/lib1770_2.a \
 	$(top_builddir)/libpbutil/libpbutil.a

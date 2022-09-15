@@ -48,6 +48,10 @@ extern "C" {
 #define PBU_STR(s) _PBU_STR(s)
 
 ///////////////////////////////////////////////////////////////////////////////
+#define PBU_FREE_GUARDED(p) \
+  ((p)?free(p),(p)=NULL:(p))
+
+///////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
 #define PBU_PRIs "S"
 
@@ -81,6 +85,21 @@ extern "C" {
 )
 
 #define _SNPRINTF(s,size,format,...) snwprintf(s,size,L##format,__VA_ARGS__)
+
+#define _MARKLN() {\
+  fwprintf(stderr,L"%s:%d:%s\n",pbu_basename(__FILE__),__LINE__,__func__);\
+  fflush(stderr);\
+}
+#define _WRITELN(format) {\
+  fwprintf(stderr,L##format L" (%s:%d:%s)\n",\
+    pbu_basename(__FILE__),__LINE__,__func__);\
+  fflush(stderr);\
+}
+#define _WRITELNV(format,...) {\
+  fwprintf(stderr,L##format L" (%s:%d:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),__LINE__,__func__);\
+  fflush(stderr);\
+}
 #else // ] [
 #define PBU_PRIs "s"
 
@@ -100,6 +119,15 @@ extern "C" {
     __VA_ARGS__,pbu_basename(__FILE__),PBU_STR(__LINE__),__func__)
 
 #define _SNPRINTF(s,size,format,...) snprintf(s,size,format,__VA_ARGS__)
+
+#define _MARKLN() fprintf(stderr,"%s:%d:%s\n",\
+    pbu_basename(__FILE__),__LINE__,__func__)
+#define _WRITELN(format) fprintf(stderr,\
+    format " (%s:%d:%s)\n",\
+    pbu_basename(__FILE__),__LINE__,__func__)
+#define _WRITELNV(format,...) fprintf(stderr,\
+    format " (%s:%d:%s)\n",\
+    __VA_ARGS__,pbu_basename(__FILE__),__LINE__,__func__)
 #endif // ]
 
 #if ! defined (DEBUG) && ! defined (PBU_DEBUG) // [

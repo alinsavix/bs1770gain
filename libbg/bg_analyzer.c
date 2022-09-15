@@ -449,8 +449,14 @@ _DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  if (param->output.dirname||param->overwrite)
-    tree->vmt->annotation.destroy(tree);
+#if defined (BG_PARAM_SCRIPT) // [
+  if (!param->script) {
+#endif // ]
+    if (param->output.dirname||param->overwrite)
+      tree->vmt->annotation.destroy(tree);
+#if defined (BG_PARAM_SCRIPT) // [
+  }
+#endif // ]
 
   err=0;
 //cleanup:

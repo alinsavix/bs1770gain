@@ -61,12 +61,13 @@ extern "C" {
 #endif // ]
 
 #define BG_PARAM_SKIP_SCAN
+#define BG_PARAM_REFERENCE
 //#define BG_PARAM_NODE_VMT
-//#define BG_PARAM_NODE_VMT
+#define BG_PARAM_NODE_VMT
 #if defined (BG_PARAM_NODE_VMT) // [
 #define BG_PARAM_SCRIPT
 #if defined (BG_PARAM_SCRIPT) // [
-#define BG_SYSTEM
+#define BG_PARAM_SHELL
 #endif // ]
 #endif // ]
 
@@ -776,9 +777,20 @@ struct bg_param {
 #if defined (BG_PARAM_SKIP_SCAN) // [
   int skip_scan;
 #endif // ]
+#if defined (BG_PARAM_REFERENCE) // [
+  ffchar_t *reference;
+#endif // ]
 #if defined (BG_PARAM_SCRIPT) // [
   ffchar_t *script;
 #endif // ]
+
+#if defined (BG_PARAM_SHELL) // [
+  struct {
+    ffchar_t *interpreter;
+    ffchar_t *parameter;
+  } shell;
+#endif // ]
+
   bg_pilot_t pilot;
   bg_visitor_t analyzer;
   bg_tree_t root,*tos;

@@ -771,6 +771,7 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
 
   /////////////////////////////////////////////////////////////////////////////
   out->fmt.ctx=NULL;
+//_DWRITELNV("\"%s\"",path);
   err=avformat_alloc_output_context2(&out->fmt.ctx,NULL,NULL,path);
 
   if (err<0) {

@@ -308,11 +308,13 @@ DDVWRITELN("FF_MUXER_FILTER_RECEIVE_FRAME: %d (%d)",
           return err;
       }
     case FF_MUXER_ENCODER_SEND_FRAME:
+#if defined (FF_FRAME_SIZE_TEST) // [
       if (frame&&m->out->audio.ctx->frame_size<frame->nb_samples) {
-        _DMESSAGEV("frame too large: frame_size:%d<nb_samples:%d",
+        _DWARNINGV("frame too large: frame_size:%d<nb_samples:%d",
             m->out->audio.ctx->frame_size,frame->nb_samples);
         return AVERROR(EAGAIN);
       }
+#endif // ]
 
       err=avcodec_send_frame(m->out->audio.ctx,frame);
 

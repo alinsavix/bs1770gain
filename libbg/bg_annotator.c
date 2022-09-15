@@ -4,7 +4,7 @@
 
 
  *
- * This program is free software; you can redistribute it and/or
+ * This program is PBU_FREE_GUARDED software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation; either
  * version 2.0 of the License, or (at your option) any later version.
@@ -118,17 +118,17 @@ success:
   return 0;
 //cleanup:
 e_temp_exists:
-  free(tree->temp.path);
+  PBU_FREE_GUARDED(tree->temp.path);
 e_temp:
-  free(tree->target.path);
+  PBU_FREE_GUARDED(tree->target.path);
 e_path:
   return -1;
 }
 
 void bg_file_annotation_destroy(bg_tree_t *tree FFUNUSED)
 {
-  free(tree->temp.path);
-  free(tree->target.path);
+  PBU_FREE_GUARDED(tree->temp.path);
+  PBU_FREE_GUARDED(tree->target.path);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -316,7 +316,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
           track->album.id<100?L"%02lu_":L"%lu_",track->album.id);
 #endif // ]
       wcscpy(*opath+track->target.pfx.len,track->target.title);
-      free(track->target.title);
+      PBU_FREE_GUARDED(track->target.title);
       track->target.title=NULL;
     }
     else {
@@ -439,7 +439,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       // we convert the intermediate representation back into utf-8.
       wcstombs(*opath+track->target.pfx.len,track->target.title,
           len-track->target.pfx.len);
-      free(track->target.title);
+      PBU_FREE_GUARDED(track->target.title);
       track->target.title=NULL;
     }
     else {
@@ -797,7 +797,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
           track->album.id<100?L"%02lu_":L"%lu_",track->album.id);
 #endif // ]
       wcscpy(*opath+track->target.pfx.len,track->target.title);
-      free(track->target.title);
+      PBU_FREE_GUARDED(track->target.title);
       track->target.title=NULL;
     }
     else {
@@ -849,7 +849,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       // we convert the intermediate representation back into utf-8.
       wcstombs(*opath+track->target.pfx.len,track->target.title,
           len-track->target.pfx.len);
-      free(track->target.title);
+      PBU_FREE_GUARDED(track->target.title);
       track->target.title=NULL;
     }
     else {
@@ -1091,26 +1091,34 @@ int bg_track_annotation_create(bg_tree_t *tree)
   return 0;
 //cleanup:
 #if defined (_WIN32) // [
-  free(track->temp.path);
+  PBU_FREE_GUARDED(track->temp.path);
 e_tempa:
 #if defined (BG_WIN32_TARGET_UTF8) // [
-  free(track->target.utf8.path);
+  PBU_FREE_GUARDED(track->target.utf8.path);
 #else // ] [
-  free(track->target.path);
+  PBU_FREE_GUARDED(track->target.path);
 #endif // ]
 e_patha:
   if (track->target.oem.basename)
-    free(track->target.oem.basename);
+    PBU_FREE_GUARDED(track->target.oem.basename);
 e_basename:
 #endif // ]
 e_temp_exists:
 e_overwrite_temp:
-  free(tree->temp.path);
+  PBU_FREE_GUARDED(tree->temp.path);
 e_temp:
 e_overwrite_target:
-  free(tree->target.path);
+  PBU_FREE_GUARDED(tree->target.path);
 e_path:
   return -1;
+}
+
+FFUNUSED static void bg_PBU_FREE_GUARDED_guarded(void **p)
+{
+  if (*p) {
+    PBU_FREE_GUARDED(*p);
+    *p=NULL;
+  }
 }
 
 void bg_track_annotation_destroy(bg_tree_t *tree FFUNUSED)
@@ -1118,17 +1126,17 @@ void bg_track_annotation_destroy(bg_tree_t *tree FFUNUSED)
 #if defined (_WIN32) // [
   bg_track_t *track=&tree->track;
 
-  free(track->temp.path);
+  PBU_FREE_GUARDED(track->temp.path);
 #if defined (BG_WIN32_TARGET_UTF8) // [
-  free(track->target.utf8.path);
+  PBU_FREE_GUARDED(track->target.utf8.path);
 #else // ] [
-  free(track->target.path);
+  PBU_FREE_GUARDED(track->target.path);
 #endif // ]
   if (track->target.oem.basename)
-    free(track->target.oem.basename);
+    PBU_FREE_GUARDED(track->target.oem.basename);
 #endif // ]
-  free(tree->temp.path);
-  free(tree->target.path);
+  PBU_FREE_GUARDED(tree->temp.path);
+  PBU_FREE_GUARDED(tree->target.path);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1201,7 +1209,7 @@ success:
 e_mkdir:
 #endif // ]
   if (tree->target.path)
-    free(tree->target.path);
+    PBU_FREE_GUARDED(tree->target.path);
 e_path:
   return -1;
 }
@@ -1209,7 +1217,7 @@ e_path:
 void bg_album_annotation_destroy(bg_tree_t *tree FFUNUSED)
 {
   if (tree->target.path)
-    free(tree->target.path);
+    PBU_FREE_GUARDED(tree->target.path);
 }
 
 
