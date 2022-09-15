@@ -14,6 +14,19 @@
 
 @SET_MAKE@
 
+#AM_CFLAGS=
+#AM_LDFLAGS=
+#
+#AM_CFLAGS+=-Werror
+#AM_CFLAGS+=-Wall
+#AM_CFLAGS+=-Wformat
+#AM_CFLAGS+=-Wpointer-arith
+#AM_CFLAGS+=-Wcast-align
+#AM_CFLAGS+=-Wcast-qual
+#AM_CFLAGS+=-Wreturn-type
+#AM_CFLAGS+=-Wextra
+#AM_CFLAGS+=-Wstrict-prototypes
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -104,7 +117,8 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 lib1770_2_a_AR = $(AR) $(ARFLAGS)
 lib1770_2_a_LIBADD =
-am_lib1770_2_a_OBJECTS = lib1770_biquad.$(OBJEXT) \
+am__objects_1 =
+am_lib1770_2_a_OBJECTS = $(am__objects_1) lib1770_biquad.$(OBJEXT) \
 	lib1770_block.$(OBJEXT) lib1770_pre.$(OBJEXT) \
 	lib1770_stats.$(OBJEXT)
 lib1770_2_a_OBJECTS = $(am_lib1770_2_a_OBJECTS)
@@ -172,6 +186,7 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AVCODEC_SO = @AVCODEC_SO@
+AVFILTER_SO = @AVFILTER_SO@
 AVFORMAT_SO = @AVFORMAT_SO@
 AVUTIL_SO = @AVUTIL_SO@
 AWK = @AWK@
@@ -190,11 +205,14 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FFMPEG_PREFIX = @FFMPEG_PREFIX@
-FFSOX_AVCODEC_V = @FFSOX_AVCODEC_V@
-FFSOX_AVFORMAT_V = @FFSOX_AVFORMAT_V@
-FFSOX_AVUTIL_V = @FFSOX_AVUTIL_V@
-FFSOX_LIBSOX_V = @FFSOX_LIBSOX_V@
-FFSOX_SWRESAMPLE_V = @FFSOX_SWRESAMPLE_V@
+FF_AVCODEC_V = @FF_AVCODEC_V@
+FF_AVFILTER_V = @FF_AVFILTER_V@
+FF_AVFORMAT_V = @FF_AVFORMAT_V@
+FF_AVUTIL_V = @FF_AVUTIL_V@
+FF_POSTPROC_V = @FF_POSTPROC_V@
+FF_SWRESAMPLE_V = @FF_SWRESAMPLE_V@
+FF_SWSCALE_V = @FF_SWSCALE_V@
+GETOPTW_PREFIX = @GETOPTW_PREFIX@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -204,7 +222,6 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBSOX_SO = @LIBSOX_SO@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -217,13 +234,14 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+POSTPROC_SO = @POSTPROC_SO@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SODIR = @SODIR@
-SOX_PREFIX = @SOX_PREFIX@
 STRIP = @STRIP@
 SWRESAMPLE_SO = @SWRESAMPLE_SO@
+SWSCALE_SO = @SWSCALE_SO@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -268,15 +286,21 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CFLAGS = -Werror -Wall -Wformat -Wpointer-arith -Wcast-align \
-	-Wcast-qual -Wreturn-type -Wextra -Wstrict-prototypes
-#AM_CFLAGS+=-Wmissing-declarations
-#AM_CFLAGS+=-Wmissing-prototypes
 AM_CPPFLAGS = -I$(top_srcdir)/libpbutil
-AM_LDFLAGS = 
+
+#AM_CFLAGS+=-g
+#AM_CFLAGS+=-ggdb
+#AM_LDFLAGS+=-static-libgcc
+#AM_LDFLAGS+=-static-libstdc++
+
+#$(libffsox_2_a_OBJECTS): $(CONFIG_HEADER)
+#$(libffsox_2_a_OBJECTS): $(top_srcdir)/libpbutil/pbutil.h
+#$(libffsox_2_a_OBJECTS): $(top_srcdir)/libpbutil/pbutil_priv.h
 noinst_LIBRARIES = lib1770_2.a
-lib1770_2_a_SOURCES = lib1770.h lib1770_biquad.c lib1770_block.c \
-	lib1770_pre.c lib1770_stats.c
+lib1770_2_a_SOURCES = $(CONFIG_HEADER) \
+	$(top_srcdir)/libpbutil/pbutil.h \
+	$(top_srcdir)/libpbutil/pbutil_priv.h lib1770.h \
+	lib1770_biquad.c lib1770_block.c lib1770_pre.c lib1770_stats.c
 all: all-am
 
 .SUFFIXES:
@@ -546,15 +570,6 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
-
-#AM_CFLAGS+=-g
-#AM_CFLAGS+=-ggdb
-#AM_LDFLAGS+=-static-libgcc
-#AM_LDFLAGS+=-static-libstdc++
-
-$(libffsox_2_a_OBJECTS): $(CONFIG_HEADER)
-$(libffsox_2_a_OBJECTS): $(top_srcdir)/libpbutil/pbutil.h
-$(libffsox_2_a_OBJECTS): $(top_srcdir)/libpbutil/pbutil_priv.h
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

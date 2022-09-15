@@ -19,21 +19,17 @@
  */
 #include <lib1770.h>
 
-#define LIB1770_HIST_MIN      (-70)
-#define LIB1770_HIST_MAX      (+5)
-#define LIB1770_HIST_GRAIN    (100)
-#define LIB1770_HIST_NBINS \
-    (LIB1770_HIST_GRAIN*(LIB1770_HIST_MAX-LIB1770_HIST_MIN)+1)
-
-lib1770_stats_t *lib1770_stats_new(void)
+#if ! defined (LIB1770_HIST_NBINS) // [
+int lib1770_stats_create(lib1770_stats_t *stats)
 {
-  lib1770_stats_t *stats;
   double step=1.0/LIB1770_HIST_GRAIN;
   lib1770_bin_t *wp,*mp;
 
+#if 0 // [
   stats=LIB1770_CALLOC(1,(sizeof *stats)
       +LIB1770_HIST_NBINS*(sizeof stats->hist.bin[0]));
   LIB1770_GOTO(NULL==stats,"allocating bs.1770 statistics",stats);
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
   stats->max.wmsq=LIB1770_SILENCE_GATE;
@@ -61,17 +57,84 @@ lib1770_stats_t *lib1770_stats_new(void)
     ++wp;
   }
 
+  return 0;
+#if 0 // [
+stats:
+  return NULL;
+#endif // ]
+}
+
+void lib1770_stats_destroy(lib1770_stats_t *stats)
+{
+  (void)stats;
+}
+#endif // ]
+
+lib1770_stats_t *lib1770_stats_new(void)
+{
+  lib1770_stats_t *stats;
+#if defined (LIB1770_HIST_NBINS) // [
+  double step=1.0/LIB1770_HIST_GRAIN;
+  lib1770_bin_t *wp,*mp;
+#endif // ]
+
+  stats=LIB1770_CALLOC(1,(sizeof *stats)
+      +LIB1770_HIST_NBINS*(sizeof stats->hist.bin[0]));
+  LIB1770_GOTO(NULL==stats,"allocating bs.1770 statistics",stats);
+
+#if defined (LIB1770_HIST_NBINS) // [
+///////////////////////////////////////////////////////////////////////////////
+  stats->max.wmsq=LIB1770_SILENCE_GATE;
+
+///////////////////////////////////////////////////////////////////////////////
+  stats->hist.pass1.wmsq=0.0;
+  stats->hist.pass1.count=0;
+
+  wp=stats->hist.bin;
+  mp=wp+LIB1770_HIST_NBINS;
+
+  while (wp<mp) {
+    size_t i=wp-stats->hist.bin;
+    double db=step*i+LIB1770_HIST_MIN;
+    double wsmq=pow(10.0,0.1*(0.691+db));
+
+    wp->db=db;
+    wp->x=wsmq;
+    wp->y=0.0;
+    wp->count=0;
+
+    if (0<i)
+      wp[-1].y=wsmq;
+
+    ++wp;
+  }
+
   return stats;
+#else // ] [
+  if (lib1770_stats_create(stats)<0)
+    goto create;
+
+  return stats;
+create:
+  LIB1770_FREE(stats);
+#endif // ]
 stats:
   return NULL;
 }
 
 void lib1770_stats_close(lib1770_stats_t *stats)
 {
+#if ! defined (LIB1770_HIST_NBINS) // [
+  lib1770_stats_destroy(stats);
+#endif // ]
   LIB1770_FREE(stats);
 }
 
+#if defined (LIB1770_STATS_MERGE_FIX) // [
+void lib1770_stats_merge(lib1770_stats_t *lhs, const lib1770_stats_t *rhs)
+#else // ] [
 void lib1770_stats_merge(lib1770_stats_t *lhs, lib1770_stats_t *rhs)
+#endif // ]
 {
   // m1=(sum_n c_n)/n
   // m2=(sum_m c_m)/m
@@ -83,7 +146,12 @@ void lib1770_stats_merge(lib1770_stats_t *lhs, lib1770_stats_t *rhs)
   //     = n/(m+n) m1 + m/(m+n) m2
   lib1770_count_t count;
   double q1,q2;
+#if defined (LIB1770_STATS_MERGE_FIX) // [
+  lib1770_bin_t *bin1,*mp;
+  const lib1770_bin_t *bin2;
+#else // ] [
   lib1770_bin_t *bin1,*bin2,*mp;
+#endif // ]
 
   if (lhs->max.wmsq<rhs->max.wmsq)
     lhs->max.wmsq=rhs->max.wmsq;
@@ -93,8 +161,10 @@ void lib1770_stats_merge(lib1770_stats_t *lhs, lib1770_stats_t *rhs)
   if (0ull<count) {
     q1=(double)lhs->hist.pass1.count/count;
     q2=(double)rhs->hist.pass1.count/count;
+#if defined (LIB1770_STATS_MERGE_FIX) // [
+    lhs->hist.pass1.count=count;
+#endif // ]
     lhs->hist.pass1.wmsq=q1*lhs->hist.pass1.wmsq+q2*rhs->hist.pass1.wmsq;
-
     bin1=lhs->hist.bin;
     bin2=rhs->hist.bin;
     mp=bin1+LIB1770_HIST_NBINS;

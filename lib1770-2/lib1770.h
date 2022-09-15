@@ -51,7 +51,18 @@ extern "C" {
 
 ///////////////////////////////////////////////////////////////////////////////
 #define LIB1770_BUF_SIZE      9
+#define LIB1770_LFE           3
+#if defined (LIB1770_LFE) // [
+#define LIB1770_MAX_CHANNELS  6
+#define LIB1770_SAMPLES_SIZE  8
+#else // ] [
 #define LIB1770_MAX_CHANNELS  5
+#endif // ]
+#if defined __GNUC__ // [
+#define LIB1770_DEPRECATED __attribute__ ((deprecated))
+#else // ] [
+#define LIB1770_DEPRECATED
+#endif // ]
 
 #define LIB1770_Q2DB(q) \
   (20.0*log10(q))
@@ -79,7 +90,11 @@ extern "C" {
   ((size)*sizeof(((lib1770_block_t *)NULL)->ring.wmsq[0]))
 
 ///////////////////////////////////////////////////////////////////////////////
+#if defined (LIB1770_LFE) // [
+typedef double lib1770_sample_t[LIB1770_SAMPLES_SIZE];
+#else // ] [
 typedef double lib1770_sample_t[LIB1770_MAX_CHANNELS];
+#endif // ]
 typedef unsigned long long lib1770_count_t;
 
 typedef struct lib1770_biquad lib1770_biquad_t;
@@ -117,6 +132,12 @@ struct lib1770_bin {
   lib1770_count_t count;
 };
 
+#define LIB1770_HIST_MIN      (-70)
+#define LIB1770_HIST_MAX      (+5)
+#define LIB1770_HIST_GRAIN    (100)
+#define LIB1770_HIST_NBINS \
+    (LIB1770_HIST_GRAIN*(LIB1770_HIST_MAX-LIB1770_HIST_MIN)+1)
+
 struct lib1770_stats {
   lib1770_stats_t *next;
 
@@ -130,14 +151,28 @@ struct lib1770_stats {
       lib1770_count_t count;  // number of blocks processed.
     } pass1;
 
+#if 0 // [
     lib1770_bin_t bin[0];
+#else // ] [
+    lib1770_bin_t bin[1];
+#endif // ]
   } hist;
 };
+
+#if ! defined (LIB1770_HIST_NBINS) // [
+int lib1770_stats_create(lib1770_stats_t *stats);
+void lib1770_stats_destroy(lib1770_stats_t *stats);
+#endif // ]
 
 lib1770_stats_t *lib1770_stats_new(void);
 void lib1770_stats_close(lib1770_stats_t *stats);
 
+#define LIB1770_STATS_MERGE_FIX
+#if defined (LIB1770_STATS_MERGE_FIX) // [
+void lib1770_stats_merge(lib1770_stats_t *lhs, const lib1770_stats_t *rhs);
+#else // ] [
 void lib1770_stats_merge(lib1770_stats_t *lhs, lib1770_stats_t *rhs);
+#endif // ]
 void lib1770_stats_add_sqs(lib1770_stats_t *stats, double wmsq);
 
 double lib1770_stats_get_mean(lib1770_stats_t *stats, double gate);
@@ -182,6 +217,9 @@ struct lib1770_pre {
   lib1770_block_t *block;
   double samplerate;
   int channels;
+#if defined (LIB1770_LFE) // [
+  int lfe;
+#endif // ]
 
   lib1770_biquad_t f1;
   lib1770_biquad_t f2;
@@ -193,7 +231,13 @@ struct lib1770_pre {
   } ring;
 };
 
+#if defined (LIB1770_LFE) // [
+lib1770_pre_t *lib1770_pre_new_lfe(double samplerate, int channels, int lfe);
+lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
+    LIB1770_DEPRECATED;
+#else // ] [
 lib1770_pre_t *lib1770_pre_new(double samplerate, int channels);
+#endif // ]
 void lib1770_pre_close(lib1770_pre_t *pre);
 
 void lib1770_pre_add_block(lib1770_pre_t *pre, lib1770_block_t *block);

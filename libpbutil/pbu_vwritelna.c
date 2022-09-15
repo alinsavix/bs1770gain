@@ -24,28 +24,46 @@ void pbu_vwritelna(FILE *f, const char *path, int line, const char *func,
     const char *format, ...)
 {
   va_list ap;
+#if ! defined (PBU_BASENAME_UNICODE) // [
   const char *p;
+#endif // ]
 
   if (format) {
+#if 0 // [
+    p=path+strlen(path);
+
+    while (path<p&&'/'!=p[-1]&&'\\'!=p[-1])
+      --p;
+
+    fprintf(f,"%s:%d:%s: ",p,line,func);
+#endif // ]
+
     va_start(ap,format);
     vfprintf(f,format,ap);
     va_end(ap);
   }
 
+#if 1 // [
   if (path) {
     if (format)
       fputs(" (",f);
 
+    path=pbu_basename(path);
+#if defined (PBU_BASENAME_UNICODE) // [
+    fprintf(f,"%s:%d:%s",path,line,func);
+#else // ] [
     p=path+strlen(path);
 
     while (path<p&&'/'!=p[-1]&&'\\'!=p[-1])
       --p;
 
     fprintf(f,"%s:%d:%s",p,line,func);
+#endif // ]
 
     if (format)
       fputc(')',f);
   }
+#endif // ]
 
   fputc('\n',f);
   fflush(f);

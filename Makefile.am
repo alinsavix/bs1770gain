@@ -1,5 +1,9 @@
-SUBDIRS=
-SUBDIRS+=libpbutil
-SUBDIRS+=lib1770-2
-SUBDIRS+=libffsox-2
-SUBDIRS+=bs1770gain
+# according to the automake manual:
+#   Automake generates Makefiles that work depth-first in postfix order
+SUBDIRS=\
+libpbutil\
+lib1770-2\
+libff\
+libbg
+#libffsox-2
+#bs1770gain

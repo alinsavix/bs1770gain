@@ -1,22 +1,28 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to libavcodec major version. */
-#undef FFSOX_AVCODEC_V
+#undef FF_AVCODEC_V
+
+/* Define to libavfilter major version. */
+#undef FF_AVFILTER_V
 
 /* Define to libavformat major version. */
-#undef FFSOX_AVFORMAT_V
+#undef FF_AVFORMAT_V
 
 /* Define to libavutil major version. */
-#undef FFSOX_AVUTIL_V
+#undef FF_AVUTIL_V
 
-/* Define to libsox major version. */
-#undef FFSOX_LIBSOX_V
+/* Define to libswscale major version. */
+#undef FF_POSTPROC_V
 
 /* Define to libswresample major version. */
-#undef FFSOX_SWRESAMPLE_V
+#undef FF_SWRESAMPLE_V
 
-/* Define to 1 if SoX and FFmpeg should be loaded dynamically. */
-#undef HAVE_FFSOX_DYNLOAD
+/* Define to libswscale major version. */
+#undef FF_SWSCALE_V
+
+/* Define to 1 if FFmpeg should be loaded dynamically. */
+#undef HAVE_FF_DYNLOAD
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H

@@ -25,7 +25,9 @@ void pbu_vwritelnw(FILE *f, const char *path, int line, const char *func,
     const wchar_t *format, ...)
 {
   va_list ap;
+#if ! defined (PBU_BASENAME_UNICODE) // [
   const char *p;
+#endif // ]
 
   if (format) {
     va_start(ap,format);
@@ -37,12 +39,17 @@ void pbu_vwritelnw(FILE *f, const char *path, int line, const char *func,
     if (format)
       fputs(" (",f);
 
+    path=pbu_basename(path);
+#if defined (PBU_BASENAME_UNICODE) // [
+    fprintf(f,"%s:%d:%s",path,line,func);
+#else // ] [
     p=path+strlen(path);
 
     while (path<p&&'/'!=p[-1]&&'\\'!=p[-1])
       --p;
 
     fprintf(f,"%s:%d:%s",p,line,func);
+#endif // ]
 
     if (format)
       fputc(')',f);
