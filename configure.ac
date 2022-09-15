@@ -25,7 +25,7 @@
 # AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes = `default-includes'])
 # AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 
-AC_INIT([bs1770gain], [0.8.4], [nobody@example.com], [], [https://github.com/alinsavix/bs1770gain])
+AC_INIT([bs1770gain], [0.8.4.1], [nobody@example.com], [], [https://github.com/alinsavix/bs1770gain])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR()
 AC_PROG_CC

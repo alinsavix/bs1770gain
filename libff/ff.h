@@ -42,7 +42,15 @@ extern "C" {
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
+//#define FF_ASSUME_NEW_CHANNEL_LAYOUT
+#if defined (FF_ASSUME_NEW_CHANNEL_LAYOUT) // [
+  // describe what is assumed ...
+	// "https://ffmpeg.org/doxygen/2.7/group__channel__mask__c.html"
+	// uint64_t 	av_get_channel_layout (const char *name);
+	// "https://cpp.hotexamples.com/examples/-/-/av_get_channel_layout_string/cpp-av_get_channel_layout_string-function-examples.html"
+#else // ] [
 #define FF_HOLZHAMMER
+#endif // ]
 #if defined (FF_HOLZHAMMER) // [
 // the "Holzhammer" is taken from "libavutil/internal.h"
 #if ! defined (FF_DISABLE_DEPRECATION_WARNINGS) // [
@@ -50,6 +58,13 @@ extern "C" {
 #endif // ]
 #if ! defined (FF_ENABLE_DEPRECATION_WARNINGS) // [
 #define FF_ENABLE_DEPRECATION_WARNINGS  _Pragma("GCC diagnostic warning \"-Wdeprecated-declarations\"")
+#endif // ]
+#else // ] [
+#if ! defined (FF_DISABLE_DEPRECATION_WARNINGS) // [
+#define FF_DISABLE_DEPRECATION_WARNINGS
+#endif // ]
+#if ! defined (FF_ENABLE_DEPRECATION_WARNINGS) // [
+#define FF_ENABLE_DEPRECATION_WARNINGS
 #endif // ]
 #endif // ]
 
