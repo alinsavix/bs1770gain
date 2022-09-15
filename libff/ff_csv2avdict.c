@@ -514,11 +514,12 @@ static int priv_loop(FILE *f, const char *name, char sep,
       }
     }
 
-    code=0;
     break;
   next_line:
     ;
   } while (0!=*b.ch);
+
+	code=0;
 cleanup:
   if (NULL!=head)
     free(head);

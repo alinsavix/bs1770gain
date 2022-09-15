@@ -158,6 +158,12 @@ static const ffchar_t *bg_track_audio_sfx(const bg_track_t *track FFUNUSED,
       return sfx;
     else if (!FFSTRCMP(FFL("ogg"),sfx))
       return sfx;
+#if 0 // [
+    else if (!FFSTRCMP(FFL("m4a"),sfx))
+      return sfx;
+    else if (!FFSTRCMP(FFL("aac"),sfx))
+      return sfx;
+#endif // ]
     else
       return default_sfx;
   }
@@ -347,6 +353,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       while (*op) {
         switch (*op) {
         case L'.':
+        case L',':
         case L'/':
         case L'\\':
         case L'(':
@@ -354,6 +361,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
         case L'&':
         case L':':
         case L' ':
+        case L'?':
         case L'\'':
           if (track->target.title<op&&'_'==op[-1])
             memmove(op,op+1,(wcslen(op+1)+1)*sizeof *op);
@@ -441,6 +449,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       while (*op) {
         switch (*op) {
         case L'.':
+        case L',':
         case L'/':
         case L'\\':
         case L'(':
@@ -448,6 +457,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
         case L'&':
         case L':':
         case L' ':
+        case L'?':
         case L'\'':
           if (track->target.title<op&&'_'==op[-1])
             memmove(op,op+1,(wcslen(op+1)+1)*sizeof *op);

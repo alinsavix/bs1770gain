@@ -89,6 +89,7 @@ static int bg_analyzer_print_postfix(bg_visitor_t *vis, bg_tree_t *tree)
 #endif // ]
   int stdout_prefix=BG_TREE_TYPE_TRACK==tree->vmt->type||stdout_vmt->infix;
 
+//DVWRITELNW(L"\"%s\"",tree->vmt->id);
   if (!stdout_prefix) {
     if (stdout_vmt->head(tree,vis->depth,stdout)<0) {
       DMESSAGE("printing head");
