@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+#if ! defined (PBU_PRINT_MACROS) // [
 ///////////////////////////////////////////////////////////////////////////////
 #define DMARKLN()                   PBU_DMARKLN()
 #define DWRITELN(cs)                PBU_DWRITELN(cs)
@@ -72,6 +73,7 @@ extern "C" {
 #define LIST_APPEND(l,n)            PBU_LIST_APPEND(l,n)
 #define LIST_NEXT(n,l)              PBU_LIST_NEXT(n,l)
 #define LIST_FOREACH(n,l)           PBU_LIST_FOREACH(n,l)
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef pbu_list_t list_t;

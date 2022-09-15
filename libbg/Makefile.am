@@ -43,6 +43,7 @@ libbg_a_SOURCES+=$(top_srcdir)/libff/ff.h
 libbg_a_SOURCES+=$(top_srcdir)/lib1770-2/lib1770.h
 libbg_a_SOURCES+=$(top_srcdir)/libpbutil/pbutil.h
 libbg_a_SOURCES+=$(top_srcdir)/libpbutil/pbutil_priv.h
+libbg_a_SOURCES+=bg_process.c
 libbg_a_SOURCES+=bg_sync.c
 libbg_a_SOURCES+=bg_utf8_iter.c
 libbg_a_SOURCES+=bg_threads_helper.c

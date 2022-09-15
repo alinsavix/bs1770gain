@@ -38,7 +38,7 @@ int bg_track_content_create(bg_tree_t *tree)
   // which in front already has called bg_tree_common_create() and just
   // leaves us with setting the vmt!
   if (bg_tree_common_create(tree,param,param,path,&bg_track_vmt)<0) {
-    DMESSAGE("creating tree");
+    _DMESSAGE("creating tree");
     goto etree;
   }
 #else // ] [
@@ -55,7 +55,11 @@ int bg_track_content_create(bg_tree_t *tree)
   err=ff_input_create(&track->input,&bg_input_callback,tree,1);
 
   if (err<0) {
-    FFVWARNING(FFL("opening track \"%s\""),pathw);
+#if defined (_WIN32) // [
+    _DWARNINGV("opening track \"%S\"",pathw);
+#else // ] [
+    _DWARNINGV("opening track \"%s\"",path);
+#endif // ]
     goto e_input;
   }
 #else // ] [
@@ -67,7 +71,7 @@ int bg_track_content_create(bg_tree_t *tree)
 
   /////////////////////////////////////////////////////////////////////////////
   if (!track->input.audio.ctx->channel_layout) {
-    DMESSAGE("missing input channel layout");
+    _DMESSAGE("missing input channel layout");
     goto e_channel_layout;
   }
 
@@ -81,13 +85,7 @@ int bg_track_content_create(bg_tree_t *tree)
   if (!param->process&&!param->suppress.progress) {
 #endif // ]
     ff_printer_reset(p);
-
-#if defined (_WIN32) // [
-    if (stdout==p->f||stderr==p->f)
-      ff_printer_wprintf(p,L"%d",track->root.id);
-    else
-#endif // ]
-      ff_printer_printf(p,"%d",track->root.id);
+    _FF_PRINTER_PRINTF(p,"%d",track->root.id);
 #if ! defined (BG_PARAM_QUIET) // [
   }
 #else // ] [
@@ -137,9 +135,7 @@ static void bg_track_track_id(bg_tree_t *tree, int *id)
 #endif // ]
 
 static bg_tree_vmt_t bg_track_vmt={
-#if defined (PBU_DEBUG) // [
   .id=FFL("track"),
-#endif // ]
   .type=BG_TREE_TYPE_TRACK,
   .destroy=bg_track_destroy,
   .accept=bg_track_accept,
@@ -229,7 +225,7 @@ static int input_stats_create(void *data, const AVCodecParameters *codecpar)
     track->filter.pre=lib1770_pre_new(codecpar->sample_rate,channels);
 
     if (!track->filter.pre) {
-      DMESSAGE("creating pre-filter");
+      _DMESSAGE("creating pre-filter");
       goto epre;
     }
   }
@@ -240,7 +236,7 @@ static int input_stats_create(void *data, const AVCodecParameters *codecpar)
         tree->param->momentary.ms,tree->param->momentary.partition);
 
     if (!track->block.momentary) {
-      DMESSAGE("creating momentary block");
+      _DMESSAGE("creating momentary block");
       goto emomentary;
     }
 
@@ -256,7 +252,7 @@ static int input_stats_create(void *data, const AVCodecParameters *codecpar)
         tree->param->shortterm.ms,tree->param->shortterm.partition);
 
     if (!track->block.shortterm) {
-      DMESSAGE("creating shortterm block");
+      _DMESSAGE("creating shortterm block");
       goto eshortterm;
     }
 

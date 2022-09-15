@@ -39,7 +39,7 @@ int bg_tree_common_create(bg_tree_t *tree, bg_param_t *param,
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_source_create(&tree->source,path)<0) {
-    DMESSAGE("creating source path");
+    _DMESSAGE("creating source path");
     goto e_path;
   }
 
@@ -52,7 +52,7 @@ int bg_tree_common_create(bg_tree_t *tree, bg_param_t *param,
     tree->oem.basename=bg_wcs2str(tree->source.basename,CP_OEMCP);
 
     if (!tree->oem.basename) {
-      DMESSAGE("creating oem basename");
+      _DMESSAGE("creating oem basename");
       goto e_basename;
     }
   }
@@ -61,20 +61,20 @@ int bg_tree_common_create(bg_tree_t *tree, bg_param_t *param,
 
   // in any case we need an utf-8 representation of path (end basaname.)
   if (bg_tree_patha_create(&tree->utf8,tree->source.path,CP_UTF8)<0) {
-    DMESSAGE("creating patha");
+    _DMESSAGE("creating patha");
     goto e_patha;
   }
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_stats_create(tree)<0) {
-    DMESSAGE("creating stats");
+    _DMESSAGE("creating stats");
     goto e_stats;
   }
 
 #if defined (BG_PARAM_THREADS) // [
   if (param->nthreads&&bg_threads_helper_create(&tree->helper)<0) {
-    DMESSAGE("creating threads");
+    _DMESSAGE("creating threads");
     goto e_threads;
   }
 #endif // ]
@@ -129,7 +129,7 @@ int bg_tree_stats_create(bg_tree_t *tree)
       tree->stats.momentary=lib1770_stats_new();
 
       if (!tree->stats.momentary) {
-        DMESSAGE("creating momentary statistics");
+        _DMESSAGE("creating momentary statistics");
         goto emomentary;
       }
     }
@@ -141,7 +141,7 @@ int bg_tree_stats_create(bg_tree_t *tree)
       tree->stats.shortterm=lib1770_stats_new();
 
       if (!tree->stats.shortterm) {
-        DMESSAGE("creating shortterm statistics");
+        _DMESSAGE("creating shortterm statistics");
         goto eshortterm;
       }
     }
@@ -188,7 +188,7 @@ int bg_leaf_create(bg_tree_t **tree, bg_param_t *param, bg_tree_t *parent,
 
   if (!*tree) {
 #if defined (BG_TREE_CREATE_CHILD_WARNING) // [
-    DWARNING("allocating tree");
+    _DWARNING("allocating tree");
 #endif // ]
     goto e_malloc;
   }
@@ -196,7 +196,7 @@ int bg_leaf_create(bg_tree_t **tree, bg_param_t *param, bg_tree_t *parent,
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_common_create(*tree,param,parent,path)<0) {
 #if defined (BG_TREE_CREATE_CHILD_WARNING) // [
-    DWARNING("creating tree");
+    _DWARNING("creating tree");
 #endif // ]
     goto e_common;
   }
@@ -212,13 +212,17 @@ int bg_leaf_create(bg_tree_t **tree, bg_param_t *param, bg_tree_t *parent,
   }
   else {
 #if defined (BG_TREE_CREATE_CHILD_WARNING) // [
-    FFVWARNING(FFL("creating leaf \"%s\""),(*tree)->path.source);
+#if defined (_WIN32) // [
+    _DWARNING("creating leaf \"%S\"",(*tree)->path.source);
+#else // ] [
+    _DWARNING("creating leaf \"%s\"",(*tree)->path.source);
+#endif // ]
 #endif // ]
     goto e_child;
   }
 
   if (parent&&bg_album_push(parent,*tree)<0) {
-    DMESSAGE("pushing");
+    _DMESSAGE("pushing");
     goto e_push;
   }
 
@@ -254,7 +258,7 @@ int bg_tree_merge(bg_tree_t *lhs, const bg_tree_t *rhs)
   bg_flags_agg_t aggregate=lhs->param->flags.aggregate;
 
   if (aggregate!=rhs->param->flags.aggregate) {
-    DMESSAGE("trying to merge incompatible trees");
+    _DMESSAGE("trying to merge incompatible trees");
     goto emerge;
   }
 
@@ -304,28 +308,29 @@ emerge:
 }
 
 #if defined (_WIN32) // [
-const char *bg_tree_in_basanamen(bg_tree_t *tree)
+const char *bg_tree_in_basename(bg_tree_t *tree)
 {
 #if 0 // [
 fprintf(stdout,"oem: %d %p (%s:%d:%s)\n",tree->param->oem,tree->oem.basename,
     __FILE__,__LINE__,__func__);
 fflush(stdout);
 #endif // ]
+
   return tree->oem.basename?tree->oem.basename:tree->utf8.basename;
 }
 
-const wchar_t *bg_tree_in_basanamew(bg_tree_t *tree)
+const wchar_t *bg_tree_in_basenamew(bg_tree_t *tree)
 {
   return tree->source.basename;
 }
 
-const char *bg_tree_out_basanamen(bg_tree_t *tree)
+const char *bg_tree_out_basename(bg_tree_t *tree)
 {
   bg_track_t *track=&tree->track;
 
   // just needed for tracks.
   if (BG_TREE_TYPE_TRACK!=tree->vmt->type) {
-    DVMESSAGE("unexpected tree type %d",tree->vmt->type);
+    _DMESSAGEV("unexpected tree type %d",tree->vmt->type);
     return "";
   }
   else {
@@ -344,12 +349,12 @@ const wchar_t *bg_tree_out_basanamew(bg_tree_t *tree)
   return tree->target.basename;
 }
 #else // ] [
-const char *bg_tree_in_basanamen(bg_tree_t *tree)
+const char *bg_tree_in_basename(bg_tree_t *tree)
 {
   return tree->source.basename;
 }
 
-const char *bg_tree_out_basanamen(bg_tree_t *tree)
+const char *bg_tree_out_basename(bg_tree_t *tree)
 {
   return tree->target.basename;
 }

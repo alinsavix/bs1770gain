@@ -33,7 +33,7 @@ int bg_file_content_create(bg_tree_t *tree)
   // which in front already has called bg_tree_common_create() and just
   // leaves us with setting the vmt!
   if (bg_tree_common_create(tree,param,param,path,&bg_file_vmt)<0) {
-    DMESSAGE("creating tree");
+    _DMESSAGE("creating tree");
     goto etree;
   }
 #else // ] [
@@ -79,9 +79,7 @@ static void bg_file_track_id(bg_tree_t *tree FFUNUSED, int *id FFUNUSED)
 #endif // ]
 
 static bg_tree_vmt_t bg_file_vmt={
-#if defined (PBU_DEBUG) // [
   .id=FFL("file"),
-#endif // ]
   .type=BG_TREE_TYPE_FILE,
   .destroy=bg_file_destroy,
   .accept=bg_file_accept,

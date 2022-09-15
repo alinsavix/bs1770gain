@@ -55,7 +55,7 @@ int bg_file_annotation_create(bg_tree_t *tree)
   tree->target.path=tp=malloc(size*sizeof tp[0]);
 
   if (!tree->target.path) {
-    DMESSAGE("allocating output path");
+    _DMESSAGE("allocating output path");
     goto e_path;
   }
 
@@ -81,7 +81,7 @@ int bg_file_annotation_create(bg_tree_t *tree)
   tree->temp.path=tp=malloc((size+len2)*sizeof tp[0]);
 
   if (!tree->temp.path) {
-    DMESSAGE("allocating temporary path");
+    _DMESSAGE("allocating temporary path");
     goto e_temp;
   }
 
@@ -99,9 +99,15 @@ int bg_file_annotation_create(bg_tree_t *tree)
   FFSTRCPY(tp,tree->target.basename);
 
   if (ff_fexists(tree->temp.path)) {
-    FFVMESSAGE("file \"%s\" exists; either remove it or define another"
+#if defined (_WIN32) // [
+    _DMESSAGEV("file \"%S\" exists; either remove it or define another"
         " prefix for temporary files by means of option --temp-prefix",
         tree->temp.path);
+#else // ] [
+    _DMESSAGEV("file \"%s\" exists; either remove it or define another"
+        " prefix for temporary files by means of option --temp-prefix",
+        tree->temp.path);
+#endif // ]
     goto e_temp_exists;
   }
 
@@ -330,7 +336,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       track->target.title=malloc((len+1)*sizeof *track->target.title);
 
       if (!track->target.title) {
-        DMESSAGE("allocating intermediate path");
+        _DMESSAGE("allocating intermediate path");
         // set error.
         len=-1;
         goto e_path;
@@ -444,7 +450,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       track->target.title=malloc((len+1)*sizeof track->target.title[0]);
 
       if (!track->target.title) {
-        DMESSAGE("allocating intermediate path");
+        _DMESSAGE("allocating intermediate path");
         // set error.
         len=-1;
         goto e_path;
@@ -802,7 +808,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       track->target.title=malloc((len+1)*sizeof *track->target.title);
 
       if (!track->target.title) {
-        DMESSAGE("allocating intermediate path");
+        _DMESSAGE("allocating intermediate path");
         // set error.
         len=-1;
         goto e_path;
@@ -855,7 +861,7 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       track->target.title=malloc((len+1)*sizeof track->target.title[0]);
 
       if (!track->target.title) {
-        DMESSAGE("allocating intermediate path");
+        _DMESSAGE("allocating intermediate path");
         // set error.
         len=-1;
         goto e_path;
@@ -933,7 +939,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
     tree->target.path=tp=malloc(size*sizeof tp[0]);
 
     if (!tree->target.path) {
-      DMESSAGE("allocating output path");
+      _DMESSAGE("allocating output path");
       goto e_path;
     }
 
@@ -964,7 +970,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
     tree->target.path=tp=malloc(size*sizeof tp[0]);
 
     if (!tree->target.path) {
-      DMESSAGE("allocating output path");
+      _DMESSAGE("allocating output path");
       goto e_path;
     }
 
@@ -989,7 +995,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
   }
 
   if (!param->overwrite&&!ff_fcmp(tree->source.path,tree->target.path)) {
-    DMESSAGE("overwriting not permitted. Use option --overwrite");
+    _DMESSAGE("overwriting not permitted. Use option --overwrite");
     goto e_overwrite_target;
   }
 
@@ -998,7 +1004,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
   tree->temp.path=tp=malloc((size+len2)*sizeof tp[0]);
 
   if (!tree->temp.path) {
-    DMESSAGE("allocating temporary path");
+    _DMESSAGE("allocating temporary path");
     goto e_temp;
   }
 
@@ -1016,15 +1022,22 @@ int bg_track_annotation_create(bg_tree_t *tree)
 
   /////////////////////////////////////////////////////////////////////////////
   if (!ff_fcmp(tree->source.path,tree->temp.path)) {
-    DMESSAGE("attempt to overwrite source file");
+    _DMESSAGE("attempt to overwrite source file");
     goto e_overwrite_temp;
   }
 
   if (ff_fexists(tree->temp.path)) {
-    FFVMESSAGE("file \"%s\" exists; either remove it or by means of"
+#if defined (_WIN32) // [
+    _DMESSAGEV("file \"%S\" exists; either remove it or by means of"
+        " option --temp-prefix define a prefix for temporary files different"
+        " from \"%S\"",
+        tree->temp.path,param->temp_prefix);
+#else // ] [
+    _DMESSAGEV("file \"%s\" exists; either remove it or by means of"
         " option --temp-prefix define a prefix for temporary files different"
         " from \"%s\"",
         tree->temp.path,param->temp_prefix);
+#endif // ]
     goto e_temp_exists;
   }
 
@@ -1038,7 +1051,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
     track->target.oem.basename=bg_wcs2str(tree->target.basename,CP_OEMCP);
 
     if (!track->target.oem.basename) {
-      DMESSAGE("creating oem basename");
+      _DMESSAGE("creating oem basename");
       goto e_basename;
     }
   }
@@ -1050,7 +1063,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
   track->target.utf8.path=bg_wcs2str(tree->target.path,CP_UTF8);
   
   if (!track->target.utf8.path) {
-    DMESSAGE("creating utf-8 representation of path");
+    _DMESSAGE("creating utf-8 representation of path");
     goto e_patha;
   }
 
@@ -1059,7 +1072,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
   track->target.path=bg_wcs2str(tree->target.path,CP_UTF8);
   
   if (!track->target.path) {
-    DMESSAGE("creating utf-8 representation of path");
+    _DMESSAGE("creating utf-8 representation of path");
     goto e_patha;
   }
 
@@ -1070,7 +1083,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
   track->temp.path=bg_wcs2str(tree->temp.path,CP_UTF8);
   
   if (!track->temp.path) {
-    DMESSAGE("creating utf-8 representation of temporary path");
+    _DMESSAGE("creating utf-8 representation of temporary path");
     goto e_tempa;
   }
 #endif // ]
@@ -1142,7 +1155,7 @@ int bg_album_annotation_create(bg_tree_t *tree)
       tree->target.path=tp=malloc(size*sizeof tp[0]);
 
       if (!tree->target.path) {
-        DMESSAGE("allocating output path");
+        _DMESSAGE("allocating output path");
         goto e_path;
       }
 
@@ -1166,7 +1179,7 @@ int bg_album_annotation_create(bg_tree_t *tree)
 
       /////////////////////////////////////////////////////////////////////////
       if (!tree->param->overwrite&&ff_mkdir(tree->target.path)<0) {
-        DMESSAGE("creating directory");
+        _DMESSAGE("creating directory");
         goto e_mkdir;
       }
     }
@@ -1209,7 +1222,7 @@ int bg_root_annotation_create(bg_tree_t *tree)
 
     if (!tree->param->overwrite&&ff_mkdir(tree->target.path)<0) {
       /////////////////////////////////////////////////////////////////////////
-      DMESSAGE("creating directory");
+      _DMESSAGE("creating directory");
       goto e_mkdir;
     }
 

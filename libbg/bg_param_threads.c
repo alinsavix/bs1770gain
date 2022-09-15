@@ -22,16 +22,24 @@
 #include <bg.h>
 
 #if defined (BG_PARAM_THREADS) // [
+///////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
 static DWORD WINAPI ThreadProc(LPVOID lpParameter);
 #else // ] [
 static void *start_routine(void *p);
 #endif // ]
 
+#if defined (BG_PARAM_NODE_VMT) // [
+static bg_param_node_vmt_t vmt;
+#endif // ]
+
 ///////////////////////////////////////////////////////////////////////////////
 void bg_param_request_clear(bg_param_request_t *request)
 {
   request->tag=bg_param_request_tag_null;
+#if defined (BG_PARAM_SCRIPT) // [
+  request->script=NULL;
+#endif // ]
   request->tree=NULL;
   request->visitor=NULL;
   request->dispatch=NULL;
@@ -41,13 +49,16 @@ void bg_param_request_clear(bg_param_request_t *request)
 int bg_param_node_create(bg_param_node_t *node, bg_param_threads_t *threads)
 {
   /////////////////////////////////////////////////////////////////////////////
+#if defined (BG_PARAM_NODE_VMT) // [
+  node->vmt=&vmt;
+#endif // ]
   node->prev=NULL;
   node->next=NULL;
   node->threads=threads;
   bg_param_request_clear(&node->request);
 
   if (bg_sync_create(&node->sync)<0) {
-    DMESSAGE("creating syncition");
+    _DMESSAGE("creating syncition");
     goto e_sync;
   }
 
@@ -63,7 +74,7 @@ int bg_param_node_create(bg_param_node_t *node, bg_param_threads_t *threads)
   );
 
   if (!node->hThread) {
-    DVMESSAGE("creating thread (%lu)",GetLastError());
+    _DMESSAGEV("creating thread (%lu)",GetLastError());
     goto e_thread;
   }
 #else // ] [
@@ -78,7 +89,7 @@ int bg_param_node_create(bg_param_node_t *node, bg_param_threads_t *threads)
   );
 
   if (err) {
-    DVMESSAGE("creating thread (%d)",err);
+    _DMESSAGEV("creating thread (%d)",err);
     goto e_thread;
   }
 #endif // ]
@@ -103,7 +114,11 @@ void bg_param_node_destroy(bg_param_node_t *node, int destroy)
 void bg_param_node_destroy(bg_param_node_t *node)
 #endif // ]
 {
+#if defined (BG_PARAM_SCRIPT) // [
+  bg_param_node_request(node,bg_param_request_tag_kill,NULL,NULL,NULL,NULL);
+#else // ] [
   bg_param_node_request(node,bg_param_request_tag_kill,NULL,NULL,NULL);
+#endif // ]
 
 #if ! defined (_WIN32) // [
   pthread_join(node->thread,NULL);
@@ -118,11 +133,20 @@ void bg_param_node_destroy(bg_param_node_t *node)
     bg_sync_destroy(&node->sync);
 }
 
+#if defined (BG_PARAM_SCRIPT) // [
+void bg_param_node_request(bg_param_node_t *node, bg_param_request_tag_t tag,
+    ffchar_t *script, bg_tree_t *tree, bg_visitor_t *visitor,
+    bg_dispatch_t *dispatch)
+#else // ] [
 void bg_param_node_request(bg_param_node_t *node, bg_param_request_tag_t tag,
     bg_tree_t *tree, bg_visitor_t *visitor, bg_dispatch_t *dispatch)
+#endif // ]
 {
   bg_sync_lock(&node->sync); // {
   node->request.tag=tag;
+#if defined (BG_PARAM_SCRIPT) // [
+  node->request.script=script;
+#endif // ]
   node->request.tree=tree;
   node->request.visitor=visitor;
   node->request.dispatch=dispatch;
@@ -142,7 +166,7 @@ int bg_param_list_create(bg_param_list_t *list, int n, bg_param_node_t *nodes,
     --n;
 
     if (bg_param_node_create(nodes+n,threads)<0) {
-      DMESSAGE("creating node");
+      _DMESSAGE("creating node");
       goto e_node;
     }
 
@@ -241,7 +265,7 @@ int bg_param_threads_create(bg_param_threads_t *threads, int n)
 {
   /////////////////////////////////////////////////////////////////////////////
   if (bg_sync_create(&threads->sync)<0) {
-    DMESSAGE("creating syncition");
+    _DMESSAGE("creating syncition");
     goto e_sync;
   }
 
@@ -249,19 +273,19 @@ int bg_param_threads_create(bg_param_threads_t *threads, int n)
   threads->nodes=calloc(n,sizeof *threads->nodes);
 
   if (!threads->nodes) {
-    DMESSAGE("allocating nodes");
+    _DMESSAGE("allocating nodes");
     goto e_nodes;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_param_list_create(&threads->list.free,n,threads->nodes,threads)<0) {
-    DMESSAGE("creating free list");
+    _DMESSAGE("creating free list");
     goto e_free;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_param_list_create(&threads->list.active,0,NULL,threads)<0) {
-    DMESSAGE("creating active list");
+    _DMESSAGE("creating active list");
     goto e_active;
   }
 
@@ -295,13 +319,19 @@ void bg_param_threads_destroy(bg_param_threads_t *threads FFUNUSED)
 #else // ] [
   bg_param_list_destroy(&threads->list.active);
   bg_param_list_destroy(&threads->list.free);
-#endif // }
+#endif // ]
   free(threads->nodes);
   bg_sync_destroy(&threads->sync);
 }
 
+#if defined (BG_PARAM_SCRIPT) // [
+void bg_param_threads_visitor_run(bg_param_threads_t *threads,
+    ffchar_t *script, bg_visitor_t *visitor, bg_tree_t *tree,
+    bg_dispatch_t *dispatch)
+#else // ] [
 void bg_param_threads_visitor_run(bg_param_threads_t *threads,
     bg_visitor_t *visitor, bg_tree_t *tree, bg_dispatch_t *dispatch)
+#endif // ]
 {
   bg_param_node_t *node;
 
@@ -313,7 +343,7 @@ void bg_param_threads_visitor_run(bg_param_threads_t *threads,
   while (!threads->list.free.tail) {
 #endif // ]
     if (!threads->list.active.count) {
-      DMESSAGE("something went wrong");
+      _DMESSAGE("something went wrong");
       exit(1);
     }
 
@@ -322,7 +352,7 @@ void bg_param_threads_visitor_run(bg_param_threads_t *threads,
   }
 
   if (!threads->list.free.count) {
-    DVMESSAGE("empty free list: %d %p",threads->list.free.count,
+    _DMESSAGEV("empty free list: %d %p",threads->list.free.count,
         threads->list.free.tail);
     exit(1);
   }
@@ -330,20 +360,24 @@ void bg_param_threads_visitor_run(bg_param_threads_t *threads,
   }
 
   if (!threads->list.free.tail) {
-    DVMESSAGE("empty free list: %d %p",threads->list.free.count,
+    _DMESSAGEV("empty free list: %d %p",threads->list.free.count,
         threads->list.free.tail);
     exit(1);
   }
 #endif // ]
-
 
   node=bg_param_list_pop(&threads->list.free);
   bg_param_list_push(&threads->list.active,node);
 
   bg_sync_unlock(&threads->sync); // }
 
+#if defined (BG_PARAM_SCRIPT) // [
+  bg_param_node_request(node,bg_param_request_tag_visitor_run,script,
+      tree,visitor,dispatch);
+#else // ] [
   bg_param_node_request(node,bg_param_request_tag_visitor_run,tree,visitor,
       dispatch);
+#endif // ]
 }
 
 void bg_param_threads_drain(bg_param_threads_t *threads)
@@ -371,6 +405,12 @@ void bg_param_threads_release(bg_param_threads_t *threads,
 #endif // ]
 }
 
+#if defined (BG_PARAM_NODE_VMT) // [
+#define BG_PARAM_NODE_VMT_PROC 1
+#else // ] [
+#define BG_PARAM_NODE_VMT_PROC 0
+#endif // ]
+
 #if defined (_WIN32) // [
 static DWORD WINAPI ThreadProc(LPVOID lpParameter)
 {
@@ -381,7 +421,9 @@ static void *start_routine(void *p)
   bg_param_node_t *node=p;
 #endif // ]
   bg_sync_lock(&node->sync);
+#if ! (BG_PARAM_NODE_VMT_PROC) // [
   bg_param_threads_t *threads=node->threads;
+#endif // ]
   bg_param_request_t request;
 
   for (;;) {
@@ -395,6 +437,9 @@ static void *start_routine(void *p)
     case bg_param_request_tag_kill:
       goto e_kill;
     case bg_param_request_tag_visitor_run:
+#if (BG_PARAM_NODE_VMT_PROC) // [
+      bg_node_run(node,&request);
+#else // ] [
       /////////////////////////////////////////////////////////////////////////
       request.dispatch(request.tree,request.visitor);
 
@@ -408,6 +453,7 @@ static void *start_routine(void *p)
 
       /////////////////////////////////////////////////////////////////////////
       bg_param_threads_release(threads,node);
+#endif // ]
       continue;
     }
   }
@@ -419,5 +465,39 @@ e_kill:
 #else // ] [
   return 0;
 }
+#endif // ]
+
+
+#if defined (BG_PARAM_NODE_VMT) // [
+static void run(bg_param_node_t *node, bg_param_request_t *request)
+{
+  bg_tree_t *tree=request->tree;
+
+#if defined (BG_PARAM_SCRIPT) // [
+  if (request->script)
+    bg_process_tree_run_script(tree);
+  else {
+#endif // ]
+    ///////////////////////////////////////////////////////////////////////////
+    request->dispatch(tree,request->visitor);
+#if defined (BG_PARAM_SCRIPT) // [
+  }
+#endif // ]
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (tree->parent) {
+    bg_sync_lock(&tree->parent->helper.sync);
+    --tree->parent->helper.nchildren;
+    bg_sync_signal(&tree->parent->helper.sync);
+    bg_sync_unlock(&tree->parent->helper.sync);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  bg_param_threads_release(node->threads,node);
+}
+
+static bg_param_node_vmt_t vmt={
+  .run=run,
+};
 #endif // ]
 #endif // ]

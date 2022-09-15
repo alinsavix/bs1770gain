@@ -39,8 +39,13 @@ int ff_resampler_create(ff_resampler_t *res,
 
   /////////////////////////////////////////////////////////////////////////////
   if (!ochannel_layout||!icodecpar->channel_layout) {
-    DVMESSAGE("invalid channel layout: output=%I64d input=%I64d",
+#if defined (_WIN32) // [
+    fwprintf(stderr,L"invalid channel layout: output=%I64d input=%I64d",
         ochannel_layout,icodecpar->channel_layout);
+#else // ] [
+    fprintf(stderr,"invalid channel layout: output=%" PRId64 " input=%" PRId64,
+        ochannel_layout,icodecpar->channel_layout);
+#endif // ]
     goto e_channel_layout;
   }
 
@@ -60,7 +65,7 @@ int ff_resampler_create(ff_resampler_t *res,
       NULL);                      // void *log_ctx
 
   if (!res->ctx) {
-    DMESSAGE("allocating context");
+    _DMESSAGE("allocating context");
     goto e_context;
   }
 
@@ -68,7 +73,7 @@ int ff_resampler_create(ff_resampler_t *res,
   res->frame=av_frame_alloc();
 
   if (!res->frame) {
-    DMESSAGE("allocating frame");
+    _DMESSAGE("allocating frame");
     goto e_frame;
   }
 
@@ -117,7 +122,7 @@ int resampler_apply(ff_resampler_t *res, AVFrame *frame)
       err=av_frame_get_buffer(res->frame,0);
 
       if (err<0) {
-        DMESSAGE("getting frame buffer");
+        _DMESSAGE("getting frame buffer");
         goto e_buffer;
       }
 #endif // ]
@@ -135,7 +140,7 @@ int resampler_apply(ff_resampler_t *res, AVFrame *frame)
         res->frame=av_frame_alloc();
 
         if (!res->frame) {
-          DMESSAGE("allocating frame");
+          _DMESSAGE("allocating frame");
           goto e_frame;
         }
 
@@ -153,7 +158,7 @@ int resampler_apply(ff_resampler_t *res, AVFrame *frame)
         err=av_frame_get_buffer(res->frame,0);
 
         if (err<0) {
-          DMESSAGE("getting frame buffer");
+          _DMESSAGE("getting frame buffer");
           goto e_buffer;
         }
 #endif // ]
@@ -170,7 +175,7 @@ int resampler_apply(ff_resampler_t *res, AVFrame *frame)
   err=swr_convert_frame(res->ctx,res->frame,frame);
 
   if (err<0) {
-    DVMESSAGE("converting frame: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("converting frame: %s (%d)",av_err2str(err),err);
     goto econvert;
   }
 

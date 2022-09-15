@@ -24,6 +24,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 static bg_visitor_vmt_t bg_analyzer_vmt;
 
+///////////////////////////////////////////////////////////////////////////////
 int bg_analyzer_create(bg_visitor_t *vis)
 {
   /////////////////////////////////////////////////////////////////////////////
@@ -68,7 +69,7 @@ static int bg_analyzer_print_prefix(bg_visitor_t *vis, bg_tree_t *tree)
     // the header of a track is always mirrored to the shell/console
     // regardless wether prefix or infix.
     if (stdout_vmt->head(tree,vis->depth,stdout)<0) {
-      DMESSAGE("printing head");
+      _DMESSAGE("printing head");
       goto e_print_head_stdout;
     }
   }
@@ -76,7 +77,7 @@ static int bg_analyzer_print_prefix(bg_visitor_t *vis, bg_tree_t *tree)
   /////////////////////////////////////////////////////////////////////////////
   if (tree->param->print.vmt->infix) {
     if (stdout!=f&&tree->param->print.vmt->head(tree,vis->depth,f)<0) {
-      DMESSAGE("printing head");
+      _DMESSAGE("printing head");
       goto e_print_head_file_infix;
     }
   }
@@ -99,23 +100,23 @@ static int bg_analyzer_print_postfix(bg_visitor_t *vis, bg_tree_t *tree)
 #endif // ]
   int stdout_prefix=BG_TREE_TYPE_TRACK==tree->vmt->type||stdout_vmt->infix;
 
-//DVWRITELNW(L"\"%s\"",tree->vmt->id);
+//_DWRITELNVW(L"\"%s\"",tree->vmt->id);
   if (!stdout_prefix) {
     if (stdout_vmt->head(tree,vis->depth,stdout)<0) {
-      DMESSAGE("printing head");
+      _DMESSAGE("printing head");
       goto e_print_head_stdout;
     }
   }
 
   if (!tree->param->print.vmt->infix) {
     if (stdout!=f&&tree->param->print.vmt->head(tree,vis->depth,f)<0) {
-      DMESSAGE("printing head");
+      _DMESSAGE("printing head");
       goto e_print_head_file_postfix;
     }
   }
 
   if (tree->param->print.vmt->tail(tree,vis->depth,f)<0) {
-    DMESSAGE("printing tail");
+    _DMESSAGE("printing tail");
     goto e_print_tail_file;
   }
 
@@ -123,7 +124,7 @@ static int bg_analyzer_print_postfix(bg_visitor_t *vis, bg_tree_t *tree)
 
   if (stdout!=f) {
     if (tree->param->print.vmt->tail(tree,vis->depth,stdout)<0) {
-      DMESSAGE("printing tail");
+      _DMESSAGE("printing tail");
       goto e_print_tail_stdout;
     }
 
@@ -152,37 +153,37 @@ static int bg_analyzer_track(bg_tree_t *tree, bg_visitor_t *vis)
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_input_open_analyzer(&track->input)<0) {
-    DMESSAGE("re-opening input");
+    _DMESSAGE("re-opening input");
     goto e_input;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_analyzer_create(&track->analyzer,&track->input)<0) {
-    DMESSAGE("creating analyzer");
+    _DMESSAGE("creating analyzer");
     goto e_analyzer;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_prefix(vis,tree)<0) {
-    DMESSAGE("printing prefix");
+    _DMESSAGE("printing prefix");
     goto e_print_prefix;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_analyzer_loop(&tree->track.analyzer)<0) {
-    DMESSAGE("decoding");
+    _DMESSAGE("decoding");
     goto e_decode;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_merge(tree->parent,tree)<0) {
-    DMESSAGE("merging");
+    _DMESSAGE("merging");
     goto e_merge;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_postfix(vis,tree)<0) {
-    DMESSAGE("printing postfix");
+    _DMESSAGE("printing postfix");
     goto e_print_postfix;
   }
 
@@ -207,8 +208,13 @@ static int bg_analyzer_dispatch_track(bg_visitor_t *vis, bg_tree_t *tree)
   int err=-1;
 #if defined (BG_PARAM_THREADS) // [
   if (tree->param->nthreads) {
+#if defined (BG_PARAM_SCRIPT) // [
+    bg_param_threads_visitor_run(&tree->param->threads,NULL,vis,tree,
+        bg_analyzer_track);
+#else // ] [
     bg_param_threads_visitor_run(&tree->param->threads,vis,tree,
         bg_analyzer_track);
+#endif // ]
     err=0;
   }
   else
@@ -221,37 +227,37 @@ static int bg_analyzer_dispatch_track(bg_visitor_t *vis, bg_tree_t *tree)
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_input_open_analyzer(&track->input)<0) {
-    DMESSAGE("re-opening input");
+    _DMESSAGE("re-opening input");
     goto e_input;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_analyzer_create(&track->analyzer,&track->input)<0) {
-    DMESSAGE("creating analyzer");
+    _DMESSAGE("creating analyzer");
     goto e_analyzer;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_prefix(vis,tree)<0) {
-    DMESSAGE("printing prefix");
+    _DMESSAGE("printing prefix");
     goto e_print_prefix;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (ff_analyzer_loop(&tree->track.analyzer)<0) {
-    DMESSAGE("decoding");
+    _DMESSAGE("decoding");
     goto e_decode;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_merge(tree->parent,tree)<0) {
-    DMESSAGE("merging");
+    _DMESSAGE("merging");
     goto e_merge;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_postfix(vis,tree)<0) {
-    DMESSAGE("printing postfix");
+    _DMESSAGE("printing postfix");
     goto e_print_postfix;
   }
 
@@ -281,23 +287,23 @@ int bg_analyzer_album_prefix(bg_visitor_t *vis, bg_tree_t *tree)
 
   if (param->output.dirname||param->overwrite) {
     if (tree->vmt->annotation.create(tree)<0) {
-      DMESSAGE("annotating");
+      _DMESSAGE("annotating");
       goto e_annotate;
 	  }
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_prefix(vis,tree)<0) {
-    DMESSAGE("printing prefix");
+    _DMESSAGE("printing prefix");
     goto e_print_prefix;
   }
 
 #if 0 // [
   /////////////////////////////////////////////////////////////////////////////
 tree->threads.nchildren=tree->album.nchildren.cur;
-DVWRITELN("++++ %u %p \"%s\"",tree->threads.nchildren,tree->parent,tree->utf8.basename);
+_DWRITELNV("++++ %u %p \"%s\"",tree->threads.nchildren,tree->parent,tree->utf8.basename);
 #else // ] [
-//DVWRITELN("+++ %u %p \"%s\"",tree->album.nchildren.cur,tree->parent,tree->utf8.basename);
+//_DWRITELNV("+++ %u %p \"%s\"",tree->album.nchildren.cur,tree->parent,tree->utf8.basename);
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
@@ -332,21 +338,16 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
 #if defined (BG_PARAM_THREADS) // [
   /////////////////////////////////////////////////////////////////////////////
   tree->helper.nchildren=tree->album.nchildren.cur;
-DVWRITELN(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
+_DWRITELNV(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   for (cur=tree->album.first;cur;cur=cur->next) {
-#if defined (_WIN32) // [
-DVWRITELN("    * \"%s\"",cur->utf8.path);
-#else // ] [
-DVWRITELN("    * \"%s\"",cur->source.path);
-#endif // ]
+_DWRITELNV("    * \"%" PBU_PRIs "\"",cur->source.path);
     if (cur->vmt->accept(cur,vis)<0) {
-      FFVMESSAGE("analyzing \"%s\"",cur->source.path);
+      _DMESSAGEV("analyzing \"%" PBU_PRIs "\"",cur->source.path);
       goto e_child;
     }
-DMARKLN();
   }
 
 #if defined (BG_PARAM_THREADS) // [
@@ -359,17 +360,19 @@ DMARKLN();
 
     bg_sync_unlock(&tree->helper.sync); // }
 
+#if defined (BG_VISITOR_NOTIFY_PARENT) // [
     if (tree->parent) {
       bg_sync_lock(&tree->parent->helper.sync); // {
       bg_sync_signal(&tree->parent->helper.sync);
       bg_sync_unlock(&tree->parent->helper.sync); // }
     }
+#endif // ]
   }
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_postfix(vis,tree)<0) {
-    DMESSAGE("printing postfix");
+    _DMESSAGE("printing postfix");
     goto e_print_postfix;
   }
 
@@ -381,7 +384,7 @@ DMARKLN();
 
   if (tree->album.nleafs&&(param->output.dirname||param->overwrite)) {
     if (bg_muxer_create(&muxer)<0) {
-      DMESSAGE("creating muxer");
+      _DMESSAGE("creating muxer");
       goto e_muxer;
     }
 
@@ -391,9 +394,9 @@ DMARKLN();
     if (!param->suppress.progress) {
 #endif // ]
       if (&bg_print_xml_vmt==param->print.vmt)
-        fputs("<!-- ",stdout);
+        _FPRINTF(stdout,"<!-- ");
 
-      fputs("begin remuxing ...\n",stdout);
+      _FPRINTF(stdout,"begin remuxing ...\n");
       fflush(stdout);
 #if ! defined (BG_PARAM_QUIET) // [
     }
@@ -402,7 +405,7 @@ DMARKLN();
 #endif // ]
 
     if (tree->vmt->accept(tree,&muxer)<0) {
-      DMESSAGE("muxing");
+      _DMESSAGE("muxing");
       goto e_muxer_accept;
     }
 
@@ -411,12 +414,12 @@ DMARKLN();
 #else // ] [
     if (!param->suppress.progress) {
 #endif // ]
-      fputs("end remuxing.",stdout);
+      _FPRINTF(stdout,"end remuxing.");
 
       if (&bg_print_xml_vmt==param->print.vmt)
-        fputs(" -->",stdout);
+        _FPRINTF(stdout," -->");
 
-      fputc('\n',stdout);
+      _FPRINTF(stdout,"\n");
       fflush(stdout);
 #if ! defined (BG_PARAM_QUIET) // [
     }
@@ -424,19 +427,23 @@ DMARKLN();
     }
 #endif // ]
 #if defined (BG_PARAM_THREADS) // [
-    if (param->nthreads)
+    if (param->nthreads) {
       bg_param_threads_drain(&param->threads);
 
-    if (verbose) {
-#if defined (_WIN32) // [
-      if (tree->utf8.path)
-        fprintf(stdout,"\"%s\"\n",tree->utf8.path);
-#else // ] [
-      if (tree->source.path)
-        fprintf(stdout,"\"%s\"\n",tree->source.path);
-#endif // ]
+      if (verbose) {
+        if (tree->source.path) {
+          if (&bg_print_xml_vmt==param->print.vmt)
+            _FPRINTF(stdout,"<!-- ");
+            _FPRINTFV(stdout,"\"%" PBU_PRIs "\"",tree->source.path);
 
-      fflush(stdout);
+          if (&bg_print_xml_vmt==param->print.vmt)
+            _FPRINTF(stdout," -->\n");
+          else
+            _FPRINTF(stdout,"\n");
+        }
+
+        fflush(stdout);
+      }
     }
 #endif // ]
   }
@@ -467,19 +474,19 @@ static int bg_analyzer_dispatch_album(bg_visitor_t *vis, bg_tree_t *tree)
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_album_prefix(vis,tree)) {
-    DMESSAGE("prefix");
+    _DMESSAGE("prefix");
     goto e_prefix;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_album_suffix(vis,tree)) {
-    DMESSAGE("suffix");
+    _DMESSAGE("suffix");
     goto e_suffix;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_merge(tree->parent,tree)<0) {
-    DMESSAGE("merging");
+    _DMESSAGE("merging");
     goto e_merge;
   }
 
@@ -495,7 +502,7 @@ e_prefix:
 static int bg_analyzer_dispatch_album(bg_visitor_t *vis FFUNUSED,
     bg_tree_t *tree FFUNUSED)
 {
-  DMESSAGE("non intended invocation ");
+  _DMESSAGE("non intended invocation ");
   return -1;
 }
 #endif // ]

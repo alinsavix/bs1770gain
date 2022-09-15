@@ -33,7 +33,7 @@ int bg_sync_create(bg_sync_t *sync)
   err=pthread_mutexattr_settype(&mutexattr,PTHREAD_MUTEX_RECURSIVE);
 
   if (err<0) {
-    DVMESSAGE("setting mutex attribute (%d)",err);
+    _DMESSAGEV("setting mutex attribute (%d)",err);
     goto e_mutexattr;
   }
 
@@ -44,7 +44,7 @@ int bg_sync_create(bg_sync_t *sync)
   );
 
   if (err<0) {
-    DVMESSAGE("creating mutex (%d)",err);
+    _DMESSAGEV("creating mutex (%d)",err);
     goto e_mutex;
   }
 
@@ -55,7 +55,7 @@ int bg_sync_create(bg_sync_t *sync)
   );
 
   if (err<0) {
-    DVMESSAGE("creating condition variable (%d)",err);
+    _DMESSAGEV("creating condition variable (%d)",err);
     goto e_cond;
   }
 #elif defined (_WIN32) // ] [
@@ -71,7 +71,7 @@ int bg_sync_create(bg_sync_t *sync)
   );
 
   if (!sync->hEvent) {
-    DVMESSAGE("creating event (%lu)",GetLastError());
+    _DMESSAGEV("creating event (%lu)",GetLastError());
     goto e_event;
   }
 #endif // ]

@@ -31,25 +31,25 @@ int bg_album_create(bg_tree_t **tree, bg_param_t *param, bg_tree_t *parent,
   *tree=malloc(sizeof **tree);
 
   if (!*tree) {
-    DMESSAGE("allocating");
+    _DMESSAGE("allocating");
     goto e_alloc;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_common_create(*tree,param,parent,path)<0) {
-    DMESSAGE("creating common");
+    _DMESSAGE("creating common");
     goto e_common;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_album_content_create(*tree,&bg_album_vmt)<0) {
-    DMESSAGE("creating content");
+    _DMESSAGE("creating content");
     goto e_content;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (parent&&bg_album_push(parent,*tree)<0) {
-    DMESSAGE("pushing");
+    _DMESSAGE("pushing");
     goto e_push;
   }
 
@@ -71,7 +71,7 @@ e_alloc:
 void bg_album_destroy(bg_tree_t *tree)
 {
   if (tree->parent&&tree!=bg_album_pop(tree->parent))
-    DWARNING("tree not at end of list");
+    _DWARNING("tree not at end of list");
 
   if (!tree->param->process&&1u<tree->album.nchildren.max) {
     // it's getting bottom-up.
@@ -111,7 +111,7 @@ void bg_album_content_destroy(bg_tree_t *tree)
     if (cur)
       cur->vmt->destroy(cur);
     else
-      DWARNING("empty list");
+      _DWARNING("empty list");
   }
 }
 
@@ -173,9 +173,7 @@ static void bg_album_track_id(bg_tree_t *tree FFUNUSED, int *id FFUNUSED)
 #endif // ]
 
 static bg_tree_vmt_t bg_album_vmt={
-#if defined (PBU_DEBUG) // [
   .id=FFL("album"),
-#endif // ]
   .type=BG_TREE_TYPE_ALBUM,
   .destroy=bg_album_destroy,
   .accept=bg_album_accept,

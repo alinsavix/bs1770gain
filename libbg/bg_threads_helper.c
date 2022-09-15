@@ -25,7 +25,7 @@
 int bg_threads_helper_create(bg_threads_helper_t *helper)
 {
   if (bg_sync_create(&helper->sync)<0) {
-    DMESSAGE("creating sync");
+    _DMESSAGE("creating sync");
     goto e_sync;
   }
 

@@ -47,7 +47,7 @@ int bg_pilot_hist_branch_create(bg_pilot_hist_t *hist, DIR *dir)
   /////////////////////////////////////////////////////////////////////////////
   if (client->cb&&client->cb->branch.enter) {
     if (client->cb->branch.enter(hist,client->data)<0) {
-      DMESSAGE("entering branch");
+      _DMESSAGE("entering branch");
       goto e_enter;
     }
   }

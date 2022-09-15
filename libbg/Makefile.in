@@ -123,19 +123,20 @@ am__v_AR_1 =
 libbg_a_AR = $(AR) $(ARFLAGS)
 libbg_a_LIBADD =
 am__objects_1 =
-am_libbg_a_OBJECTS = $(am__objects_1) bg_sync.$(OBJEXT) \
-	bg_utf8_iter.$(OBJEXT) bg_threads_helper.$(OBJEXT) \
-	bg_param_threads.$(OBJEXT) bg_param.$(OBJEXT) \
-	bg_print_conf.$(OBJEXT) bg_print_xml.$(OBJEXT) \
-	bg_print_classic.$(OBJEXT) bg_annotator.$(OBJEXT) \
-	bg_muxer.$(OBJEXT) bg_analyzer.$(OBJEXT) bg_tree.$(OBJEXT) \
-	bg_tree_path.$(OBJEXT) bg_file.$(OBJEXT) bg_track.$(OBJEXT) \
-	bg_track_target.$(OBJEXT) bg_tree_patha.$(OBJEXT) \
-	bg_album.$(OBJEXT) bg_root.$(OBJEXT) bg_pilot_branch.$(OBJEXT) \
-	bg_pilot_leaf.$(OBJEXT) bg_pilot.$(OBJEXT) \
-	bg_basenamea.$(OBJEXT) bg_basename.$(OBJEXT) \
-	bg_wcs2str.$(OBJEXT) bg_pathnorm.$(OBJEXT) \
-	bg_parse_time.$(OBJEXT) bg_char_nexta.$(OBJEXT)
+am_libbg_a_OBJECTS = $(am__objects_1) bg_process.$(OBJEXT) \
+	bg_sync.$(OBJEXT) bg_utf8_iter.$(OBJEXT) \
+	bg_threads_helper.$(OBJEXT) bg_param_threads.$(OBJEXT) \
+	bg_param.$(OBJEXT) bg_print_conf.$(OBJEXT) \
+	bg_print_xml.$(OBJEXT) bg_print_classic.$(OBJEXT) \
+	bg_annotator.$(OBJEXT) bg_muxer.$(OBJEXT) \
+	bg_analyzer.$(OBJEXT) bg_tree.$(OBJEXT) bg_tree_path.$(OBJEXT) \
+	bg_file.$(OBJEXT) bg_track.$(OBJEXT) bg_track_target.$(OBJEXT) \
+	bg_tree_patha.$(OBJEXT) bg_album.$(OBJEXT) bg_root.$(OBJEXT) \
+	bg_pilot_branch.$(OBJEXT) bg_pilot_leaf.$(OBJEXT) \
+	bg_pilot.$(OBJEXT) bg_basenamea.$(OBJEXT) \
+	bg_basename.$(OBJEXT) bg_wcs2str.$(OBJEXT) \
+	bg_pathnorm.$(OBJEXT) bg_parse_time.$(OBJEXT) \
+	bg_char_nexta.$(OBJEXT)
 libbg_a_OBJECTS = $(am_libbg_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 @FF_DYNLOAD_TRUE@am__EXEEXT_1 = bg_version$(EXEEXT)
@@ -337,9 +338,9 @@ noinst_LIBRARIES = libbg.a
 libbg_a_SOURCES = $(CONFIG_HEADER) bg.h bg_pilot.h \
 	$(top_srcdir)/libff/ff.h $(top_srcdir)/lib1770-2/lib1770.h \
 	$(top_srcdir)/libpbutil/pbutil.h \
-	$(top_srcdir)/libpbutil/pbutil_priv.h bg_sync.c bg_utf8_iter.c \
-	bg_threads_helper.c bg_param_threads.c bg_param.c \
-	bg_print_conf.c bg_print_xml.c bg_print_classic.c \
+	$(top_srcdir)/libpbutil/pbutil_priv.h bg_process.c bg_sync.c \
+	bg_utf8_iter.c bg_threads_helper.c bg_param_threads.c \
+	bg_param.c bg_print_conf.c bg_print_xml.c bg_print_classic.c \
 	bg_annotator.c bg_muxer.c bg_analyzer.c bg_tree.c \
 	bg_tree_path.c bg_file.c bg_track.c bg_track_target.c \
 	bg_tree_patha.c bg_album.c bg_root.c bg_pilot_branch.c \
@@ -469,6 +470,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_print_classic.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_print_conf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_print_xml.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_process.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_root.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_sync.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_threads_helper.Po@am__quote@

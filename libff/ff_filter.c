@@ -55,7 +55,7 @@ int ff_filter_create(ff_filter_t *f,
   f->graph=avfilter_graph_alloc();
 
   if (!f->graph) {
-    DMESSAGE("allocating filter graph");
+    _DMESSAGE("allocating filter graph");
     err=AVERROR(ENOMEM);
     goto e_graph;
   }
@@ -66,7 +66,7 @@ int ff_filter_create(ff_filter_t *f,
   src.f=avfilter_get_by_name("abuffer");
 
   if (!src.f) {
-    DMESSAGE("audio filter \"abuffer\" not available");
+    _DMESSAGE("audio filter \"abuffer\" not available");
     err=-1;
     goto e_src;
   }
@@ -85,7 +85,7 @@ int ff_filter_create(ff_filter_t *f,
   err=avfilter_graph_create_filter(&f->ctx.src,src.f,"in",args,NULL,f->graph);
 
   if (err<0) {
-    DVMESSAGE("creating filter source: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("creating filter source: %s (%d)",av_err2str(err),err);
     goto e_srcctx;
   }
 
@@ -94,7 +94,7 @@ int ff_filter_create(ff_filter_t *f,
   sink.f=avfilter_get_by_name("abuffersink");
 
   if (!sink.f) {
-    DMESSAGE("audio filter \"abuffersink\" not available");
+    _DMESSAGE("audio filter \"abuffersink\" not available");
     err=-1;
     goto e_sink;
   }
@@ -104,7 +104,7 @@ int ff_filter_create(ff_filter_t *f,
       f->graph);
 
   if (err<0) {
-    DVMESSAGE("creating filter sink: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("creating filter sink: %s (%d)",av_err2str(err),err);
     goto e_sinkctx;
   }
 
@@ -113,7 +113,7 @@ int ff_filter_create(ff_filter_t *f,
       sink_sample_fmts,-1,AV_OPT_SEARCH_CHILDREN);
 
   if (err<0) {
-    DVMESSAGE("setting output sample format: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("setting output sample format: %s (%d)",av_err2str(err),err);
     goto e_sinkargs;
   }
 
@@ -122,7 +122,7 @@ int ff_filter_create(ff_filter_t *f,
       sink_channel_layouts,-1,AV_OPT_SEARCH_CHILDREN);
 
   if (err<0) {
-    DVMESSAGE("setting output channel layout: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("setting output channel layout: %s (%d)",av_err2str(err),err);
     goto e_sinkargs;
   }
 
@@ -131,7 +131,7 @@ int ff_filter_create(ff_filter_t *f,
       sink_sample_rates,-1,AV_OPT_SEARCH_CHILDREN);
 
   if (err<0) {
-    DVMESSAGE("setting output sample rate: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("setting output sample rate: %s (%d)",av_err2str(err),err);
     goto e_sinkargs;
   }
 
@@ -150,14 +150,14 @@ int ff_filter_create(ff_filter_t *f,
   sink.out=avfilter_inout_alloc();
 
   if (!sink.out) {
-    DMESSAGE("allocating outputs");
+    _DMESSAGE("allocating outputs");
     goto e_outputs;
   }
 
   sink.out->name=av_strdup("in");
 
   if (!sink.out->name) {
-    DMESSAGE("duplicating sink name");
+    _DMESSAGE("duplicating sink name");
     goto e_sinkname;
   }
 
@@ -174,14 +174,14 @@ int ff_filter_create(ff_filter_t *f,
   src.in=avfilter_inout_alloc();
 
   if (!src.in) {
-    DMESSAGE("allocating inputs");
+    _DMESSAGE("allocating inputs");
     goto e_inputs;
   }
 
   src.in->name=av_strdup("out");
 
   if (!src.in->name) {
-    DMESSAGE("duplicating source name");
+    _DMESSAGE("duplicating source name");
     goto e_srcname;
   }
 
@@ -194,7 +194,7 @@ int ff_filter_create(ff_filter_t *f,
       &sink.out,NULL);
 
   if (err<0) {
-    DVMESSAGE("parsing: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("parsing: %s (%d)",av_err2str(err),err);
     goto e_parse;
   }
 
@@ -202,7 +202,7 @@ int ff_filter_create(ff_filter_t *f,
   err=avfilter_graph_config(f->graph,NULL);
 
   if (err<0) {
-    DVMESSAGE("onfiguring: %s (%d)",av_err2str(err),err);
+    _DMESSAGEV("onfiguring: %s (%d)",av_err2str(err),err);
     goto e_config;
   }
 
@@ -211,7 +211,7 @@ int ff_filter_create(ff_filter_t *f,
   ocodec=avcodec_find_encoder(ocodecpar->codec_id);
 
   if (!ocodec) {
-    DMESSAGE("target codec doesn't exist");
+    _DMESSAGE("target codec doesn't exist");
     goto e_ocodec;
   }
 

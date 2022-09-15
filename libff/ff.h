@@ -41,6 +41,10 @@ extern "C" {
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
+#if defined (PBU_CONSOLE_UTF16) // [
+#define FF_CONSOLE_UTF16
+#endif // ]
+
 #if defined (_WIN32) // [
 #define FF_OPTION_UTF16
 #define FF_GETOPT_LONG(argc,argv,optstring,longopts,longindex) \
@@ -60,12 +64,14 @@ extern "C" {
 #define FFSTRCPY(s1,s2) wcscpy(s1,s2)
 #define FFSTRSTR(s1,s2) wcsstr(s1,s2)
 #define FFFOPEN(path,mode) _wfopen(path,mode)
+#if 0 // [
 #define _FFPUTC(c,f) fputwc(c,f)
 #define FFPUTC(c,f) _FFPUTC(L##c,f)
 #define _FFPUTS(s,f) fputws(s,f)
 #define FFPUTS(s,f) _FFPUTS(L##s,f)
 #define _FFPRINTF(f,format,...) fwprintf(f,format,__VA_ARGS__)
 #define FFPRINTF(f,format,...) _FFPRINTF(f,L##format,__VA_ARGS__)
+#endif // ]
 #define FFSPRINTF(s,size,format,...) swprintf(s,size,format,__VA_ARGS__)
 #define FFSNPRINTF(s,size,format,...) snwprintf(s,size,format,__VA_ARGS__)
 #define FFMESSAGE(m) PBU_DMESSAGEW(L##m)
@@ -100,12 +106,14 @@ typedef wchar_t ffchar_t;
 #define FFSTRCPY(s1,s2) strcpy(s1,s2)
 #define FFSTRSTR(s1,s2) strstr(s1,s2)
 #define FFFOPEN(path,mode) fopen(path,mode)
+#if 0 // [
 #define _FFPUTC(s,f) fputc(s,f)
 #define FFPUTC(s,f) _FFPUTC(s,f)
 #define _FFPUTS(s,f) fputs(s,f)
 #define FFPUTS(s,f) _FFPUTS(s,f)
 #define _FFPRINTF(f,format,...) fprintf(f,format,__VA_ARGS__)
 #define FFPRINTF(f,format,...) _FFPRINTF(f,format,__VA_ARGS__)
+#endif // ]
 #define FFSPRINTF(s,size,format,...) sprintf(s,format,__VA_ARGS__)
 #define FFSNPRINTF(s,size,format,...) snprintf(s,size,format,__VA_ARGS__)
 #define FFMESSAGE(m) PBU_DMESSAGE(m)
@@ -482,9 +490,20 @@ void ff_printer_clear(ff_printer_t *p);
 void ff_printer_reset(ff_printer_t *p);
 void ff_printer_flush(ff_printer_t *p);
 
+#if 0 // [
 int ff_printer_printf(ff_printer_t *p, const char *format, ...);
 #if defined (_WIN32) // [
 int ff_printer_wprintf(ff_printer_t *p, const wchar_t *format, ...);
+#endif // ]
+#else // ] [
+#if defined (WIN32) // [
+#define _FF_PRINTER_PRINTF(p,format,...) \
+	ff_printer_printf(p,L##format,__VA_ARGS__)
+#else // ] [
+#define _FF_PRINTER_PRINTF(p,format,...) \
+	ff_printer_printf(p,format,__VA_ARGS__)
+#endif // ]
+int ff_printer_printf(ff_printer_t *p, const ffchar_t *format, ...);
 #endif // ]
 
 struct ff_inout {

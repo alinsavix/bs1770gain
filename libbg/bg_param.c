@@ -58,21 +58,24 @@ int bg_param_create(bg_param_t *param)
   param->count.cur=0;
   param->count.max=0;
   param->process=0;
+#if defined (BG_PARAM_SKIP_SCAN) // [
+  param->skip_scan=0;
+#endif // ]
 
   if (bg_pilot_create(&param->pilot,20,&bg_pilot_callback,param)<0) {
-    DMESSAGE("creating pilot");
+    _DMESSAGE("creating pilot");
     goto e_pilot;
   }
 
   if (bg_analyzer_create(&param->analyzer)<0) {
-    DMESSAGE("creating analyzer");
+    _DMESSAGE("creating analyzer");
     goto e_analyzer;
   }
 
   param->print.vmt=&bg_print_classic_vmt;
 
   if (ff_printer_create(&param->printer,stdout)<0) {
-    DMESSAGE("creating printer");
+    _DMESSAGE("creating printer");
     goto e_printer;
   }
 
@@ -190,7 +193,7 @@ int bg_param_alloc_arguments(bg_param_t *param, size_t size)
 {
   /////////////////////////////////////////////////////////////////////////////
   if (!size) {
-    DMESSAGE("nothing to analyze");
+    _DMESSAGE("nothing to analyze");
     goto e_size;
   }
 
@@ -198,7 +201,7 @@ int bg_param_alloc_arguments(bg_param_t *param, size_t size)
   param->argv.min=malloc(size*sizeof *param->argv.min);
 
   if (!param->argv.min) {
-    DMESSAGE("allocating");
+    _DMESSAGE("allocating");
     goto e_alloc;
   }
 
@@ -246,7 +249,7 @@ static int bg_param_loop_inner(bg_param_t *param, ffchar_t const *argv)
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_root_create(&param->root,param)<0) {
-    DMESSAGE("creating root");
+    _DMESSAGE("creating root");
     goto e_root;
   }
 
@@ -255,21 +258,21 @@ static int bg_param_loop_inner(bg_param_t *param, ffchar_t const *argv)
   if (param->process) {
     ///////////////////////////////////////////////////////////////////////////
     if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
-      DMESSAGE("prefix");
+      _DMESSAGE("prefix");
       goto e_prefix;
     }
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_pilot_loop(&param->pilot,argv)<0) {
-    DMESSAGE("looping");
+    _DMESSAGE("looping");
     goto e_loop;
   }
 
   if (param->process) {
     ///////////////////////////////////////////////////////////////////////////
     if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
-      DMESSAGE("suffix");
+      _DMESSAGE("suffix");
       goto e_suffix;
     }
   }
@@ -293,7 +296,7 @@ int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 #if ! defined (BG_PARAM_LOOP_INNER) // [
   /////////////////////////////////////////////////////////////////////////////
   if (bg_root_create(&param->root,param)<0) {
-    DMESSAGE("creating root");
+    _DMESSAGE("creating root");
     goto e_root;
   }
 
@@ -302,7 +305,7 @@ int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
   if (param->process) {
     ///////////////////////////////////////////////////////////////////////////
     if (bg_analyzer_album_prefix(&param->analyzer,&param->root)<0) {
-      DMESSAGE("prefix");
+      _DMESSAGE("prefix");
       goto e_prefix;
     }
   }
@@ -313,13 +316,13 @@ int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
 #if defined (BG_PARAM_LOOP_INNER) // [
     ///////////////////////////////////////////////////////////////////////////
     if (bg_param_loop_inner(param,*argv++)<0) {
-        DMESSAGE("inner loop");
+        _DMESSAGE("inner loop");
         goto e_inner;
     }
 #else // ] [
     ///////////////////////////////////////////////////////////////////////////
     if (bg_pilot_loop(&param->pilot,*argv++)<0) {
-      DMESSAGE("looping");
+      _DMESSAGE("looping");
       goto e_loop;
     }
 #endif // ]
@@ -329,7 +332,7 @@ int bg_param_loop(bg_param_t *param, ffchar_t *const *argv)
   if (param->process) {
     ///////////////////////////////////////////////////////////////////////////
     if (bg_analyzer_album_suffix(&param->analyzer,&param->root)<0) {
-      DMESSAGE("suffix");
+      _DMESSAGE("suffix");
       goto e_suffix;
     }
   }
@@ -360,7 +363,7 @@ static int bg_pilot_callback_leaf_enter(bg_pilot_hist_t *hist, void *data)
   /////////////////////////////////////////////////////////////////////////////
   if (bg_leaf_create(&tree,param,parent,hist->path)<0) {
 #if defined (BG_TREE_CREATE_CHILD_WARNING) // [
-    DWARNING("creating leaf");
+    _DWARNING("creating leaf");
 #endif // ]
     hist->data=NULL;
     goto success;
@@ -396,13 +399,13 @@ static int bg_pilot_callback_branch_enter(bg_pilot_hist_t *hist, void *data)
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_album_create(&tree,param,parent,hist->path)<0) {
-    DMESSAGE("creating album");
+    _DMESSAGE("creating album");
     goto e_album;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (param->process&&bg_analyzer_album_prefix(&param->analyzer,tree)<0) {
-    DMESSAGE("analyzer prefix");
+    _DMESSAGE("analyzer prefix");
     goto e_prefix;
   }
 
@@ -429,12 +432,12 @@ static void bg_pilot_callback_branch_leave(bg_pilot_hist_t *hist, void *data)
   if (tree) {
     if (param->process) {
       if (bg_analyzer_album_suffix(&param->analyzer,tree)<0) {
-        DMESSAGE("analyzing");
+        _DMESSAGE("analyzing");
         goto e_analyze;
       }
 
       if (tree->parent&&bg_tree_merge(tree->parent,tree)<0) {
-        DMESSAGE("merging");
+        _DMESSAGE("merging");
         goto e_merge;
       }
     }

@@ -224,26 +224,26 @@ static bg_utf8_iter_vmt_t bg_iter_utf8_le_vmt={
 ///////////////////////////////////////////////////////////////////////////////
 static int bg_utf8_iter_be_valid(bg_utf8_iter_t *i FFUNUSED)
 {
-  DMESSAGE("not implemented yet");
+  _DMESSAGE("not implemented yet");
 
   return 0;
 }
 
 static const uint8_t *bg_utf8_iter_be_next(bg_utf8_iter_t *i)
 {
-  DMESSAGE("not implemented yet");
+  _DMESSAGE("not implemented yet");
 
   return i->rp;
 }
 
 static void bg_utf8_iter_be_apply(bg_utf8_iter_t *i FFUNUSED)
 {
-  DMESSAGE("not implemented yet");
+  _DMESSAGE("not implemented yet");
 }
 
 static void bg_utf8_iter_be_flush(bg_utf8_iter_t *i FFUNUSED)
 {
-  DMESSAGE("not implemented yet");
+  _DMESSAGE("not implemented yet");
 }
 
 static bg_utf8_iter_vmt_t bg_utf8_iter_be_vmt={

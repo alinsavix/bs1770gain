@@ -44,12 +44,11 @@ void ff_printer_reset(ff_printer_t *p)
   size_t i;
 
   for (i=0u;i<p->len;++i) {
-#if (_WIN32) // [
-    if (stdout!=p->f&&stderr!=p->f)
-      fputwc(L'\b',p->f);
-    else
+#if defined (_WIN32) // [
+    fwprintf(p->f,L"\b");
+#else // ] [
+    fputc('\b',p->f);
 #endif // ]
-      fputc('\b',p->f);
   }
 
   p->len=0u;
@@ -60,69 +59,45 @@ void ff_printer_flush(ff_printer_t *p)
   size_t i;
 
   for (i=0u;i<p->len;++i) {
-#if (_WIN32) // [
-    if (stdout!=p->f&&stderr!=p->f)
-      fputwc(L'\b',p->f);
-    else
+#if defined (_WIN32) // [
+    fwprintf(p->f,L"\b");
+#else // ] [
+    fputc('\b',p->f);
 #endif // ]
-      fputc('\b',p->f);
   }
 
   for (i=0u;i<p->len;++i) {
-#if (_WIN32) // [
-    if (stdout!=p->f&&stderr!=p->f)
-      fputwc(L' ',p->f);
-    else
+#if defined (_WIN32) // [
+    fwprintf(p->f,L" ");
+#else // ] [
+    fputc(' ',p->f);
 #endif // ]
-      fputc(' ',p->f);
   }
 
   for (i=0u;i<p->len;++i) {
-#if (_WIN32) // [
-    if (stdout!=p->f&&stderr!=p->f)
-      fputwc(L'\b',p->f);
-    else
+#if defined (_WIN32) // [
+    fwprintf(p->f,L"\b");
+#else // ] [
+    fputc('\b',p->f);
 #endif // ]
-      fputc('\b',p->f);
   }
 
   p->len=0u;
   fflush(p->f);
 }
 
-
-enum { BUF_SIZE=64 };
-
-int ff_printer_printf(ff_printer_t *p FFUNUSED, const char *format, ...)
+int ff_printer_printf(ff_printer_t *p, const ffchar_t *format, ...)
 {
   va_list ap;
-  char buf[BUF_SIZE];
 
   va_start(ap,format);
-#if 0 // [
-  p->len=vsprintf(buf,format,ap);
-#else // ] [
-  p->len=vsnprintf(buf,BUF_SIZE,format,ap);
-#endif // ]
-  va_end(ap);
-  fputs(buf,p->f);
-  fflush(p->f);
-
-  return p->len;
-}
-
 #if defined (_WIN32) // [
-int ff_printer_wprintf(ff_printer_t *p FFUNUSED, const wchar_t *format, ...)
-{
-  va_list ap;
-  wchar_t buf[BUF_SIZE];
-
-  va_start(ap,format);
-  p->len=vswprintf(buf,BUF_SIZE,format,ap);
+  p->len=vfwprintf(p->f,format,ap);
+#else // ] [
+  p->len=vfprintf(p->f,format,ap);
+#endif // ]
   va_end(ap);
-  fputws(buf,p->f);
   fflush(p->f);
 
   return p->len;
 }
-#endif // ]

@@ -20,6 +20,10 @@
  * MA  02110-1301  USA
  */
 #if defined (_WIN32) // [
+#if defined (BG_SYSTEM) // [
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif // ]
 #include <fcntl.h>
 #include <getoptW.h>
 #else // ] [
@@ -57,134 +61,138 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
 {
   path=FFBASENAME(path);
 
-  _FFPUTS(path,f);
+  _FPRINTFV(f,"%" PBU_PRIs,path);
 #if defined (PACKAGE_VERSION) // [
-  FFPUTC(' ',f);
-  _FFPUTS(FFSTR(PACKAGE_VERSION),f);
+  _FPRINTFV(f," %s",PACKAGE_VERSION);
 #endif // ]
 
 #if defined (BG_NANO_GARBAGE) // [
-  _FFPUTS(FFSTR(BG_NANO_GARBAGE),f);
+  _FPRINTFV(f,"%s",BG_NANO_GARBAGE);
 #endif // ]
 #if defined (PACKAGE_URL) // [
-  _FFPUTS(FFSTR(PACKAGE_URL),f);
-  FFPUTC('\n',f);
+  _FPRINTFV(f,"%s\n",PACKAGE_URL);
 #endif // ]
+
 #if defined (_WIN32) // [
 #if defined (_WIN64) // [
-  fputws(L"Compiled for Windows 64 bit",f);
+  _FPRINTFV(f,"%s","Compiled for Windows 64 bit");
 #else // ] [
-  fputws(L"Compiled for Windows 32 bit",f);
+  _FPRINTFV(f,"%s","Compiled for Windows 32 bit");
 #endif // ]
 #elif defined (HAVE_FF_DYNLOAD) && defined (BG_POSIX_SYSNAME) // ] [
-  fprintf(f,"Compiled for %s",BG_POSIX_SYSNAME);
+  _FPRINTFV(f,"Compiled for %s",BG_POSIX_SYSNAME);
 #else // ] [
-  fputs("Compiled",f);
+  _FPRINTFV(f,"%s","Compiled");
 #endif // ]
 #if defined (__GNUC__) // [
-  FFPRINTF(f," by means of gcc %d.%d.%d",__GNUC__,
-      __GNUC_MINOR__,__GNUC_PATCHLEVEL__);
+  _FPRINTFV(f," by means of gcc %d.%d.%d",__GNUC__,__GNUC_MINOR__,
+      __GNUC_PATCHLEVEL__);
 #endif // ]
 #if defined (BG_WINDOWS_MAJOR) // [
-  if (BG_WINDOWS_CSD_VESIONW[0]) {
-    fwprintf(f,L" on Windows %d.%d.%d\n(%s) expecting\n",
+#if defined (BG_WINDOWS_CSD_VESIONA) // [
+  if (BG_WINDOWS_CSD_VESIONA[0]) {
+    _FPRINTFV(f," on Windows %d.%d.%d\n(%s) expecting\n",
         BG_WINDOWS_MAJOR,
         BG_WINDOWS_MINOR,
         BG_WINDOWS_BUILD_NUMBER,
-        BG_WINDOWS_CSD_VESIONW);
+        BG_WINDOWS_CSD_VESIONA);
   }
   else {
-    fwprintf(f,L" on Windows %d.%d.%d\nexpecting\n",
+#endif // ]
+    _FPRINTFV(f," on Windows %d.%d.%d\nexpecting\n",
         BG_WINDOWS_MAJOR,
         BG_WINDOWS_MINOR,
         BG_WINDOWS_BUILD_NUMBER);
+#if defined (BG_WINDOWS_CSD_VESIONA) // [
   }
+#endif // ]
 #elif defined (HAVE_FF_DYNLOAD) // ] [
-  fputs(" on\n",f);
+  _FPRINTF(f," on\n");
 
   if (BG_POSIX_NODENAME[0])
-    fprintf(f,"       nodename:  %s,\n",BG_POSIX_NODENAME);
+    _FPRINTFV(f,"       nodename:  %s,\n",BG_POSIX_NODENAME);
 
   if (BG_POSIX_RELEASE[0])
-    fprintf(f,"        release:  %s,\n",BG_POSIX_RELEASE);
+    _FPRINTFV(f,"        release:  %s,\n",BG_POSIX_RELEASE);
 
   if (BG_POSIX_VERSION[0])
-    fprintf(f,"        version:  %s,\n",BG_POSIX_VERSION);
+    _FPRINTFV(f,"        version:  %s,\n",BG_POSIX_VERSION);
 
   if (BG_POSIX_MACHINE[0])
-    fprintf(f,"        machine:  %s,\n",BG_POSIX_MACHINE);
+    _FPRINTFV(f,"        machine:  %s,\n",BG_POSIX_MACHINE);
 
 #if defined (BG_POSIX_DOMAINNAME) // [
   if (BG_POSIX_DOMAINNAME[0])
-    fprintf(f,"     domainname:  %s,\n",BG_POSIX_DOMAINNAME);
+    _FPRINTFV(f,"     domainname:  %s,\n",BG_POSIX_DOMAINNAME);
 #endif // ]
 
-  fputs("expecting\n",f);
+  _FPRINTF(f,"expecting\n");
 #else // ] [
-  fputs(" expecting\n",f);
+  _FPRINTF(f," expecting\n");
 #endif // ]
 
 #if defined (HAVE_FF_DYNLOAD) && defined (BG_GNU_LIBC_VERSION) // [
-  fprintf(f,"           libc:  %s (%s),\n",
+  _FPRINTFV(f,"           libc:  %s (%s),\n",
       BG_GNU_LIBC_VERSION,BG_GNU_LIBC_RELEASE);
 #endif // ]
-  FFPRINTF(f,"      libavutil:  %d.%d.%d,\n",
+  _FPRINTFV(f,"      libavutil:  %d.%d.%d,\n",
       LIBAVUTIL_VERSION_MAJOR,
       LIBAVUTIL_VERSION_MINOR,
       LIBAVUTIL_VERSION_MICRO);
-  FFPRINTF(f,"  libswresample:  %d.%d.%d,\n",
+  _FPRINTFV(f,"  libswresample:  %d.%d.%d,\n",
       LIBSWRESAMPLE_VERSION_MAJOR,
       LIBSWRESAMPLE_VERSION_MINOR,
       LIBSWRESAMPLE_VERSION_MICRO);
-  FFPRINTF(f,"     libavcodec:  %d.%d.%d,\n",
+  _FPRINTFV(f,"     libavcodec:  %d.%d.%d,\n",
       LIBAVCODEC_VERSION_MAJOR,
       LIBAVCODEC_VERSION_MINOR,
       LIBAVCODEC_VERSION_MICRO);
-  FFPRINTF(f,"    libavformat:  %d.%d.%d,\n",
+  _FPRINTFV(f,"    libavformat:  %d.%d.%d,\n",
       LIBAVFORMAT_VERSION_MAJOR,
       LIBAVFORMAT_VERSION_MINOR,
       LIBAVFORMAT_VERSION_MICRO);
-  FFPRINTF(f,"     libswscale:  %d.%d.%d,\n",
+  _FPRINTFV(f,"     libswscale:  %d.%d.%d,\n",
       LIBSWSCALE_VERSION_MAJOR,
       LIBSWSCALE_VERSION_MINOR,
       LIBSWSCALE_VERSION_MICRO);
-  FFPRINTF(f,"    libpostproc:  %d.%d.%d, and\n",
+  _FPRINTFV(f,"    libpostproc:  %d.%d.%d, and\n",
       LIBPOSTPROC_VERSION_MAJOR,
       LIBPOSTPROC_VERSION_MINOR,
       LIBPOSTPROC_VERSION_MICRO);
-  FFPRINTF(f,"    libavfilter:  %d.%d.%d.\n",
+  _FPRINTFV(f,"    libavfilter:  %d.%d.%d.\n",
       LIBAVFILTER_VERSION_MAJOR,
       LIBAVFILTER_VERSION_MINOR,
       LIBAVFILTER_VERSION_MICRO);
-  FFPUTS("This is free software; see the source for copying conditions."
+  _FPRINTF(f,"This is free software; see the source for copying conditions."
       "  There is NO\n"
       "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR"
-      " PURPOSE.\n",f);
+      " PURPOSE.\n");
   return path;
 }
 
 static void bg_usage(const ffchar_t *path, FILE *f)
 {
   path=bg_version(path,f);
-  FFPUTC('\n',f);
-  FFPRINTF(f,"Usage:  %s [options] <file/dir> [<file/dir> ...]\n",path);
-  FFPUTC('\n',f);
-  FFPUTS("Options:\n",f);
-  FFPUTS(" -v,--version:  print this message and exit\n",f);
-  FFPUTS(" -h,--help[=<topic>]?:  print this message and exit\n"
-      "    (optional argument <topic> out of \"codec\" or \"suffix\")\n",f);
+
+  _FPRINTFV(f,"\nUsage: %" PBU_PRIs,path);
+
+  _FPRINTF(f," [options] <file/dir> [<file/dir> ...]\n\n");
+  _FPRINTF(f,"Options:\n");
+  _FPRINTF(f," -v,--version:  print this message and exit\n");
+  _FPRINTF(f," -h,--help[=<topic>]?:  print this message and exit\n"
+      "    (optional argument <topic> out of \"codec\" or \"suffix\")\n");
   /////////////////////////////////////////////////////////////////////////////
-  FFPUTS(" -i,--integrated:  calculate integrated loudness\n",f);
-  FFPUTS(" -s,--shortterm:  calculate maximum shortterm loudness\n",f);
-  FFPUTS(" -m,--momentary:  calculate maximum momentary loudness\n",f);
-  FFPUTS(" -r,--range:  calculate loudness range\n",f);
-  FFPUTS(" -p,--sample-peak:  calculate maximum sample peak\n",f);
-  FFPUTS(" -t,--true-peak:  calculate maximum true peak\n",f);
-  FFPUTS(" -b <timestamp>,--begin=<timestamp>:  begin decoding at\n"
-      "   timestamp (in microseconds, format: hh:mm:ss.ms)\n",f);
-  FFPUTS(" -d <duration>,--duration=<duration>:  let decoding\n"
-      "   last duration (in microseconds, format: hh:mm:ss.ms)\n",f);
-  FFPUTS(" -u <method>,--use=<method>:  base replaygain calculation on\n"
+  _FPRINTF(f," -i,--integrated:  calculate integrated loudness\n");
+  _FPRINTF(f," -s,--shortterm:  calculate maximum shortterm loudness\n");
+  _FPRINTF(f," -m,--momentary:  calculate maximum momentary loudness\n");
+  _FPRINTF(f," -r,--range:  calculate loudness range\n");
+  _FPRINTF(f," -p,--sample-peak:  calculate maximum sample peak\n");
+  _FPRINTF(f," -t,--true-peak:  calculate maximum true peak\n");
+  _FPRINTF(f," -b <timestamp>,--begin=<timestamp>:  begin decoding at\n"
+      "   timestamp (in microseconds, format: hh:mm:ss.ms)\n");
+  _FPRINTF(f," -d <duration>,--duration=<duration>:  let decoding\n"
+      "   last duration (in microseconds, format: hh:mm:ss.ms)\n");
+  _FPRINTF(f," -u <method>,--use=<method>:  base replaygain calculation on\n"
       "   <method> (with respect to the -a/--apply and -o/--output\n"
       "   options. available methods:\n"
       "     integrated (default),\n"
@@ -194,59 +202,61 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "     momentary-mean (synonym for \"integrated\"),\n"
       "     momentary-maximum (synonym for \"momentary\"),\n"
       "     shortterm-mean, or\n"
-      "     shortterm-maximum (synonym for \"shortterm\")\n",f);
-  FFPUTS(" -a [<weight>]/--apply[=<weight>]:  apply the EBU/ATSC/RG\n"
+      "     shortterm-maximum (synonym for \"shortterm\")\n");
+  _FPRINTF(f," -a [<weight>]/--apply[=<weight>]:  apply the EBU/ATSC/RG\n"
       "   album gain (in conjunction with the -o/--output option.)\n"
       "   when <weight> out of [0.0 .. 1.0] is provided: album gain\n"
-      "   plus <weight>*(track gain - album gain).\n",f);
-  FFPUTS(" -o <folder>,--output=<folder>:  write replaygain tags\n"
+      "   plus <weight>*(track gain - album gain).\n");
+  _FPRINTF(f," -o <folder>,--output=<folder>:  write replaygain tags\n"
       "   or apply the EBU/ATSC/RG gain, respectively,\n"
       "   and output to <folder>.\n"
       "   specify either option -o/--output or option --overwrite\n"
-      "   but not both.\n",f);
+      "   but not both.\n");
 #if defined (_WIN32) // [
-  FFPUTS(" -f <file>,--file=<file>:  write analysis to an utf-8 log"
-      " file\n",f);
-  FFPUTS(" --utf-16[=<file>]:  write an utf-16 log file instead of an utf-8\n"
+  _FPRINTF(f," -f <file>,--file=<file>:  write analysis to an utf-8 log"
+      " file\n");
+  _FPRINTF(f," --utf-16[=<file>]:  write an utf-16 log file instead of an"
+      " utf-8\n"
       "   log file (<file> can be omitted when provided by means of the\n"
-      "   -f/--file option.)\n",f);
+      "   -f/--file option.)\n");
 #else // ] [
-  FFPUTS(" -f <file>,--file=<file>:  write analysis to a log file\n",f);
+  _FPRINTF(f," -f <file>,--file=<file>:  write analysis to a log file\n");
+#endif // ]
+#if defined (BG_PARAM_SKIP_SCAN) // [
+  _FPRINTF(f," --skip-scan:  skip counting files.\n");
+#endif // ]
+#if defined (BG_PARAM_SCRIPT) // [
+  _FPRINTF(f," --script=<script>:  run <script> on track. if not explicitely\n"
+      "   provided implies option --apply. <script> might be provided\n"
+      "   as a string or as a file name.\n");
 #endif // ]
 #if defined (BG_PARAM_QUIET) // [
-  FFPUTS(" --quiet:  supress any output except error messages.\n",f);
+  _FPRINTF(f," --quiet:  supress any output except error messages.\n");
 #endif // ]
 #if defined (BG_PARAM_THREADS) // [
-  FFPUTS(" --threads=<number of threads>:  parallelize using <number\n"
-      "     of threads> threads. implies --quiet.\n",f);
-#endif // ]
-#if defined (BG_LIST) // [
-  FFPUTS(" -l,--list:  print FFmpeg format/stream information\n",f);
+  _FPRINTF(f," --threads=<number of threads>:  parallelize using <number\n"
+      "     of threads> threads. implies --quiet.\n");
 #endif // ]
   /////////////////////////////////////////////////////////////////////////////
-  FFPUTS(" --ebu:  calculate replay gain according to EBU R128\n"
-      "   (-23.0 LUFS, default)\n",f);
-  FFPUTS(" --atsc:  calculate replay gain according to ATSC A/85\n"
-      "   (-24.0 LUFS)\n",f);
-  FFPUTS(" --replaygain:  calculate replay gain according to\n"
-      "   ReplayGain 2.0 (-18.0 LUFS)\n",f);
-  FFPUTS(" --track-tags:  write track tags\n",f);
-  FFPUTS(" --album-tags:  write album tags\n",f);
-  FFPUTS(" --tag-prefix=<prefix>:  instead of \"REPLAYGAIN\",\n"
-      "   use <prefix> as replaygain tag prefix\n",f);
-  FFPUTS(" --unit=<unit>:  write results and tags with <unit> out of\n"
-      "   \"ebu\" or \"db\"\n",f);
-#if defined (BG_LIST) // [
-  FFPUTS(" --audio=<index>/--ai=<index>:  select audio index.",f);
-#else // ] [
-  FFPUTS(" --audio=<index>/--ai=<index>:  select audio index"
+  _FPRINTF(f," --ebu:  calculate replay gain according to EBU R128\n"
+      "   (-23.0 LUFS, default)\n");
+  _FPRINTF(f," --atsc:  calculate replay gain according to ATSC A/85\n"
+      "   (-24.0 LUFS)\n");
+  _FPRINTF(f," --replaygain:  calculate replay gain according to\n"
+      "   ReplayGain 2.0 (-18.0 LUFS)\n");
+  _FPRINTF(f," --track-tags:  write track tags\n");
+  _FPRINTF(f," --album-tags:  write album tags\n");
+  _FPRINTF(f," --tag-prefix=<prefix>:  instead of \"REPLAYGAIN\",\n"
+      "   use <prefix> as replaygain tag prefix\n");
+  _FPRINTF(f," --unit=<unit>:  write results and tags with <unit> out of\n"
+      "   \"ebu\" or \"db\"\n");
+  _FPRINTF(f," --audio=<index>/--ai=<index>:  select audio index"
       " (corresponds\n"
-      "   to [0:<index>] in FFmpeg listing, cf. -l/--list option)\n",f);
-#endif // ]
-  FFPUTS(" --video=<index>/--vi=<index>:  select video index"
+      "   to [0:<index>] in FFmpeg listing, cf. -l/--list option)\n");
+  _FPRINTF(f," --video=<index>/--vi=<index>:  select video index"
       " (corresponds\n"
-      "   to [0:<index>] in FFmpeg listing, cf. -l/--list option)\n",f);
-  FFPUTS(" --matrix:<matrix>:  remix to <matrix> out of\n"
+      "   to [0:<index>] in FFmpeg listing, cf. -l/--list option)\n");
+  _FPRINTF(f," --matrix:<matrix>:  remix to <matrix> out of\n"
       "    front-left,\n"
       "    front-right,\n"
       "    front-center,\n"
@@ -299,10 +309,10 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "    layout-7point1-wide-back,\n"
       "    layout-octagonal,\n"
       "    layout-hexadecagonal, or\n"
-      "    layout-stereo-downmix\n",f);
-  FFPUTS(" --stereo:  shorthand for --matrix=layout-stereo\n",f);
-  FFPUTS(" --drc=<float>:  set AC3 dynamic range compression (DRC)\n",f);
-  FFPUTS(" -x [<extension>]?, --extension[=<extension>]?:  enable"
+      "    layout-stereo-downmix\n");
+  _FPRINTF(f," --stereo:  shorthand for --matrix=layout-stereo\n");
+  _FPRINTF(f," --drc=<float>:  set AC3 dynamic range compression (DRC)\n");
+  _FPRINTF(f," -x [<extension>]?, --extension[=<extension>]?:  enable"
       " extension\n"
       "   out of\n"
       "    rename:  rename files according to TITLE tag\n"
@@ -310,10 +320,10 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "    copy:  copy non-audio files from source to destination\n"
       "      folder\n"
       "    tags:  automatically add the TRACK and DISC tags\n"
-      "    all:  all of the above (can be omitted)\n",f);
-  FFPUTS(" --suffix=<suffix>:  output to <basename>.<suffix>\n"
-      "    (only useful in conjunction with option -o/--output)\n",f);
-  FFPUTS(" --loglevel=<level>:  set FFmpeg loglevel to <level> out of\n"
+      "    all:  all of the above (can be omitted)\n");
+  _FPRINTF(f," --suffix=<suffix>:  output to <basename>.<suffix>\n"
+      "    (only useful in conjunction with option -o/--output)\n");
+  _FPRINTF(f," --loglevel=<level>:  set FFmpeg loglevel to <level> out of\n"
       "    quiet,\n"
       "    panic,\n"
       "    fatal,\n"
@@ -322,84 +332,83 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "    info,\n"
       "    verbose,\n"
       "    debug, or\n"
-      "    trace\n",f);
-  FFPUTS(" --xml:  print results in xml format\n",f);
+      "    trace\n");
+  _FPRINTF(f," --xml:  print results in xml format\n");
 #if defined (BG_CLOCK) // [
-  FFPUTS(" --time:  print out duration of program invocation\n",f);
+  _FPRINTF(f," --time:  print out duration of program invocation\n");
 #endif // ]
-  FFPUTS(" --norm=<float>:  norm loudness to float.\n",f);
+  _FPRINTF(f," --norm=<float>:  norm loudness to float.\n");
 #if 0 // [
-  FFPUTS(" --preamp=<preamp>:\n",f);
-  FFPUTS(" --stero:\n",f);
-  FFPUTS(" --rg-tags:\n",f);
-  FFPUTS(" --bwf-tags:\n",f);
+  _FPRINTF(f," --preamp=<preamp>:\n");
+  _FPRINTF(f," --stero:\n");
+  _FPRINTF(f," --rg-tags:\n");
+  _FPRINTF(f," --bwf-tags:\n");
 #endif // ]
-  FFPUTS(" --overwrite:  replace any source file by its respective\n"
+  _FPRINTF(f," --overwrite:  replace any source file by its respective\n"
       "    target file. specify either option -o/--output or option\n"
       "    --overwrite but not both.\n"
       "    WARNING:  use this option with extrem care. The source\n"
       "      files will definitely be lost!!! For this reason using\n"
       "      this option is discouraged. It's provided just for\n"
-      "      completeness.\n",f);
+      "      completeness.\n");
 #if defined (BG_PARAM_LFE) && defined (BG_CHANNEL_LFE) // [
-  FFPRINTF(f," --lfe=<lfe channel>  overwrite the default <lfe"
+  _FPRINTFV(f," --lfe=<lfe channel>  overwrite the default <lfe"
       " channel>\n"
       "    (default: %d.)\n",BG_CHANNEL_LFE);
 #endif // ]
-  FFPUTS(" --codec=<name>:  use audio codec \"<name>\" for output\n"
-      "    default: \"flac\".)\n",f);
-  FFPUTS(" --temp-prefix=<prefix>:  create temporary files with\n"
-      "    prefix \"<prefix>\" default: \"" BG_TEMP_PREFIX "\".)\n",f);
-  FFPUTS(" --suppress-hierarchy:  suppress printing results up the\n"
-      "    hierarchy.\n",f);
-  FFPUTS(" --suppress-progress:  suppress printing processing"
-      " progress\n",f);
+  _FPRINTF(f," --codec=<name>:  use audio codec \"<name>\" for output\n"
+      "    default: \"flac\".)\n");
+  _FPRINTF(f," --temp-prefix=<prefix>:  create temporary files with\n"
+      "    prefix \"<prefix>\" default: \"" BG_TEMP_PREFIX "\".)\n");
+  _FPRINTF(f," --suppress-hierarchy:  suppress printing results up the\n"
+      "    hierarchy.\n");
+  _FPRINTF(f," --suppress-progress:  suppress printing processing"
+      " progress\n");
   /////////////////////////////////////////////////////////////////////////////
-  FFPUTC('\n',f);
-  FFPUTS("Experimental options:\n",f);
+  _FPRINTF(f,"\nExperimental options:\n");
   ////////
-  FFPUTS("1) momentary block\n",f);
-  FFPUTS(" --momentary-mean:  calculate mean loudness based on\n"
-      "   momentary block (same as --integrated)\n",f);
-  FFPUTS(" --momentary-maximum:  calculate maximum loudness based\n"
-      "   on momentary block (same as --momentary)\n",f);
-  FFPUTS(" --momentary-range:  calculate loudness range based on\n"
-      "   momentary block\n",f);
-  FFPUTS(" --momentary-length=<ms>:  length of momentary block\n"
-      "   in milliseconds (default: 400)\n",f);
-  FFPUTS(" --momentary-overlap=<percent>:  overlap of momentary\n"
-      "   block in percent (default: 75)\n",f);
-  FFPUTS(" --momentary-mean-gate=<gate>:  silence gate for mean\n"
-      "   measurement of momentary block (default: -10.0)\n",f);
-  FFPUTS(" --momentary-range-gate=<gate>:  silence gate for range\n"
-      "   measurement of momentary block (default: -20.0)\n",f);
-  FFPUTS(" --momentary-range-lower-bound=<float>:  lower bound for\n"
-      "   range measurement of momentary block (default: 0.1)\n",f);
-  FFPUTS(" --momentary-range-upper-bound=<float>:  upper bound for\n"
-      "   range measurement of momentary block (default: 0.95)\n",f);
+  _FPRINTF(f,"1) momentary block\n");
+  _FPRINTF(f," --momentary-mean:  calculate mean loudness based on\n"
+      "   momentary block (same as --integrated)\n");
+  _FPRINTF(f," --momentary-maximum:  calculate maximum loudness based\n"
+      "   on momentary block (same as --momentary)\n");
+  _FPRINTF(f," --momentary-range:  calculate loudness range based on\n"
+      "   momentary block\n");
+  _FPRINTF(f," --momentary-length=<ms>:  length of momentary block\n"
+      "   in milliseconds (default: 400)\n");
+  _FPRINTF(f," --momentary-overlap=<percent>:  overlap of momentary\n"
+      "   block in percent (default: 75)\n");
+  _FPRINTF(f," --momentary-mean-gate=<gate>:  silence gate for mean\n"
+      "   measurement of momentary block (default: -10.0)\n");
+  _FPRINTF(f," --momentary-range-gate=<gate>:  silence gate for range\n"
+      "   measurement of momentary block (default: -20.0)\n");
+  _FPRINTF(f," --momentary-range-lower-bound=<float>:  lower bound for\n"
+      "   range measurement of momentary block (default: 0.1)\n");
+  _FPRINTF(f," --momentary-range-upper-bound=<float>:  upper bound for\n"
+      "   range measurement of momentary block (default: 0.95)\n");
   ////////
-  FFPUTS("2) shortterm block\n",f);
-  FFPUTS(" --shortterm-mean:  calculate mean loudness based on\n"
-      "   shortterm block\n",f);
-  FFPUTS(" --shortterm-maximum:  calculate maximum loudness based\n"
-      "   on shortterm block (same as --shortterm)\n",f);
-  FFPUTS(" --shortterm-range:  calculate loudness range based on\n"
-      "   shortterm block (same as --range)\n",f);
-  FFPUTS(" --shortterm-length=<ms>:  length of shortterm block\n"
-      "   in milliseconds (default: 3000)\n",f);
-  FFPUTS(" --shortterm-overlap <percent>:  overlap of shortterm\n"
-      "   block in percent (default: 67)\n",f);
-  FFPUTS(" --shortterm-mean-gate=<gate>:  silence gate for mean\n"
-      "   measurement of shortterm block (default: -10.0)\n",f);
-  FFPUTS(" --shortterm-range-gate=<gate>:  silence gate for range\n"
-      "   measurement of shortterm block (default: -20.0)\n",f);
-  FFPUTS(" --shortterm-range-lower-bound=<float>:  lower bound for\n"
-      "   range measurement of shortterm block (default: 0.1)\n",f);
-  FFPUTS(" --shortterm-range-upper-bound=<float>:  upper bound for\n"
-      "   range measurement of shortterm block (default: 0.95)\n",f);
+  _FPRINTF(f,"2) shortterm block\n");
+  _FPRINTF(f," --shortterm-mean:  calculate mean loudness based on\n"
+      "   shortterm block\n");
+  _FPRINTF(f," --shortterm-maximum:  calculate maximum loudness based\n"
+      "   on shortterm block (same as --shortterm)\n");
+  _FPRINTF(f," --shortterm-range:  calculate loudness range based on\n"
+      "   shortterm block (same as --range)\n");
+  _FPRINTF(f," --shortterm-length=<ms>:  length of shortterm block\n"
+      "   in milliseconds (default: 3000)\n");
+  _FPRINTF(f," --shortterm-overlap <percent>:  overlap of shortterm\n"
+      "   block in percent (default: 67)\n");
+  _FPRINTF(f," --shortterm-mean-gate=<gate>:  silence gate for mean\n"
+      "   measurement of shortterm block (default: -10.0)\n");
+  _FPRINTF(f," --shortterm-range-gate=<gate>:  silence gate for range\n"
+      "   measurement of shortterm block (default: -20.0)\n");
+  _FPRINTF(f," --shortterm-range-lower-bound=<float>:  lower bound for\n"
+      "   range measurement of shortterm block (default: 0.1)\n");
+  _FPRINTF(f," --shortterm-range-upper-bound=<float>:  upper bound for\n"
+      "   range measurement of shortterm block (default: 0.95)\n");
   /////////////////////////////////////////////////////////////////////////////
-  FFPUTS("\n",f);
-  FFPUTS("Command line arguments may appear in any order.\n",f);
+  _FPRINTF(f,"\n");
+  _FPRINTF(f,"Command line arguments may appear in any order.\n");
 }
 
 #if defined (HAVE_FF_DYNLOAD) && defined (__linux__) \
@@ -449,6 +458,12 @@ int main(int argc, char *const *argv)
 #endif // ]
 #if defined (_WIN32) // [
     BG_ARG_UTF_16,
+#endif // ]
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    BG_SKIP_SCAN,
+#endif // ]
+#if defined (BG_PARAM_SCRIPT) // [
+    BG_SCRIPT,
 #endif // ]
     BG_ARG_DRC,
     BG_ARG_LOGLEVEL,
@@ -540,9 +555,6 @@ int main(int argc, char *const *argv)
   static struct option OPTS[]={
     { FFL("version"),no_argument,NULL,FFL('v') },
     { FFL("help"),optional_argument,NULL,FFL('h') },
-#if defined (BG_LIST) // [
-    { FFL("list"),no_argument,NULL,FFL('l') },
-#endif // ]
     { FFL("begin"),required_argument,NULL,FFL('b') },
     { FFL("duration"),required_argument,NULL,FFL('d') },
     { FFL("file"),required_argument,NULL,FFL('f') },
@@ -560,6 +572,12 @@ int main(int argc, char *const *argv)
     { FFL("apply"),optional_argument,NULL,FFL('a') },
 #if defined (_WIN32) // [
     { FFL("utf-16"),optional_argument,NULL,BG_ARG_UTF_16 },
+#endif // ]
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    { FFL("skip-scan"),optional_argument,NULL,BG_SKIP_SCAN },
+#endif // ]
+#if defined (BG_PARAM_SCRIPT) // [
+    { FFL("script"),required_argument,NULL,BG_SCRIPT },
 #endif // ]
     { FFL("unit"),required_argument,NULL,BG_ARG_UNIT },
     { FFL("audio"),required_argument,NULL,BG_ARG_AUDIO },
@@ -656,6 +674,9 @@ int main(int argc, char *const *argv)
 #endif // ]
   const ffchar_t *fpath=NULL;
   enum BGFlagHelpArg help_args=0;
+#if defined (BG_PARAM_SCRIPT) // [
+  ffchar_t *script=NULL;
+#endif // ]
 #if defined (HAVE_FF_DYNLOAD) && defined (__linux__) && defined (__GNUC__) // [
   const char *lhs;
   const char *rhs;
@@ -674,16 +695,27 @@ int main(int argc, char *const *argv)
 #endif // ]
   int verbose;
 
+#if defined (PBU_CONSOLE_UTF8) && defined (_WIN32) // [
+  /////////////////////////////////////////////////////////////////////////////
+#if 0 // [
+  _setmode(_fileno(stdout), _O_U16TEXT);
+  _setmode(_fileno(stderr), _O_U16TEXT);
+#else // ] [
+  SetConsoleOutputCP(CP_UTF8);
+#endif // ]
+#endif // ]
+
   /////////////////////////////////////////////////////////////////////////////
   if (argc<2) {
-    FFMESSAGE("missing command line arguments");
+    _DMESSAGE("missing command line arguments.");
+    _FPRINTF(stderr,"\n");
     bg_usage(argv[0],stderr);
     goto e_arg;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_param_create(&param)<0) {
-    DMESSAGE("create parameters");
+    _DMESSAGE("create parameters");
     goto e_arg;
   }
 
@@ -692,7 +724,7 @@ int main(int argc, char *const *argv)
     switch (c) {
     ///////////////////////////////////////////////////////////////////////////
     case FFL('?'):
-      FFPUTC('\n',stderr);
+      _FPRINTF(stderr,"\n\n");
       bg_usage(argv[0],stderr);
       goto e_arg;
     ///////////////////////////////////////////////////////////////////////////
@@ -713,7 +745,8 @@ int main(int argc, char *const *argv)
       else if (!FFSTRCMP(FFL("suffix"),optarg))
         help_args|=BG_FLAG_HELP_ARG_SUFFIX;
       else {
-        FFPRINTF(stderr,"Error: help topic \"%s\" not recognized.\n\n",optarg);
+        _FPRINTFV(stderr,"Error: help topic \"%" PBU_PRIs "\" not"
+            " recognized.\n\n",optarg);
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -730,11 +763,11 @@ int main(int argc, char *const *argv)
       break;
     case FFL('o'):
       if (!optarg) {
-        DMESSAGE("missing argument to option -o/--output");
+        _DMESSAGE("missing argument to option -o/--output");
         goto e_arg;
       }
       else if (param.overwrite) {
-        DMESSAGE("specify either option -o/--output or option --overwrite"
+        _DMESSAGE("specify either option -o/--output or option --overwrite"
             " but not both");
         bg_usage(argv[0],stderr);
         goto e_arg;
@@ -755,7 +788,7 @@ int main(int argc, char *const *argv)
           ||!FFSTRCASECMP(FFL("shortterm-maximum"),optarg))
         param.flags.aggregate|=BG_FLAGS_AGG_SHORTTERM_MAXIMUM;
       else {
-        FFVMESSAGE("method \"%s\" not recognized",optarg);
+        _DMESSAGEV("method \"%" PBU_PRIs "\" not recognized",optarg);
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -770,19 +803,13 @@ int main(int argc, char *const *argv)
         param.weight.value=FFATOF(optarg);
 
         if (param.weight.value<0.0||1.0<param.weight.value) {
-          DMESSAGE("weight out of range");
+          _DMESSAGE("weight out of range");
           bg_usage(argv[0],stderr);
           goto e_arg;
         }
       }
 
       break;
-#if defined (BG_LIST) // [
-    case FFL('l'):
-      param.result.f=stderr;
-      param.dump=1;
-      break;
-#endif // ]
     case FFL('i'):
       param.flags.aggregate|=BG_FLAGS_AGG_MOMENTARY_MEAN;
       break;
@@ -855,7 +882,7 @@ int main(int argc, char *const *argv)
       else if (0==FFSTRCASECMP(FFL("all"),optarg))
         param.flags.extension|=BG_FLAGS_EXT_ALL;
       else {
-        FFVMESSAGE("extension \"%s\" not recognized",optarg);
+        _DMESSAGEV("extension \"%" PBU_PRIs "\" not recognized",optarg);
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -874,7 +901,8 @@ int main(int argc, char *const *argv)
       else if (!FFSTRCMP(optarg,FFL("db")))
         bg_param_set_unit_db(&param);
       else {
-        FFVMESSAGE("argument to option --unit not recognized: \"%s\"",optarg);
+        _DMESSAGEV("argument to option --unit not recognized:"
+            " \"%" PBU_PRIs "\"",optarg);
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -887,6 +915,16 @@ int main(int argc, char *const *argv)
       if (optarg)
         fpath=optarg;
 
+      break;
+#endif // ]
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    case BG_SKIP_SCAN:
+      param.skip_scan=1;
+      break;
+#endif // ]
+#if defined (BG_PARAM_SCRIPT) // [
+    case BG_SCRIPT:
+      script=optarg;
       break;
 #endif // ]
     case BG_ARG_DRC:
@@ -907,7 +945,7 @@ int main(int argc, char *const *argv)
       break;
     case BG_ARG_OVERWRITE:
       if (param.output.dirname) {
-        DMESSAGE("specify either option -o/--output or option --overwrite"
+        _DMESSAGE("specify either option -o/--output or option --overwrite"
             " but not both");
         bg_usage(argv[0],stderr);
         goto e_arg;
@@ -929,7 +967,7 @@ int main(int argc, char *const *argv)
       break;
     case BG_ARG_TEMP_PREFIX:
       if (!*optarg) {
-        DMESSAGE("missing argument to --temp-prefix");
+        _DMESSAGE("missing argument to --temp-prefix");
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -962,7 +1000,8 @@ int main(int argc, char *const *argv)
       else if (0==FFSTRCASECMP(FFL("trace"),optarg))
         param.loglevel=AV_LOG_TRACE;
       else {
-        FFPRINTF(stderr,"Error: loglevel \"%s\" not recognized.\n\n",optarg);
+        _FPRINTFV(stderr,"Error: loglevel \"%" PBU_PRIs "\""
+            " not recognized.\n\n",optarg);
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -1121,8 +1160,8 @@ int main(int argc, char *const *argv)
       else if (!FFSTRCASECMP(FFL("layout-stereo-downmix"),optarg))
         param.decode.request.channel_layout=AV_CH_LAYOUT_STEREO_DOWNMIX;
       else {
-        FFVMESSAGE("argument to option --matrix not recognized: \"%s\"",
-            optarg);
+        _DMESSAGEV("argument to option --matrix not recognized:"
+            " \"%" PBU_PRIs "\"",optarg);
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -1149,7 +1188,7 @@ int main(int argc, char *const *argv)
       if (0.0<=overlap&&overlap<100.0)
         param.momentary.partition=floor(100.0/(100.0-overlap)+0.5);
       else {
-        FFPUTS("Error: overlap out of range [0..100).\n\n",stderr);
+        _FPRINTF(stderr,"Error: overlap out of range [0..100).\n\n");
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -1181,7 +1220,7 @@ int main(int argc, char *const *argv)
       if (0.0<=overlap&&overlap<100.0)
         param.shortterm.partition=floor(100.0/(100.0-overlap)+0.5);
       else {
-        FFPUTS("Error: overlap out of range [0..100).\n\n",stderr);
+        _FPRINTF(stderr,"Error: overlap out of range [0..100).\n\n");
         bg_usage(argv[0],stderr);
         goto e_arg;
       }
@@ -1200,12 +1239,21 @@ int main(int argc, char *const *argv)
       param.shortterm.range.upper_bound=FFATOF(optarg);
       break;
     default:
+#if defined (_WIN32) // [
       if ('c'==optopt)
-        FFVMESSAGE("option -%c requires an argument",optopt);
-      else if (isprint(optopt))
-        FFVMESSAGE("unknown option -%c",optopt);
+        _DMESSAGEV("option -%C requires an argument",optopt);
+      else if (iswprint(optopt))
+        _DMESSAGEV("unknown option -%C",optopt);
       else
-        FFVMESSAGE("unknown option character \\x%x",optopt);
+        _DMESSAGEV("unknown option character \\x%X",optopt);
+#else // ] [
+      if ('c'==optopt)
+        _DMESSAGEV("option -%c requires an argument",optopt);
+      else if (isprint(optopt))
+        _DMESSAGEV("unknown option -%c",optopt);
+      else
+        _DMESSAGEV("unknown option character \\x%x",optopt);
+#endif // ]
 
       bg_usage(argv[0],stderr);
       goto e_arg;
@@ -1243,6 +1291,98 @@ int main(int argc, char *const *argv)
   }
 #endif // ]
 
+#if defined (BG_PARAM_SCRIPT) // [
+  if (script) {
+#if 0 && defined (_WIN32) // [
+    FILE *f;
+#endif // ]
+#if ! defined (BG_SYSTEM) // [
+    size_t size;
+#endif // ]
+
+    if (!param.output.dirname&&!param.overwrite) {
+      _FPRINTF(stderr,"Error: option --script requires option -o/--output"
+          " or option --overwrite.\n\n");
+      bg_usage(argv[0],stderr);
+      goto e_arg;
+    }
+
+#if defined (BG_SYSTEM) // [
+    param.script=script;
+#else // ] [
+#if defined (_WIN32) // [
+    struct _stat buf;
+
+    if (!_wstat(script,&buf)) {
+      char *script_temp;
+
+      if (!(script_temp=malloc(buf.st_size+1))) {
+        _DWARNING("allocating temporary script");
+        goto e_script;
+      }
+
+      f=_wfopen(script,L"r");
+      fread(script_temp,buf.st_size,1,f);
+      fclose(f);
+
+      script_temp[buf.st_size]='\0';
+
+      // eat any carriage return or line feed character from the end.
+      while (--buf.st_size
+          &&('\r'==script_temp[buf.st_size]||'\n'==script_temp[buf.st_size]))
+        script_temp[buf.st_size]='\0';
+
+      size=MultiByteToWideChar(
+        CP_UTF8,      // UINT                              CodePage,
+        0,            // DWORD                             dwFlags,
+        script_temp,  // _In_NLS_string_(cbMultiByte)LPCCH lpMultiByteStr,
+        -1,           // int                               cbMultiByte,
+        NULL,         // LPWSTR                            lpWideCharStr,
+        0             // int                               cchWideChar
+      );
+
+      if (!(param.script=malloc(size*sizeof param.script[0]))) {
+        _DWARNING("allocating script");
+        goto e_script;
+      }
+
+      MultiByteToWideChar(
+        CP_UTF8,      //UINT                              CodePage,
+        0,            //DWORD                             dwFlags,
+        script_temp,  //_In_NLS_string_(cbMultiByte)LPCCH lpMultiByteStr,
+        -1,           //int                               cbMultiByte,
+        param.script, //LPWSTR                            lpWideCharStr,
+        size          //int                               cchWideChar
+      );
+
+      free(script_temp);
+    }
+    else {
+      size=wcslen(script)+1;
+
+      if (!(param.script=malloc(size*sizeof *param.script))) {
+        _DMESSAGE("allocating script");
+        goto e_script;
+      }
+
+      wcscpy(param.script,script);
+    }
+#else // ] [
+    size=strlen(script)+1;
+
+    if (!(param.script=malloc(size))) {
+      _DMESSAGE("allocating script");
+      goto e_script;
+    }
+
+    strcpy(param.script,script);
+#endif // ]
+#endif // ]
+_DWRITELNV("script: \"%" PBU_PRIs "\"",param.script);
+    param.flags.mode|=BG_FLAGS_MODE_APPLY;
+  }
+#endif // ]
+
   // in case no class of tags is given we provide both, i.e. album and
   // track tags.
   if (!(param.flags.mode&BG_FLAGS_MODE_TAGS_ALL))
@@ -1256,12 +1396,12 @@ int main(int argc, char *const *argv)
 
   if (strcmpex(&lhs,&rhs,'.')<0||strcmpex(&lhs,&rhs,0)<0) {
 #if 0 // [
-    DVWARNING("libc might be out-dated: expecting %s, found %s",
+    _DWARNINGV("libc might be out-dated: expecting %s, found %s",
         BG_GNU_LIBC_VERSION,gnu_get_libc_version());
-    fputs("  Might prevent loading FFmpeg shared objects."
-        " Good luck!\n",stderr);
+    _FPRINTF(stderr,"  Might prevent loading FFmpeg shared objects."
+        " Good luck!\n");
 #else // ] [
-    DVMESSAGE("Attmpting to dynamically load FFmpeg shared objects by means"
+    _DMESSAGEV("Attmpting to dynamically load FFmpeg shared objects by means"
         " of an out-dated libc: expecting %s, found %s",BG_GNU_LIBC_VERSION,
         gnu_get_libc_version());
     goto e_libc;
@@ -1272,7 +1412,7 @@ int main(int argc, char *const *argv)
   /////////////////////////////////////////////////////////////////////////////
   // load the FFmpeg libraries from "bs1770gain-tools".
   if (ff_dynload(TOOLS)<0) {
-    PBU_DMESSAGE("loading shared libraries");
+    _DMESSAGE("loading shared libraries");
     goto e_dynload;
   }
 #endif // ]
@@ -1282,10 +1422,10 @@ int main(int argc, char *const *argv)
 
   if (LIBAVUTIL_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of avutil: expecting %d, found %d at \"%s\"",
+    _DMESSAGEV("wrong version of avutil: expecting %d, found %d at \"%s\"",
         LIBAVUTIL_VERSION_MAJOR,AV_VERSION_MAJOR(version),ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of avutil: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of avutil: expecting %d, linked %d",
         LIBAVUTIL_VERSION_MAJOR,AV_VERSION_MAJOR(version));
 #endif // ]
     goto e_versions;
@@ -1296,11 +1436,11 @@ int main(int argc, char *const *argv)
 
   if (LIBSWRESAMPLE_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of swresample: expecting %d, found %d at \"%s\"",
+    _DMESSAGEV("wrong version of swresample: expecting %d, found %d at \"%s\"",
         LIBSWRESAMPLE_VERSION_MAJOR,AV_VERSION_MAJOR(version),
         ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of swresample: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of swresample: expecting %d, linked %d",
         LIBSWRESAMPLE_VERSION_MAJOR,AV_VERSION_MAJOR(version));
 #endif // ]
     goto e_versions;
@@ -1311,10 +1451,10 @@ int main(int argc, char *const *argv)
 
   if (LIBAVCODEC_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of avcodec: expecting %d, found %d at \"%s\"",
+    _DMESSAGEV("wrong version of avcodec: expecting %d, found %d at \"%s\"",
         LIBAVCODEC_VERSION_MAJOR,AV_VERSION_MAJOR(version),ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of avcodec: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of avcodec: expecting %d, linked %d",
         LIBAVCODEC_VERSION_MAJOR,version);
 #endif // ]
     goto e_versions;
@@ -1325,10 +1465,10 @@ int main(int argc, char *const *argv)
 
   if (LIBAVFORMAT_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of avformat: expecting %d, found %d at \"%s\"",
+    _DMESSAGEV("wrong version of avformat: expecting %d, found %d at \"%s\"",
         LIBAVFORMAT_VERSION_MAJOR,AV_VERSION_MAJOR(version),ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of avformat: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of avformat: expecting %d, linked %d",
         LIBAVFORMAT_VERSION_MAJOR,AV_VERSION_MAJOR(version));
 #endif // ]
     goto e_versions;
@@ -1339,10 +1479,10 @@ int main(int argc, char *const *argv)
 
   if (LIBSWSCALE_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of swscale: expecting %d, found %d at \"%s\"",
+    _DMESSAGEV("wrong version of swscale: expecting %d, found %d at \"%s\"",
         LIBSWSCALE_VERSION_MAJOR,AV_VERSION_MAJOR(version),ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of swscale: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of swscale: expecting %d, linked %d",
         LIBSWSCALE_VERSION_MAJOR,AV_VERSION_MAJOR(version));
 #endif // ]
     goto e_versions;
@@ -1353,10 +1493,10 @@ int main(int argc, char *const *argv)
 
   if (LIBPOSTPROC_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of postproc: expecting %d, found %d at \"%s\"",
+    _DMESSAGEV("wrong version of postproc: expecting %d, found %d at \"%s\"",
         LIBPOSTPROC_VERSION_MAJOR,AV_VERSION_MAJOR(version),ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of postproc: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of postproc: expecting %d, linked %d",
         LIBPOSTPROC_VERSION_MAJOR,AV_VERSION_MAJOR(version));
 #endif // ]
     goto e_versions;
@@ -1367,10 +1507,10 @@ int main(int argc, char *const *argv)
 
   if (LIBAVFILTER_VERSION_MAJOR!=AV_VERSION_MAJOR(version)) {
 #if defined (HAVE_FF_DYNLOAD) // [
-    DVMESSAGE("wrong version of avfilter: %d needed, %d loaded from \"%s\"",
+    _DMESSAGEV("wrong version of avfilter: %d needed, %d loaded from \"%s\"",
         LIBAVFILTER_VERSION_MAJOR,AV_VERSION_MAJOR(version),ff_dynload_path());
 #else // ] [
-    DVMESSAGE("wrong version of avfilter: expecting %d, linked %d",
+    _DMESSAGEV("wrong version of avfilter: expecting %d, linked %d",
         LIBAVFILTER_VERSION_MAJOR,AV_VERSION_MAJOR(version));
 #endif // ]
     goto e_versions;
@@ -1388,14 +1528,14 @@ int main(int argc, char *const *argv)
     ///////////////////////////////////////////////////////////////////////////
     if (BG_FLAG_HELP_ARG_SUFFIX&help_args) {
       /////////////////////////////////////////////////////////////////////////
-      fprintf(stdout,"available arguments for option --suffix:\n");
+      _FPRINTF(stdout,"available arguments for option --suffix:\n");
 #if (LIBAVFORMAT_VERSION_MAJOR<58) // [
       // https://stackoverflow.com/questions/2940521/where-to-get-full-list-of-libav-formats
       oformat=av_oformat_next(NULL);
 
       while (oformat) {
         if (oformat->audio_codec&&oformat->extensions)
-          fprintf(stdout,"  %s\n",oformat->extensions);
+          _FPRINTFV(stdout,"  %s\n",oformat->extensions);
 
         oformat=av_oformat_next(oformat);
       }
@@ -1409,7 +1549,7 @@ int main(int argc, char *const *argv)
           break;
 
         if (oformat->audio_codec&&oformat->extensions)
-          fprintf(stdout,"  %s\n",oformat->extensions);
+          _FPRINTFV(stdout,"  %s\n",oformat->extensions);
       }
 #endif // ]
 
@@ -1418,14 +1558,14 @@ int main(int argc, char *const *argv)
 
     if (BG_FLAG_HELP_ARG_CODEC&help_args) {
       /////////////////////////////////////////////////////////////////////////
-      fprintf(stdout,"available arguments for option --codec:\n");
+      _FPRINTF(stdout,"available arguments for option --codec:\n");
 #if (LIBAVCODEC_VERSION_MAJOR<58) // [
       // https://stackoverflow.com/questions/2940521/where-to-get-full-list-of-libav-formats
       codec=av_codec_next(NULL);
 
       while (codec) {
         if (AVMEDIA_TYPE_AUDIO==codec->type)
-          fprintf(stdout,"  %s\n",codec->name);
+          _FPRINTFV(stdout,"  %s\n",codec->name);
 
         codec=av_codec_next(codec);
       }
@@ -1439,7 +1579,7 @@ int main(int argc, char *const *argv)
           break;
 
         if (AVMEDIA_TYPE_AUDIO==codec->type)
-          fprintf(stdout,"  %s\n",codec->name);
+          _FPRINTFV(stdout,"  %s\n",codec->name);
       }
 #endif // ]
 
@@ -1457,7 +1597,7 @@ int main(int argc, char *const *argv)
     param.nthreads=0;
   else if (param.nthreads) {
     if (bg_param_threads_create(&param.threads,param.nthreads)<0) {
-      DMESSAGE("creating threads");
+      _DMESSAGE("creating threads");
       goto e_threads;
     }
   }
@@ -1469,8 +1609,11 @@ int main(int argc, char *const *argv)
   param.locale=_create_locale(LC_ALL,"");
 #endif // ]
   // needed in order for _wcslwr() working as expected.
-  //_wsetlocale(LC_ALL,L"English_US");
+#if 1 // [
+  _wsetlocale(LC_ALL,L"English_US");
+#else // ] [
   _wsetlocale(LC_ALL,L"");
+#endif // ]
   // if LANG is set to e.g. "en_US.UTF-8" we assume we're run from
   // e.g. MSYS2 shell undestanding UTF-8 otherwise from MS console using
   // codepage OEM. In the latter case we need an OEM representation of
@@ -1497,7 +1640,13 @@ int main(int argc, char *const *argv)
       param.print.vmt->encoding(&param,16);
     }
     else {
+#if 0 // [
+      param.result.f=_wfopen(fpath,L"wt");
+#else // ] [
+      // If the file is encoded as UTF-8, then UTF-16 data is translated
+      // into UTF-8 when it is written
       param.result.f=_wfopen(fpath,L"wt,ccs=UTF-8");
+#endif // ]
       param.print.vmt->encoding(&param,8);
     }
 #else // ] [
@@ -1508,9 +1657,9 @@ int main(int argc, char *const *argv)
 
     if (!param.result.f) {
 #if defined (_WIN32) // [
-      DVMESSAGEW(L"opening file \"%s\"",fpath);
+      _DMESSAGEV("opening file \"%S\"",fpath);
 #else // ] [
-      DVMESSAGE("opening file \"%s\"",fpath);
+      _DMESSAGEV("opening file \"%s\"",fpath);
 #endif // ]
       goto e_file;
     }
@@ -1525,7 +1674,7 @@ int main(int argc, char *const *argv)
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_param_alloc_arguments(&param,argc-optind)<0) {
-    fputs("Error: setting arguments.\n\n",stderr);
+    _FPRINTF(stderr,"Error: setting arguments.\n\n");
     bg_usage(argv[0],stderr);
     goto e_arguments;
   }
@@ -1537,13 +1686,21 @@ int main(int argc, char *const *argv)
   verbose=!param.suppress.progress;
 #endif // ]
 
+#if defined (BG_PARAM_SKIP_SCAN) // [
+  if (!param.skip_scan&&verbose) {
+#else // ] [
   if (verbose) {
+#endif // ]
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs("<!-- ",stdout);
+      _FPRINTF(stdout,"<!-- ");
 
-    fputs("scanning ",stdout);
+    _FPRINTF(stdout,"scanning ");
     fflush(stdout);
+#if ! defined (BG_PARAM_SKIP_SCAN) // [
   }
+#else // ] [
+  }
+#endif // ]
 
 #if defined (BG_CLOCK) // [
   /////////////////////////////////////////////////////////////////////////////
@@ -1551,10 +1708,18 @@ int main(int argc, char *const *argv)
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
+#if defined (BG_PARAM_SKIP_SCAN) // [
+  if (!param.skip_scan&&bg_param_loop(&param,argv+optind)<0) {
+#else // ] [
   if (bg_param_loop(&param,argv+optind)<0) {
-    DMESSAGE("counting");
+#endif // ]
+    _DMESSAGE("counting");
     goto e_count;
+#if ! defined (BG_PARAM_SKIP_SCAN) // [
   }
+#else // ] [
+  }
+#endif // ]
 
 #if defined (BG_PARAM_THREADS) // [
   if (0<param.nthreads)
@@ -1563,41 +1728,54 @@ int main(int argc, char *const *argv)
 
   if (verbose) {
     ///////////////////////////////////////////////////////////////////////////
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    if (!param.skip_scan) {
+#endif // ]
+      if (&bg_print_xml_vmt==param.print.vmt)
+        _FPRINTF(stdout," -->");
+
+      _FPRINTF(stdout,"\n");
+#if defined (BG_PARAM_SKIP_SCAN) // [
+    }
+#endif // ]
+
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs(" -->",stdout);
+      _FPRINTF(stdout,"<!-- ");
 
-    fputc('\n',stdout);
+#if defined (BG_PARAM_THREADS) // [
+    if (param.nthreads)
+      _FPRINTF(stdout,"processing ...");
+    else
+      _FPRINTF(stdout,"analyzing ...");
+#else // ] [
+    _FPRINTF(stdout,"analyzing ...");
+#endif // ]
 
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs("<!-- ",stdout);
+      _FPRINTF(stdout," -->");
 
-    fputs("analyzing ...",stdout);
-
-    if (&bg_print_xml_vmt==param.print.vmt)
-      fputs(" -->",stdout);
-
-    fputc('\n',stdout);
+    _FPRINTF(stdout,"\n");
     fflush(stdout);
   }
 
   bg_param_set_process(&param);
 
   if (bg_param_loop(&param,argv+optind)<0) {
-    DMESSAGE("processing");
+    _DMESSAGE("processing");
     goto e_process;
   }
 
   if (verbose) {
     ///////////////////////////////////////////////////////////////////////////
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs("<!-- ",stdout);
+      _FPRINTF(stdout,"<!-- ");
 
-    fputs("done.",stdout);
+    _FPRINTF(stdout,"done.");
 
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs(" -->",stdout);
+      _FPRINTF(stdout," -->");
 
-    fputc('\n',stdout);
+    _FPRINTF(stdout,"\n");
     fflush(stdout);
   }
 
@@ -1607,23 +1785,23 @@ int main(int argc, char *const *argv)
 
   if (param.time&&!param.suppress.progress) {
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs("<!-- ",stdout);
+      _FPRINTF(stdout,"<!-- ");
 
     sec=(t2-t1)/CLOCKS_PER_SEC;
 
     if (sec<1.0)
-      fprintf(stdout, "Duration: %.0f ms.",1000.0*sec);
+      _FPRINTFV(stdout, "Duration: %.0f ms.",1000.0*sec);
     else if (sec<BG_MIN)
-      fprintf(stdout, "Duration: %.3f sec.",sec);
+      _FPRINTFV(stdout, "Duration: %.3f sec.",sec);
     else if (sec<BG_HOUR)
-      fprintf(stdout, "Duration: %.3f min.",sec/BG_MIN);
+      _FPRINTFV(stdout, "Duration: %.3f min.",sec/BG_MIN);
     else
-      fprintf(stdout, "Duration: %.3f h.",sec/BG_HOUR);
+      _FPRINTFV(stdout, "Duration: %.3f h.",sec/BG_HOUR);
 
     if (&bg_print_xml_vmt==param.print.vmt)
-      fputs(" -->",stdout);
+      _FPRINTF(stdout," -->");
 
-    fputc('\n',stdout);
+    _FPRINTF(stdout,"\n");
     fflush(stdout);
   }
 #endif // ]
@@ -1657,6 +1835,10 @@ e_dynload:
 #if defined (__linux__) && defined (__GNUC__) // [
 e_libc:
 #endif // ]
+#endif // ]
+#if defined (BG_PARAM_SCRIPT) && ! defined (BG_SYSTEM) // [
+  free(param.script);
+e_script:
 #endif // ]
   bg_param_destroy(&param);
 e_arg:

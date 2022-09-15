@@ -28,13 +28,13 @@ int bg_root_create(bg_tree_t *tree, bg_param_t *param)
 {
   /////////////////////////////////////////////////////////////////////////////
   if (bg_tree_common_create(tree,param,NULL,NULL)<0) {
-    DMESSAGE("creating tree");
+    _DMESSAGE("creating tree");
     goto e_common;
   }
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_album_content_create(tree,&bg_root_vmt)<0) {
-    DMESSAGE("creating content");
+    _DMESSAGE("creating content");
     goto e_content;
   }
 
@@ -67,9 +67,7 @@ static void bg_root_track_id(bg_tree_t *tree FFUNUSED, int *id FFUNUSED)
 #endif // ]
 
 static bg_tree_vmt_t bg_root_vmt={
-#if defined (PBU_DEBUG) // [
   .id=FFL("root"),
-#endif // ]
   .type=BG_TREE_TYPE_ROOT,
   .destroy=bg_root_destroy,
   .accept=bg_root_accept,
