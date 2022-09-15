@@ -1,5 +1,5 @@
 /*
- * bs1770gain_files.c
+ * bs1770gain_s2w.c
 
  *
  * This library is free software; you can redistribute it and/or
