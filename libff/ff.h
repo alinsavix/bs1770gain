@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <pbutil_priv.h>
 #include <libavutil/audio_fifo.h>
+#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
@@ -39,6 +40,25 @@
 #if defined (__cplusplus) // [
 extern "C" {
 #endif // ]
+
+///////////////////////////////////////////////////////////////////////////////
+#define FF_HOLZHAMMER
+#if defined (FF_HOLZHAMMER) // [
+// the "Holzhammer" is taken from "libavutil/internal.h"
+#if ! defined (FF_DISABLE_DEPRECATION_WARNINGS) // [
+#define FF_DISABLE_DEPRECATION_WARNINGS _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#endif // ]
+#if ! defined (FF_ENABLE_DEPRECATION_WARNINGS) // [
+#define FF_ENABLE_DEPRECATION_WARNINGS  _Pragma("GCC diagnostic warning \"-Wdeprecated-declarations\"")
+#endif // ]
+#endif // ]
+
+//#define FF_FIFO
+#define FF_PROGRESS_STDERR
+//#define FF_CHANNEL_LAYOUT_DEPRECATED
+#define FF_SERGEY_INDEX_BUGFIX
+#define FF_INPUT_LIST
+#define FF_CONST const
 
 ///////////////////////////////////////////////////////////////////////////////
 #if defined (PBU_CONSOLE_UTF16) // [
@@ -61,6 +81,7 @@ extern "C" {
 #define FFSTRDUP(s) _wcsdup(s)
 #define FFSTRLEN(s) wcslen(s)
 #define FFSTRCMP(s1,s2) wcscmp(s1,s2)
+#define _FFSTRCMP(s1,s2) wcscmp(L##s1,s2)
 #define FFSTRCPY(s1,s2) wcscpy(s1,s2)
 #define FFSTRSTR(s1,s2) wcsstr(s1,s2)
 #define FFFOPEN(path,mode) _wfopen(path,mode)
@@ -103,6 +124,7 @@ typedef wchar_t ffchar_t;
 #define FFSTRDUP(s) strdup(s)
 #define FFSTRLEN(s) strlen(s)
 #define FFSTRCMP(s1,s2) strcmp(s1,s2)
+#define _FFSTRCMP(s1,s2) strcmp(s1,s2)
 #define FFSTRCPY(s1,s2) strcpy(s1,s2)
 #define FFSTRSTR(s1,s2) strstr(s1,s2)
 #define FFFOPEN(path,mode) fopen(path,mode)
@@ -487,8 +509,13 @@ int ff_printer_create(ff_printer_t *p, FILE *f);
 void ff_printer_destroy(ff_printer_t *p);
 
 void ff_printer_clear(ff_printer_t *p);
-void ff_printer_reset(ff_printer_t *p);
+#if defined (FF_PROGRESS_STDERR) // [
+void ff_printer_flush(ff_printer_t *p, FILE *f);
+void ff_printer_reset(ff_printer_t *p, FILE *f);
+#else // ] [
 void ff_printer_flush(ff_printer_t *p);
+void ff_printer_reset(ff_printer_t *p);
+#endif // ]
 
 #if 0 // [
 int ff_printer_printf(ff_printer_t *p, const char *format, ...);
@@ -507,6 +534,11 @@ int ff_printer_printf(ff_printer_t *p, const ffchar_t *format, ...);
 #endif // ]
 
 struct ff_inout {
+#if defined (FF_INPUT_LIST) // [
+  int list;
+  const char *path;
+#endif // ]
+
   struct {
     void *data;
 
@@ -526,9 +558,29 @@ struct ff_inout {
   ff_audio_t audio;
 };
 
+#if defined (FF_INPUT_LIST) // [
 ////////
+void ff_inout_list(ff_inout_t *inout, int out);
+#endif // ]
+
+////////
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+#if defined (FF_INPUT_LIST) // [
+int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
+    int warn, ff_printer_t *p, int list, int ai, int vi);
+#else // ] [
+int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
+    int warn, ff_printer_t *p, int ai, int vi);
+#endif // ]
+#else // ] [
+#if defined (FF_INPUT_LIST) // [
+int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
+    int warn, ff_printer_t *p, int list);
+#else // ] [
 int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
     int warn, ff_printer_t *p);
+#endif // ]
+#endif // ]
 void ff_input_destroy(ff_inout_t *in);
 
 // for re-opening for a second time, e.g. for the purpose of re-muxing:
@@ -545,13 +597,28 @@ void ff_inout_interval(ff_inout_t *inout, int64_t *begin, int64_t *duration,
 int ff_input_progress(ff_inout_t *in, AVPacket *pkt);
 
 ////////
+#if defined (FF_INPUT_LIST) // [
+#if defined (FF_FLAC_HACK) // [
+int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata,
+    enum AVSampleFormat sample_fmt, int list);
+#else // ] [
+int ff_output_create(ff_inout_t *out, ff_output_callback_t *cb, void *data,
+    int list);
+#endif // ]
+#else // ] [
 #if defined (FF_FLAC_HACK) // [
 int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata,
     enum AVSampleFormat sample_fmt);
 #else // ] [
 int ff_output_create(ff_inout_t *out, ff_output_callback_t *cb, void *data);
 #endif // ]
+#endif // ]
 void ff_output_destroy(ff_inout_t *out);
+
+///////////////////////////////////////////////////////////////////////////////
+#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+int64_t ff_layout2int64(const AVChannelLayout *layout);
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 struct ff_resampler {

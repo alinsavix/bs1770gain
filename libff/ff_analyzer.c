@@ -21,6 +21,7 @@
  */
 #include <ff.h>
 
+FF_DISABLE_DEPRECATION_WARNINGS // [
 ///////////////////////////////////////////////////////////////////////////////
 #define FF_ANALYZER_CREATE_OCHANNELS
 #define FF_ANALYZER_OCODECPAR_PTR
@@ -30,7 +31,12 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   void *data=in->cb.data;
   int upsample=cb&&cb->upsample?cb->upsample(data):-1;
   const ff_param_decode_t *(*decode)(const void *)=cb?cb->decode:NULL;
+//#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+//  int64_t channel_layout=decode?
+//			ff_layout2int64(&decode(data)->request.ch_layout):0ll;
+//#else // ] [
   int64_t channel_layout=decode?decode(data)->request.channel_layout:-1ll;
+//#endif // ]
   int (*create)(void *, const AVCodecParameters *)=cb?cb->stats.create:NULL;
 #if defined (FF_ANALYZER_OCODECPAR_PTR) // [
   AVCodecParameters *icodecpar,*ocodecpar;
@@ -47,10 +53,17 @@ int ff_analyzer_create(ff_analyzer_t *a, ff_inout_t *in)
   /////////////////////////////////////////////////////////////////////////////
   icodecpar=in->fmt.ctx->streams[in->ai]->codecpar;
 
+#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+  if (ff_layout2int64(&icodecpar->ch_layout)) {
+    _DMESSAGE("missing input channel layout");
+    goto e_args;
+  }
+#else // ] [
   if (!icodecpar->channel_layout) {
     _DMESSAGE("missing input channel layout");
     goto e_args;
   }
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (!channel_layout) {
@@ -237,6 +250,13 @@ void ff_analyzer_destroy(ff_analyzer_t *a, int destroy_stats)
 {
   ff_input_callback_t *cb=a->in->cb.in;
   void *data=a->in->cb.data;
+
+#if defined (FF_INPUT_LIST) // [
+  if (a->in->list) {
+    ff_inout_list(a->in,0);
+    a->in->list=0;
+  }
+#endif // ]
 
   if (a->upsampler.ctx)
     resampler_destroy(&a->upsampler);
@@ -484,16 +504,24 @@ eof:
   // we need to flush the decoder.
   err=ff_analyzer_send_packet(a,NULL);
 
+	// TODO:
+	// /e/r128/video/contemp/gov_t_mule/2013_05_18_hangout_music_festival/Chapter-001.mkv"
   if (err<0&&FF_ANALYZER_DECODER_SEND_PACKET<a->state) {
     _DMESSAGEV("decoding frame: %s (%d)",av_err2str(err),err);
     goto e_loop;
   }
 
   /////////////////////////////////////////////////////////////////////////////
+#if defined (FF_PROGRESS_STDERR) // [
+  ff_printer_flush(a->in->printer,stderr);
+#else // ] [
   ff_printer_flush(a->in->printer);
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   return 0;
 e_loop:
   return err;
 }
+
+FF_ENABLE_DEPRECATION_WARNINGS // ]

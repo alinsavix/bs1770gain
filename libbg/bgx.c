@@ -166,6 +166,9 @@ static const ffchar_t *bg_version(const ffchar_t *path, FILE *f)
   return path;
 }
 
+#if defined (BG_SAMPLES_COUNT) // [
+//#define UPSAMPLER_THRESHOULD
+#endif // ]
 static void bg_usage(const ffchar_t *path, FILE *f)
 {
   path=bg_version(path,f);
@@ -183,7 +186,15 @@ static void bg_usage(const ffchar_t *path, FILE *f)
   _FPRINTF(f," -m,--momentary:  calculate maximum momentary loudness\n");
   _FPRINTF(f," -r,--range:  calculate loudness range\n");
   _FPRINTF(f," -p,--sample-peak:  calculate maximum sample peak\n");
+#if defined (BG_SAMPLES_COUNT) // [
+#if defined (UPSAMPLER_THRESHOULD) // [
   _FPRINTF(f," -t,--true-peak:  calculate maximum true peak\n");
+#else // ] [
+  _FPRINTF(f," -t,--true-peak[=<number of samples to skip>]?:  calculate\n"
+      "   maximum true peak after having skipped the specified number\n"
+      "   of samples from the up-sampler (default=0)\n");
+#endif // ]
+#endif // ]
   _FPRINTF(f," -b <timestamp>,--begin=<timestamp>:  begin decoding at\n"
       "   timestamp (in microseconds, format: hh:mm:ss.ms)\n");
   _FPRINTF(f," -d <duration>,--duration=<duration>:  let decoding\n"
@@ -208,7 +219,7 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "   and output to <folder>.\n"
       "   specify either option -o/--output or option --overwrite\n"
       "   but not both.\n");
-#if defined (_WIN32) // [
+#if ! defined (BG_UNICODE) // [
   _FPRINTF(f," -f <file>,--file=<file>:  write analysis to an utf-8 log"
       " file\n");
   _FPRINTF(f," --utf-16[=<file>]:  write an utf-16 log file instead of an"
@@ -225,6 +236,10 @@ static void bg_usage(const ffchar_t *path, FILE *f)
 #endif // ]
 #if defined (BG_PARAM_SKIP_SCAN) // [
   _FPRINTF(f," --skip-scan:  skip counting files.\n");
+#endif // ]
+#if defined (BG_SAMPLES_COUNT) && defined (UPSAMPLER_THRESHOULD) // [
+  _FPRINTF(f," --upsampler-threshould=<number of samples>:  number of\n"
+      "   samples to skip when upsampling for true peak calculation\n");
 #endif // ]
 #if defined (BG_PARAM_SCRIPT) // [
   _FPRINTF(f," --script=<script>:  run <script> on track. if not explicitely\n"
@@ -255,12 +270,17 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "   use <prefix> as replaygain tag prefix\n");
   _FPRINTF(f," --unit=<unit>:  write results and tags with <unit> out of\n"
       "   \"ebu\" or \"db\"\n");
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
   _FPRINTF(f," --audio=<index>/--ai=<index>:  select audio index"
       " (corresponds\n"
-      "   to [0:<index>] in FFmpeg listing, cf. -l/--list option)\n");
+      "   to [0:<index>] in FFmpeg listing, cf. -l/--list[=out]? option\n");
   _FPRINTF(f," --video=<index>/--vi=<index>:  select video index"
       " (corresponds\n"
-      "   to [0:<index>] in FFmpeg listing, cf. -l/--list option)\n");
+      "   to [0:<index>] in FFmpeg listing, cf. -l/--list[=out]? option\n");
+#endif // ]
+#if defined (FF_INPUT_LIST) // [
+  _FPRINTF(f," --l/--list[=out]?  display the file's FFmpeg listing(s).\n");
+#endif // ]
   _FPRINTF(f," --matrix:<matrix>:  remix to <matrix> out of\n"
       "    front-left,\n"
       "    front-right,\n"
@@ -338,7 +358,18 @@ static void bg_usage(const ffchar_t *path, FILE *f)
       "    verbose,\n"
       "    debug, or\n"
       "    trace\n");
+#if defined (BG_PARAM_XML_CDATA) // [
+  _FPRINTF(f," --xml[=cdata]?:  print results in xml format. with the\n"
+      "    optional argument cdata given, use a modified schema\n"
+      "    (incompatible with prior versions) aimed to correctly\n"
+      "    represent file names by means of a respective CDATA\n"
+      "    section.\n");
+#else // ] [
   _FPRINTF(f," --xml:  print results in xml format\n");
+#endif // ]
+  _FPRINTF(f," --csv[=<separator character>]?:  print results in csv\n"
+      "    format using the specified separator character (defaults\n"
+      "    to tabulator character)\n");
 #if defined (BG_CLOCK) // [
   _FPRINTF(f," --time:  print out duration of program invocation\n");
 #endif // ]
@@ -473,6 +504,9 @@ int main(int argc, char *const *argv)
 #if defined (BG_PARAM_SCRIPT) // [
     BG_SCRIPT,
 #endif // ]
+#if defined (BG_SAMPLES_COUNT) && defined (UPSAMPLER_THRESHOULD) // [
+    BG_UPSAMPLER_THRESHOULD,
+#endif // ]
 #if defined (BG_PARAM_SHELL) // [
     BG_SHELL,
 #endif // ]
@@ -487,8 +521,13 @@ int main(int argc, char *const *argv)
     BG_ARG_SUFFIX,
     BG_ARG_ATSC,
     BG_ARG_AUDIO,
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
     BG_ARG_VIDEO,
+#endif // ]
     BG_ARG_MATRIX,
+#if defined (FF_INPUT_LIST) // [
+    BG_ARG_LIST,
+#endif // ]
     BG_ARG_STEREO,
     BG_ARG_REPLAYGAIN,
     BG_ARG_RG_TAGS,
@@ -498,6 +537,7 @@ int main(int argc, char *const *argv)
     BG_ARG_TAGS_TRACK,
     BG_ARG_TAGS_ALBUM,
     BG_ARG_XML,
+    BG_ARG_CSV,
     BG_ARG_TAG_PREFIX,
     BG_ARG_OVERWRITE,
 #if defined (BG_PARAM_LFE) // [
@@ -578,8 +618,15 @@ int main(int argc, char *const *argv)
     { FFL("shortterm"),no_argument,NULL,FFL('s') },
     { FFL("sample-peak"),no_argument,NULL,FFL('p') },
     { FFL("samplepeak"),no_argument,NULL,FFL('p') },
+#if defined (BG_SAMPLES_COUNT) // [
+#if defined (UPSAMPLER_THRESHOULD) // [
     { FFL("true-peak"),no_argument,NULL,FFL('t') },
     { FFL("truepeak"),no_argument,NULL,FFL('t') },
+#else // ] [
+    { FFL("true-peak"),optional_argument,NULL,FFL('t') },
+    { FFL("truepeak"),optional_argument,NULL,FFL('t') },
+#endif // ]
+#endif // ]
     { FFL("apply"),optional_argument,NULL,FFL('a') },
 #if defined (_WIN32) // [
     { FFL("utf-16"),optional_argument,NULL,BG_ARG_UTF_16 },
@@ -592,6 +639,10 @@ int main(int argc, char *const *argv)
 #endif // ]
 #if defined (BG_PARAM_SCRIPT) // [
     { FFL("script"),required_argument,NULL,BG_SCRIPT },
+#endif // ]
+#if defined (BG_SAMPLES_COUNT) && defined (UPSAMPLER_THRESHOULD) // [
+    { FFL("upsampler-threshould"),required_argument,NULL,
+        BG_UPSAMPLER_THRESHOULD },
 #endif // ]
 #if defined (BG_PARAM_SHELL) // [
     { FFL("shell"),required_argument,NULL,BG_SHELL },
@@ -614,12 +665,15 @@ int main(int argc, char *const *argv)
     { FFL("loglevel"),required_argument,NULL,BG_ARG_LOGLEVEL },
     { FFL("norm"),required_argument,NULL,BG_ARG_NORM },
     { FFL("preamp"),required_argument,NULL,BG_ARG_PREAMP },
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
     { FFL("video"),required_argument,NULL,BG_ARG_VIDEO },
     { FFL("vi"),required_argument,NULL,BG_ARG_VIDEO },
+#endif // ]
     { FFL("time"),no_argument,NULL,BG_ARG_TIME },
     { FFL("ebu"),no_argument,NULL,BG_ARG_EBU },
     { FFL("atsc"),no_argument,NULL,BG_ARG_ATSC },
     { FFL("matrix"),required_argument,NULL,BG_ARG_MATRIX },
+    { FFL("list"),optional_argument,NULL,'l' },
     { FFL("stereo"),no_argument,NULL,BG_ARG_STEREO },
     { FFL("replaygain"),no_argument,NULL,BG_ARG_REPLAYGAIN },
 #if defined (BG_BWF_TAGS) // [
@@ -628,7 +682,12 @@ int main(int argc, char *const *argv)
 #endif // ]
     { FFL("track-tags"),no_argument,NULL,BG_ARG_TAGS_TRACK },
     { FFL("album-tags"),no_argument,NULL,BG_ARG_TAGS_ALBUM },
+#if defined (BG_PARAM_XML_CDATA) // [
+    { FFL("xml"),optional_argument,NULL,BG_ARG_XML },
+#else // ] [
     { FFL("xml"),no_argument,NULL,BG_ARG_XML },
+#endif // ]
+    { FFL("csv"),optional_argument,NULL,BG_ARG_CSV },
     { FFL("tag-prefix"),required_argument,NULL,BG_ARG_TAG_PREFIX },
     { FFL("overwrite"),no_argument,NULL,BG_ARG_OVERWRITE },
 #if defined (BG_PARAM_LFE) // [
@@ -681,7 +740,9 @@ int main(int argc, char *const *argv)
 
   int code=1;
 #if defined (_WIN32) // [
+#if ! defined (BG_UNICODE) // [
   int utf16=0;
+#endif // ]
   // if LANG is set to e.g. "en_US.UTF-8" we assume we're run from
   // e.g. MSYS2 shell undestanding UTF-8 otherwise from MS console using
   // codepage OEM.
@@ -712,14 +773,9 @@ int main(int argc, char *const *argv)
 #endif // ]
   int verbose;
 
-#if defined (PBU_CONSOLE_UTF8) && defined (_WIN32) // [
+#if defined (_WIN32) // [
   /////////////////////////////////////////////////////////////////////////////
-#if 0 // [
-  _setmode(_fileno(stdout), _O_U16TEXT);
-  _setmode(_fileno(stderr), _O_U16TEXT);
-#else // ] [
   SetConsoleOutputCP(CP_UTF8);
-#endif // ]
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
@@ -844,6 +900,12 @@ int main(int argc, char *const *argv)
       break;
     case FFL('t'):
       param.flags.aggregate|=BG_FLAGS_AGG_TRUEPEAK;
+
+#if defined (BG_SAMPLES_COUNT) && ! defined (UPSAMPLER_THRESHOULD) // [
+      if (optarg)
+        param.upsampler.threshould=FFATOI(optarg);
+#endif // ]
+
       break;
 #if defined (BG_PARAM_QUIET) // [
     case BG_ARG_QUIET:
@@ -909,9 +971,11 @@ int main(int argc, char *const *argv)
     case BG_ARG_AUDIO:
       param.ai=FFATOI(optarg);
       break;
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
     case BG_ARG_VIDEO:
       param.vi=FFATOI(optarg);
       break;
+#endif // ]
     case BG_ARG_UNIT:
       if (!FFSTRCMP(optarg,FFL("ebu")))
         bg_param_set_unit_ebu(&param);
@@ -925,7 +989,7 @@ int main(int argc, char *const *argv)
       }
 
       break;
-#if defined (_WIN32) // [
+#if defined (_WIN32) && ! defined (BG_UNICODE) // [
     case BG_ARG_UTF_16:
       utf16=1;
 
@@ -947,6 +1011,15 @@ int main(int argc, char *const *argv)
 #if defined (BG_PARAM_SCRIPT) // [
     case BG_SCRIPT:
       script=optarg;
+      break;
+#endif // ]
+#if defined (BG_SAMPLES_COUNT) && defined (UPSAMPLER_THRESHOULD) // [
+    case BG_UPSAMPLER_THRESHOULD:
+#if defined (_WIN32) // [
+      param.upsampler.threshould=_wtoi(optarg);
+#else // ] [
+      param.upsampler.threshould=atoi(optarg);
+#endif // ]
       break;
 #endif // ]
 #if defined (BG_PARAM_SHELL) // [
@@ -1078,7 +1151,53 @@ int main(int argc, char *const *argv)
       break;
     case BG_ARG_XML:
       param.print.vmt=&bg_print_xml_vmt;
+
+#if defined (BG_PARAM_XML_CDATA) // [
+      if (optarg) {
+        if (FFSTRCASECMP(FFL("cdata"),optarg)) {
+          _DMESSAGEV("argument  \"%" PBU_PRIs "\" to option \"--xml\" not"
+              " supported",optarg);
+          bg_usage(argv[0],stderr);
+          goto e_arg;
+        }
+        
+        param.xml.cdata=1;
+      }
+      else
+        param.xml.cdata=0;
+#endif // ]
       break;
+    case BG_ARG_CSV:
+      if (optarg) {
+        if (1!=FFSTRLEN(optarg)) {
+          _DMESSAGEV("argument  \"%" PBU_PRIs "\" to option \"--csv\" not"
+              " supported",optarg);
+          bg_usage(argv[0],stderr);
+          goto e_arg;
+        }
+
+        param.csv.separator=optarg[0];
+      }
+
+      param.print.vmt=&bg_print_csv_vmt;
+      break;
+#if defined (FF_INPUT_LIST) // [
+    case FFL('l'):
+      param.list.in=1;
+
+      if (optarg) {
+        if (!optarg||!FFSTRCASECMP(FFL("out"),optarg))
+          param.list.out=1;
+        else {
+          _DMESSAGEV("argument  \"%" PBU_PRIs "\" to option \"--list\" not"
+              " supported",optarg);
+          bg_usage(argv[0],stderr);
+          goto e_arg;
+        }
+      }
+
+      break;
+#endif // ]
     case BG_ARG_MATRIX:
       if (!FFSTRCASECMP(FFL("front-left"),optarg))
         param.decode.request.channel_layout=AV_CH_FRONT_LEFT;
@@ -1584,20 +1703,23 @@ int main(int argc, char *const *argv)
 #if defined (_WIN32) // [
     _wremove(fpath);
 
+#if defined (BG_UNICODE) // [
+    // UTF-16!
+    param.result.f=_wfopen(fpath,L"wt,ccs=UNICODE");
+    param.print.vmt->encoding(&param,16);
+#else // ] [
     if (utf16) {
-      param.result.f=_wfopen(fpath,L"wt,ccs=UTF-16LE");
+      //param.result.f=_wfopen(fpath,L"wt,ccs=UTF-16LE");
+      param.result.f=_wfopen(fpath,L"wt,ccs=UNICODE");
       param.print.vmt->encoding(&param,16);
     }
     else {
-#if 0 // [
-      param.result.f=_wfopen(fpath,L"wt");
-#else // ] [
       // If the file is encoded as UTF-8, then UTF-16 data is translated
       // into UTF-8 when it is written
       param.result.f=_wfopen(fpath,L"wt,ccs=UTF-8");
-#endif // ]
       param.print.vmt->encoding(&param,8);
     }
+#endif // ]
 #else // ] [
     remove(fpath);
     param.result.f=fopen(fpath,"w");

@@ -97,6 +97,13 @@ e_packet:
 
 void ff_muxer_destroy(ff_muxer_t *m)
 {
+#if defined (FF_INPUT_LIST) // [
+  if (m->out->list) {
+    ff_inout_list(m->out,1);
+    m->out->list=0;
+  }
+#endif // ]
+
   if (m->filter.graph)
     ff_filter_destroy(&m->filter);
 
@@ -409,7 +416,11 @@ read:
     case 0:
       break;
     case AVERROR(EINVAL):
+#if defined (FF_PROGRESS_STDERR) // [
+      ff_printer_flush(m->in->printer,stderr);
+#else // ] [
       ff_printer_flush(m->in->printer);
+#endif // ]
       _DWARNINGV("remuxing video frame: %s (%d)",av_err2str(err),err);
       break;
     default:
@@ -434,7 +445,11 @@ read:
     case 0:
       break;
     case AVERROR(EINVAL):
+#if defined (FF_PROGRESS_STDERR) // [
+      ff_printer_flush(m->in->printer,stderr);
+#else // ] [
       ff_printer_flush(m->in->printer);
+#endif // ]
       _DWARNINGV("remuxing video frame: %s (%d)",av_err2str(err),err);
       break;
     default:
@@ -484,7 +499,11 @@ eof:
   }
 
   /////////////////////////////////////////////////////////////////////////////
+#if defined (FF_PROGRESS_STDERR) // [
+  ff_printer_flush(m->in->printer,stderr);
+#else // ] [
   ff_printer_flush(m->in->printer);
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   return 0;

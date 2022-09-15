@@ -24,6 +24,10 @@
 #include <libavfilter/buffersrc.h>
 #include <ff.h>
 
+#if defined (FF_HOLZHAMMER) // [
+FF_DISABLE_DEPRECATION_WARNINGS // [
+#endif // ]
+
 ///////////////////////////////////////////////////////////////////////////////
 int ff_filter_create(ff_filter_t *f,
     const AVCodecParameters *ocodecpar,
@@ -39,7 +43,7 @@ int ff_filter_create(ff_filter_t *f,
   const int sink_sample_rates[]
       ={ ocodecpar->sample_rate,-1 };
   char args[512];
-  AVCodec *ocodec;
+  FF_CONST AVCodec *ocodec;
 
   struct {
     const AVFilter *f;
@@ -81,7 +85,12 @@ int ff_filter_create(ff_filter_t *f,
       time_base.den,
       icodecpar->sample_rate,
       av_get_sample_fmt_name(icodecpar->format),
-      icodecpar->channel_layout);
+#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+      ff_layout2int64(&icodecpar->ch_layout)
+#else // ] [
+      icodecpar->channel_layout
+#endif // ]
+			);
   err=avfilter_graph_create_filter(&f->ctx.src,src.f,"in",args,NULL,f->graph);
 
   if (err<0) {
@@ -259,3 +268,7 @@ int ff_filter_receive_frame(ff_filter_t *f, AVFrame *frame)
 {
   return av_buffersink_get_frame(f->ctx.sink,frame);
 }
+
+#if defined (FF_HOLZHAMMER) // [
+FF_ENABLE_DEPRECATION_WARNINGS // ]
+#endif // ]

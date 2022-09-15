@@ -21,6 +21,7 @@
  */
 #include <ff.h>
 
+#if defined (FF_FIFO) // [
 ///////////////////////////////////////////////////////////////////////////////
 // fifo not used. just for reference.
 int ff_fifo_create(ff_fifo_t *fifo, const AVCodecParameters *ocodecpar)
@@ -144,3 +145,4 @@ e_read:
 e_buffer:
   return err;
 }
+#endif // ]

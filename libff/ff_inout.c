@@ -21,6 +21,7 @@
  */
 #include <ff.h>
 
+FF_DISABLE_DEPRECATION_WARNINGS // [
 ///////////////////////////////////////////////////////////////////////////////
 // https://0xdeafc0de.wordpress.com/2014/07/21/seeking-with-ffmpeg/
 //#define FF_SEEK_DEFAULT
@@ -34,7 +35,7 @@ static int ff_input_seek(ff_inout_t *in, int64_t seek)
 
   if (0ll<seek) {
     if (in->fmt.ctx->duration<=seek) {
-      _DMESSAGE("attemt to seek out of range");
+      _DMESSAGE("attempt to seek out of range");
       goto e_seek;
     }
 
@@ -66,8 +67,23 @@ e_seek:
   return -1;
 }
 
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+#if defined (FF_INPUT_LIST) // [
+int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
+    int warn, ff_printer_t *p, int list, int ai, int vi)
+#else // ] [
+int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
+    int warn, ff_printer_t *p, int ai, int vi)
+#endif // ]
+#else // ] [
+#if defined (FF_INPUT_LIST) // [
+int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
+    int warn, ff_printer_t *p, int list)
+#else // ] [
 int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
     int warn, ff_printer_t *p)
+#endif // ]
+#endif // ]
 {
   const char *path=cb&&cb->path?cb->path(data):"";
 #if defined (_WIN32) // [
@@ -84,6 +100,10 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
   in->cb.in=cb;
   in->cb.data=data;
   in->printer=p;
+#if defined (FF_INPUT_LIST) // [
+  in->list=list;
+  in->path=path;
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   in->fmt.ctx=NULL;
@@ -127,19 +147,14 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
   }
 #endif // ]
 
-#if 0 // [
-  if (AV_LOG_INFO<=av_log_get_level()) {
-#endif // ]
-    ///////////////////////////////////////////////////////////////////////////
-    av_dump_format(in->fmt.ctx,0,path,0);
-    fflush(stderr);
-#if 0 // [
-  }
-#endif // ]
-
   /////////////////////////////////////////////////////////////////////////////
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+  in->ai=ai<(int)in->fmt.ctx->nb_streams?ai:-1;
+  in->vi=vi<(int)in->fmt.ctx->nb_streams?ai:-1;
+#else // ] [
   in->ai=-1;
   in->vi=-1;
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (!in->fmt.ctx->nb_streams)
@@ -159,6 +174,18 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
 
     switch (istream->codecpar->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
+#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+      if (istream->codecpar->ch_layout.nb_channels<=0) {
+        _DWARNINGV("channel underflow: %d",
+						istream->codecpar->ch_layout.nb_channels);
+        continue;
+      }
+      else if (AV_NUM_DATA_POINTERS<istream->codecpar->ch_layout.nb_channels) {
+        _DWARNINGV("channel overflow: %d",
+						istream->codecpar->ch_layout.nb_channels);
+        continue;
+      }
+#else // ] [
       if (istream->codecpar->channels<=0) {
         _DWARNINGV("channel underflow: %d",istream->codecpar->channels);
         continue;
@@ -167,6 +194,23 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
         _DWARNINGV("channel overflow: %d",istream->codecpar->channels);
         continue;
       }
+#endif // ]
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+			else if (i<in->ai)
+				continue;
+#endif // ]
+#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+      else if (in->ai<0&&istream->codecpar->ch_layout.nb_channels) {
+        // if no audio stream found yet, pick this one (regardless whether
+        // stereo or not).
+        in->ai=i;
+      }
+      else if (2==istream->codecpar->ch_layout.nb_channels) {
+        // if an audio stream alreay was found (and is non-stereo),
+        // replace it by this stereo one.
+        in->ai=i;
+      }
+#else // ] [
       else if (in->ai<0&&istream->codecpar->channels) {
         // if no audio stream found yet, pick this one (regardless whether
         // stereo or not).
@@ -177,11 +221,17 @@ int ff_input_create(ff_inout_t *in, ff_input_callback_t *cb, void *data,
         // replace it by this stereo one.
         in->ai=i;
       }
+#endif // ]
 
       break;
     case AVMEDIA_TYPE_VIDEO:
 //DVWRITELN("\"%s\"",avcodec_find_decoder(istream->codecpar->codec_id)->name);
 //DVWRITELN("%d",istream->codecpar->codec_id);
+#if defined (FF_SERGEY_INDEX_BUGFIX) // [
+			if (i<in->vi)
+				continue;
+			else
+#endif // ]
       if (in->vi<0) {
         // if no video stream found yet, pick this one.
         in->vi=i;
@@ -289,13 +339,20 @@ int ff_input_open_analyzer(ff_inout_t *in)
 #endif // ]
 
 #if 0 // [
-  if (AV_LOG_INFO<=av_log_get_level()) {
+  err=av_log_get_level();
+
+  if (AV_LOG_INFO<=err) {
 #endif // ]
     ///////////////////////////////////////////////////////////////////////////
+    fflush(stderr);
+    fflush(stdout);
     av_dump_format(in->fmt.ctx,0,path,0);
     fflush(stderr);
 #if 0 // [
   }
+
+  av_log_set_level(err);
+  err=-1;
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
@@ -410,13 +467,20 @@ int ff_input_open_muxer(ff_inout_t *in)
 #endif // ]
 
 #if 0 // [
-  if (AV_LOG_INFO<=av_log_get_level()) {
+  err=av_log_get_level();
+
+  if (AV_LOG_INFO<=err) {
 #endif // ]
     ///////////////////////////////////////////////////////////////////////////
+    fflush(stderr);
+    fflush(stdout);
     av_dump_format(in->fmt.ctx,0,path,0);
     fflush(stderr);
 #if 0 // [
   }
+
+  av_log_set_level(err);
+  err=-1;
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
@@ -432,11 +496,9 @@ int ff_input_open_muxer(ff_inout_t *in)
 
   if (!decode||!(transcode||(hack&&*hack)))
     in->audio.ctx=NULL;
-  else {
-    if (ff_audio_create(&in->audio,in,&d,NULL)<0) {
+  else if (ff_audio_create(&in->audio,in,&d,NULL)<0) {
       _DMESSAGE("creating audio decoder");
       goto e_audio;
-    }
   }
 #else // ] [
   if (!decode||!transcode)
@@ -529,7 +591,11 @@ int ff_input_progress(ff_inout_t *in, AVPacket *pkt)
   double percent;
 
   ff_inout_interval(in,&begin,&duration,stream);
+#if defined (FF_PROGRESS_STDERR) // [
+  ff_printer_reset(in->printer,stderr);
+#else // ] [
   ff_printer_reset(in->printer);
+#endif // ]
 
   if (duration<0) {
     if (!supress_progress) {
@@ -559,7 +625,7 @@ int ff_input_progress(ff_inout_t *in, AVPacket *pkt)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//#define FF_QUERY_CODEC
+#define FF_QUERY_CODEC
 static int ff_output_add_vstream(ff_inout_t *out)
 {
   ff_output_callback_t *ocb=out->cb.out;
@@ -572,12 +638,11 @@ static int ff_output_add_vstream(ff_inout_t *out)
 
 #if defined (FF_QUERY_CODEC) // [
   // err is interpreted as a boolean.
-  if (out->fmt.ctx->oformat->query_codec)
-    err=out->fmt.ctx->oformat->query_codec(istream->codecpar->codec_id,1);
-  else
-    err=0;
+  err=avformat_query_codec(out->fmt.ctx->oformat,
+      istream->codecpar->codec_id,1);
 
   if (err) {
+    err=-1;
 #endif // ]
     istream=in->fmt.ctx->streams[in->vi];
     out->vi=out->fmt.ctx->nb_streams;
@@ -710,8 +775,12 @@ static int ff_output_add_astream(ff_inout_t *out)
         ?ocb->codec_id(odata,out->fmt.ctx->oformat):AV_CODEC_ID_FLAC;
     codecpar->format=sample_fmt;
 
+#if defined (FF_CHANNEL_LAYOUT_DEPRECATED) // [
+	#error not implemented yet.
+#else // ] [
     if (0ll<=channel_layout)
       codecpar->channel_layout=channel_layout;
+#endif // ]
 
     err=ff_audio_create(&out->audio,out,NULL,codecpar);
     avcodec_parameters_free(&codecpar);
@@ -739,11 +808,21 @@ e_audio:
   return -1;
 }
 
+#if defined (FF_INPUT_LIST) // [
+#if defined (FF_FLAC_HACK) // [
+int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata,
+    enum AVSampleFormat sample_fmt, int list)
+#else // ] [
+int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata,
+    int list)
+#endif // ]
+#else // ] [
 #if defined (FF_FLAC_HACK) // [
 int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata,
     enum AVSampleFormat sample_fmt)
 #else // ] [
 int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
+#endif // ]
 #endif // ]
 {
   const char *path=ocb&&ocb->path?ocb->path(odata):"";
@@ -768,6 +847,10 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
   out->printer=NULL;
   out->ai=-1;
   out->vi=-1;
+#if defined (FF_INPUT_LIST) // [
+  out->list=list;
+  out->path=path;
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   out->fmt.ctx=NULL;
@@ -812,16 +895,6 @@ int ff_output_create(ff_inout_t *out, ff_output_callback_t *ocb, void *odata)
       goto e_video2;
     }
   }
-
-#if 0 // [
-  if (AV_LOG_INFO<=av_log_get_level()) {
-#endif // ]
-    ///////////////////////////////////////////////////////////////////////////
-    av_dump_format(out->fmt.ctx,0,path,1);
-    fflush(stderr);
-#if 0 // [
-  }
-#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (!(out->fmt.ctx->oformat->flags&AVFMT_NOFILE)) {
@@ -879,6 +952,36 @@ e_format:
   return -1;
 }
 
+#if defined (FF_INPUT_LIST) // [
+void ff_inout_list(ff_inout_t *inout, int out)
+{
+  int err=av_log_get_level();
+
+  /////////////////////////////////////////////////////////////////////////////
+#if defined (FF_INPUT_LIST) // [
+  if (inout->list||AV_LOG_INFO<=err) {
+#else // ] [
+  if (AV_LOG_INFO<=err) {
+#endif // ]
+    fflush(stdout);
+    fflush(stderr);
+
+    if (err<AV_LOG_INFO)
+      av_log_set_level(AV_LOG_INFO);
+
+    av_dump_format(inout->fmt.ctx,0,inout->path,out);
+    fflush(stderr);
+
+    if (err<AV_LOG_INFO)
+      av_log_set_level(err);
+#if ! defined (FF_INPUT_LIST) // [
+  }
+#else // ] [
+  }
+#endif // ]
+}
+#endif // ]
+
 void ff_output_destroy(ff_inout_t *out)
 {
   av_write_trailer(out->fmt.ctx);
@@ -891,3 +994,5 @@ void ff_output_destroy(ff_inout_t *out)
 
   avformat_free_context(out->fmt.ctx);
 }
+
+FF_ENABLE_DEPRECATION_WARNINGS // ]

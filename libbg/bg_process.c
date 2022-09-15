@@ -737,7 +737,7 @@ static int _bg_process_tree_run_script(bg_tree_t *tree)
   STARTUPINFOW startup_info;
   PROCESS_INFORMATION process_info;
   wchar_t *cmd,*wp;
-  ffchar_t *envirp;
+  ffchar_t *envirp=NULL;
   int bRes;
 #if defined (BG_PARAM_SHELL) // [
   int posix;
@@ -837,7 +837,7 @@ exit(1);
         break;
       }
     }
-    else
+    else {
       _DMESSAGE("creating process");
       free(envirp);
       break;
@@ -889,6 +889,9 @@ e_cmd:
     e_envirpp:
       _exit(EXIT_FAILURE);
     }
+  }
+#endif // ]
+#if defined (_WIN32) // [
   }
 #endif // ]
 
