@@ -235,9 +235,11 @@ const char *ff_dynload_path(void);
 ///////////////////////////////////////////////////////////////////////////////
 #define FF_PACKET_UNREF
 #define FF_FRAME_UNREF
-// as it seems it is impossible to pass through a partial flac stream
-// (cf. "https://trac.ffmpeg.org/ticket/7864".) our hack consists in
-// reading/decoding and re-encoding/writing.
+/*
+ * as it seems it is impossible to pass-through a partial flac stream
+ * (cf. "https://trac.ffmpeg.org/ticket/7864".) our hack consists in
+ * reading/decoding and re-encoding/writing.
+ */
 #define FF_FLAC_HACK
 #define FF_STREAM_METADATA
 #define FF_RESAMPLER_RATE
@@ -245,28 +247,29 @@ const char *ff_dynload_path(void);
 
 #if defined (HAVE_FF_DYNLOAD) // [
 ///////////////////////////////////////////////////////////////////////////////
-// avfilter
-//   avcodec
-//     avutil
-//     swresample
-//   avformat
-//     avutil
-//     avcodec
-//   avutil
-//   postproc
-//     avutil
-//   swresample
-//     avutil
-//   swscale
-//     avutil
-//
-// avutil
-// swresample
-// avcodec
-// avformat
-// swscale
-// postproc
-// avfilter
+/*
+ * avfilter
+ *   avcodec
+ *     avutil
+ *     swresample
+ *   avformat
+ *     avutil
+ *     avcodec
+ *   avutil
+ *   postproc
+ *     avutil
+ *   swresample
+ *     avutil
+ *   swscale
+ *     avutil
+ * avutil
+ * swresample
+ * avcodec
+ * avformat
+ * swscale
+ * postproc
+ * avfilter
+ */
 #endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -287,6 +290,7 @@ int ff_mv(const ffchar_t *source, const ffchar_t *target);
 int ff_mkdir(ffchar_t *path);
 
 ///////////////////////////////////////////////////////////////////////////////
+typedef enum ff_lfe ff_lfe_t;
 typedef const struct ff_iter_vmt ff_iter_vmt_t;
 typedef struct ff_iter ff_iter_t;
 typedef struct ff_param_decode ff_param_decode_t;
@@ -305,6 +309,21 @@ typedef struct ff_fifo ff_fifo_t;
 typedef enum ff_muxer_state ff_muxer_state_t;
 typedef struct ff_muxer ff_muxer_t;
 typedef struct ff_printer ff_printer_t;
+
+///////////////////////////////////////////////////////////////////////////////
+/*
+ * if there are more than 6 channels, the layout is not set by the decoder,
+ * and instead the default libavcodec channel layout guess is used
+ * -> 7 channels, 6.1 (front left, right, center, lfe, back center,
+ *    side left, right)
+ * -> 8 channels, 7.1 (front left, right, center, lfe, back left,
+ *    right, side left, right)
+ * http://lists.xiph.org/pipermail//flac-dev/2013-January/003569.html
+ */
+enum ff_lfe {
+  FF_LFE_THRESHOLD=6,
+  FF_LFE_CHANNEL=3,
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 struct ff_iter_vmt {

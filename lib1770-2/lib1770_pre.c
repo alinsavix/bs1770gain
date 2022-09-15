@@ -83,11 +83,7 @@ static const lib1770_biquad_t *lib1770_f2_48000(void)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#if defined (LIB1770_LFE) // [
-lib1770_pre_t *lib1770_pre_new_lfe(double samplerate, int channels, int lfe)
-#else // ] [
 lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
-#endif // ]
 {
   lib1770_pre_t *pre;
   int i,ch;
@@ -101,15 +97,6 @@ lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
   pre->samplerate=samplerate;
   // set the number of channals.
   pre->channels=channels;
-#if defined (LIB1770_LFE) // [
-  // set the lfe channal.
-  if (LIB1770_LFE<lfe) {
-    PBU_DVMESSAGE("lfe overflow: %d (%d)",lfe,LIB1770_LFE);
-    goto elfe;
-  }
-
-  pre->lfe=lfe;
-#endif // ]
 
   // requantize the f1-filter according to the sample frequency.
   pre->f1.samplerate=samplerate;
@@ -121,12 +108,6 @@ lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
 
   // initialize the pre buffer.
   for (i=0,ch=0;i<LIB1770_MIN(channels,LIB1770_MAX_CHANNELS);++i) {
-#if defined (LIB1770_LFE) // [
-		// filter out the lfe channel.
-		if (i==lfe)
-			continue;
-#endif // ]
-
     LIB1770_GETX(pre->ring.buf[ch],0,0)=0.0;
 		++ch;
 	}
@@ -137,18 +118,8 @@ lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
   return pre;
   //LIB1770_FREE(pre);
 epre:
-#if defined (LIB1770_LFE) // [
-elfe:
-#endif // ]
   return NULL;
 }
-
-#if defined (LIB1770_LFE) // [
-lib1770_pre_t *lib1770_pre_new(double samplerate, int channels)
-{
-  return lib1770_pre_new_lfe(samplerate,channels,-1);
-}
-#endif // ]
 
 void lib1770_pre_close(lib1770_pre_t *pre)
 {
@@ -168,9 +139,6 @@ void lib1770_pre_add_sample(lib1770_pre_t *pre, lib1770_sample_t sample)
   double wssqs=0.0;
   double *g=lib1770_g;
   int channels=pre->channels;
-#if defined (LIB1770_LFE) // [
-  int lfe=pre->lfe;
-#endif // ]
   int offs=pre->ring.offs;
   int size=pre->ring.size;
   int i,ch;
@@ -180,12 +148,6 @@ void lib1770_pre_add_sample(lib1770_pre_t *pre, lib1770_sample_t sample)
   double x;
 
   for (i=0,ch=0;i<LIB1770_MIN(channels,LIB1770_MAX_CHANNELS);++i) {
-#if defined (LIB1770_LFE) // [
-		// filter out the lfe channel.
-		if (lfe==i)
-			continue;
-#endif // ]
-
     buf=pre->ring.buf[ch];
     x=LIB1770_GETX(buf,offs,0)=LIB1770_DEN(sample[ch]);
 
@@ -218,20 +180,11 @@ void lib1770_pre_add_sample(lib1770_pre_t *pre, lib1770_sample_t sample)
 void lib1770_pre_flush(lib1770_pre_t *pre)
 {
   int channels=pre->channels;
-#if defined (LIB1770_LFE) // [
-  int lfe=pre->lfe;
-#endif // ]
   lib1770_sample_t sample;
   int i,ch;
 
   if (1<pre->ring.size) {
   	for (i=0,ch=0;i<LIB1770_MIN(channels,LIB1770_MAX_CHANNELS);++i) {
-#if defined (LIB1770_LFE) // [
-			// filter out the lfe channel.
-			if (lfe==i)
-				continue;
-#endif // ]
-
       sample[ch]=0.0;
 			++ch;
 		}

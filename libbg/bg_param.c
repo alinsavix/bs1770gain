@@ -119,12 +119,14 @@ int bg_param_create(bg_param_t *param)
 #if defined (BG_CLOCK) // [
   param->time=0;
 #endif // ]
+#if defined (BG_PARAM_LFE) // [
 #if defined (LIB1770_LFE) // [
   param->lfe=LIB1770_LFE;
 #elif defined (BG_CHANNEL_LFE) // ] [
   param->lfe=BG_CHANNEL_LFE;
 #else // ] [
   param->lfe=-1;
+#endif // ]
 #endif // ]
 #if defined (_WIN32) && defined (BG_WIN32_CREATE_LOCALE) // [
   param->locale=0;
