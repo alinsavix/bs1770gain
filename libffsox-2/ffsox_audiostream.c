@@ -1,5 +1,5 @@
 /*
- * bs1770gain_audiostream.c
+ * ffsox_audiostream.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -17,10 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#include <bs1770gain.h>
+#include <ffsox.h>
 
-int bs1770gain_audiostream(AVFormatContext *ic, int *aip, int *vip,
-    const bs1770gain_options_t *options)
+int ffsox_audiostream(AVFormatContext *ic, int *aip, int *vip)
 {
   AVStream *is;
   int i,ai,vi;
@@ -31,8 +30,8 @@ int bs1770gain_audiostream(AVFormatContext *ic, int *aip, int *vip,
   for (i=0;i<ic->nb_streams;++i) {
     switch ((is=ic->streams[i])->codec->codec_type) {
       case AVMEDIA_TYPE_AUDIO:
-        if (0<=options->audio) {
-          if (options->audio==i)
+        if (NULL!=aip&&0<=*aip) {
+          if (*aip==i)
             ai=i;
         }
         else if (ai<0||2==is->codec->channels)
@@ -40,8 +39,8 @@ int bs1770gain_audiostream(AVFormatContext *ic, int *aip, int *vip,
 
         break;
       case AVMEDIA_TYPE_VIDEO:
-        if (0<=options->video) {
-          if (options->video==i)
+        if (NULL!=vip&&0<=*vip) {
+          if (*vip==i)
             vi=i;
         }
         else if (vi<0)
