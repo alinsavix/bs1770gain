@@ -216,9 +216,9 @@ static void bg_usage(const ffchar_t *path, FILE *f)
 #if defined (BG_PARAM_QUIET) // [
   FFPUTS(" --quiet:  supress any output except error messages.\n",f);
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-  FFPUTS(" --parallel=<number of parallel>:  parallelize using <number\n"
-      "     of parallel> threads. implies --quiet.\n",f);
+#if defined (BG_PARAM_THREADS) // [
+  FFPUTS(" --threads=<number of threads>:  parallelize using <number\n"
+      "     of threads> threads. implies --quiet.\n",f);
 #endif // ]
 #if defined (BG_LIST) // [
   FFPUTS(" -l,--list:  print FFmpeg format/stream information\n",f);
@@ -484,8 +484,8 @@ int main(int argc, char *const *argv)
 #if defined (BG_PARAM_QUIET) // [
     BG_ARG_QUIET,
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-    BG_ARG_SEMAPHORES,
+#if defined (BG_PARAM_THREADS) // [
+    BG_ARG_NTHREADS,
 #endif // ]
 #if defined (BG_PARAM_SLEEP) // [
     BG_ARG_SLEEP,
@@ -568,8 +568,8 @@ int main(int argc, char *const *argv)
 #if defined (BG_PARAM_QUIET) // [
     { FFL("quiet"),no_argument,NULL,BG_ARG_QUIET },
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-    { FFL("parallel"),required_argument,NULL,BG_ARG_SEMAPHORES },
+#if defined (BG_PARAM_THREADS) // [
+    { FFL("threads"),required_argument,NULL,BG_ARG_NTHREADS },
 #endif // ]
 #if defined (BG_PARAM_SLEEP) // [
     { FFL("sleep"),required_argument,NULL,BG_ARG_SLEEP },
@@ -805,9 +805,9 @@ int main(int argc, char *const *argv)
       param.quiet=1;
       break;
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-    case BG_ARG_SEMAPHORES:
-      param.parallel=FFATOI(optarg);
+#if defined (BG_PARAM_THREADS) // [
+    case BG_ARG_NTHREADS:
+      param.nthreads=FFATOI(optarg);
       break;
 #endif // ]
 #if defined (BG_PARAM_SLEEP) // [
@@ -1437,29 +1437,19 @@ int main(int argc, char *const *argv)
     goto e_help;
   }
 
-#if defined (BG_PARAM_PARALLEL) // [
+#if defined (BG_PARAM_THREADS) // [
   /////////////////////////////////////////////////////////////////////////////
-  if (param.parallel) {
+  if (param.nthreads<0)
+    param.nthreads=0;
+  else if (param.nthreads) {
+#if 1 // [
     param.quiet=1;
-
-#if defined (_WIN32) // [
-    param.hSem=CreateSemaphoreW(
-      NULL,                 // LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
-      param.parallel,     // LONG                  lInitialCount,
-      param.parallel,     // LONG                  lMaximumCount,
-      NULL                  // LPCSTR                lpName
-    );
-    
-    if (!param.hSem) {
-      DVMESSAGE("creating semaphore (%ld)",GetLastError());
-      goto e_semaphore;
-    }
-#else // ] [
-    if (sem_init(&param.sem,0,param.parallel)<0) {
-      DVMESSAGE("creating semaphore (%d)",errno);
-      goto e_semaphore;
-    }
 #endif // ]
+
+    if (bg_param_threads_create(&param.threads,param.nthreads)<0) {
+      DMESSAGE("creating threads");
+      goto e_threads;
+    }
   }
 #endif // ]
 
@@ -1655,13 +1645,9 @@ e_file:
   if (locale)
     setlocale(LC_ALL,locale);
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-#if defined (_WIN32) // [
-  CloseHandle(param.hSem);
-#else // ] [
-  sem_destroy(&param.sem);
-#endif // ]
-e_semaphore:
+#if defined (BG_PARAM_THREADS) // [
+  bg_param_threads_destroy(&param.threads);
+e_threads:
 #endif // ]
 e_help:
 e_versions:

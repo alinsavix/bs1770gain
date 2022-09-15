@@ -42,7 +42,17 @@ static void bg_analyzer_destroy(bg_visitor_t *vis FFUNUSED)
 static int bg_analyzer_dispatch_file(bg_visitor_t *vis FFUNUSED,
     bg_tree_t *tree FFUNUSED)
 {
+
 	// file annotation is created bottom-up from the muxer. nothing to do.
+#if defined (BG_PARAM_THREADS) // [
+  if (tree->param->nthreads&&tree->parent) {
+    bg_sync_lock(&tree->parent->helper.sync); // {
+		--tree->parent->helper.nchildren;
+    bg_sync_signal(&tree->parent->helper.sync);
+    bg_sync_unlock(&tree->parent->helper.sync); // }
+  }
+#endif // ]
+
   return 0;
 }
 
@@ -131,7 +141,8 @@ e_print_head_stdout:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static int bg_analyzer_dispatch_track(bg_visitor_t *vis, bg_tree_t *tree)
+#if defined (BG_PARAM_THREADS) // [
+static int bg_analyzer_track(bg_tree_t *tree, bg_visitor_t *vis)
 {
   int err=-1;
   bg_track_t *track=&tree->track;
@@ -189,6 +200,76 @@ e_input:
   --vis->depth; // ]
   return err;
 }
+#endif // ]
+
+static int bg_analyzer_dispatch_track(bg_visitor_t *vis, bg_tree_t *tree)
+{
+  int err=-1;
+#if defined (BG_PARAM_THREADS) // [
+  if (tree->param->nthreads) {
+    bg_param_threads_visitor_run(&tree->param->threads,vis,tree,
+        bg_analyzer_track);
+    err=0;
+  }
+  else
+    err=bg_analyzer_track(tree,vis);
+#else // ] [
+  bg_track_t *track=&tree->track;
+
+  /////////////////////////////////////////////////////////////////////////////
+  ++vis->depth; // [
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (ff_input_open_analyzer(&track->input)<0) {
+    DMESSAGE("re-opening input");
+    goto e_input;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (ff_analyzer_create(&track->analyzer,&track->input)<0) {
+    DMESSAGE("creating analyzer");
+    goto e_analyzer;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (bg_analyzer_print_prefix(vis,tree)<0) {
+    DMESSAGE("printing prefix");
+    goto e_print_prefix;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (ff_analyzer_loop(&tree->track.analyzer)<0) {
+    DMESSAGE("decoding");
+    goto e_decode;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (bg_tree_merge(tree->parent,tree)<0) {
+    DMESSAGE("merging");
+    goto e_merge;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  if (bg_analyzer_print_postfix(vis,tree)<0) {
+    DMESSAGE("printing postfix");
+    goto e_print_postfix;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  err=0;
+//cleanup:
+e_print_postfix:
+e_merge:
+e_decode:
+e_print_prefix:
+  ff_analyzer_destroy(&track->analyzer,0);
+e_analyzer:
+  ff_input_close(&track->input);
+e_input:
+  --vis->depth; // ]
+#endif // ]
+  return err;
+}
 
 int bg_analyzer_album_prefix(bg_visitor_t *vis, bg_tree_t *tree)
 {
@@ -210,6 +291,14 @@ int bg_analyzer_album_prefix(bg_visitor_t *vis, bg_tree_t *tree)
     DMESSAGE("printing prefix");
     goto e_print_prefix;
   }
+
+#if 0 // [
+  /////////////////////////////////////////////////////////////////////////////
+tree->threads.nchildren=tree->album.nchildren.cur;
+DVWRITELN("++++ %u %p \"%s\"",tree->threads.nchildren,tree->parent,tree->utf8.basename);
+#else // ] [
+//DVWRITELN("+++ %u %p \"%s\"",tree->album.nchildren.cur,tree->parent,tree->utf8.basename);
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   err=0;
@@ -233,13 +322,43 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
   /////////////////////////////////////////////////////////////////////////////
   memset(&muxer,0,sizeof muxer);
 
+#if defined (BG_PARAM_THREADS) // [
+  /////////////////////////////////////////////////////////////////////////////
+  tree->helper.nchildren=tree->album.nchildren.cur;
+DVWRITELN(">>> %u (%u %p)",tree->helper.nchildren,tree->album.nchildren.cur,tree->album.first);
+#endif // ]
+
   /////////////////////////////////////////////////////////////////////////////
   for (cur=tree->album.first;cur;cur=cur->next) {
+#if defined (_WIN32) // [
+DVWRITELN("    * \"%s\"",cur->utf8.path);
+#else // ] [
+DVWRITELN("    * \"%s\"",cur->source.path);
+#endif // ]
     if (cur->vmt->accept(cur,vis)<0) {
       FFVMESSAGE("analyzing \"%s\"",cur->source.path);
       goto e_child;
     }
+DMARKLN();
   }
+
+#if defined (BG_PARAM_THREADS) // [
+  /////////////////////////////////////////////////////////////////////////////
+  if (param->nthreads) {
+    bg_sync_lock(&tree->helper.sync); // {
+
+    while (tree->helper.nchildren)
+    	bg_sync_wait(&tree->helper.sync);
+
+    bg_sync_unlock(&tree->helper.sync); // }
+
+    if (tree->parent) {
+      bg_sync_lock(&tree->parent->helper.sync); // {
+      bg_sync_signal(&tree->parent->helper.sync);
+      bg_sync_unlock(&tree->parent->helper.sync); // }
+    }
+  }
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
   if (bg_analyzer_print_postfix(vis,tree)<0) {
@@ -248,6 +367,11 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
   }
 
   ///////////////////////////////////////////////////////////////////////////
+#if defined (BG_PARAM_THREADS) // [
+  if (param->nthreads)
+    bg_param_threads_drain(&param->threads);
+#endif // ]
+
   if (tree->album.nleafs&&(param->output.dirname||param->overwrite)) {
     if (bg_muxer_create(&muxer)<0) {
       DMESSAGE("creating muxer");
@@ -291,6 +415,10 @@ int bg_analyzer_album_suffix(bg_visitor_t *vis, bg_tree_t *tree)
     }
 #else // ] [
     }
+#endif // ]
+#if defined (BG_PARAM_THREADS) // [
+    if (param->nthreads)
+      bg_param_threads_drain(&param->threads);
 #endif // ]
   }
 

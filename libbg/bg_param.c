@@ -142,8 +142,8 @@ int bg_param_create(bg_param_t *param)
 #if defined (BG_PARAM_QUIET) // [
   param->quiet=0;
 #endif // ]
-#if defined (BG_PARAM_PARALLEL) // [
-  param->parallel=0;
+#if defined (BG_PARAM_THREADS) // [
+  param->nthreads=0;
 #endif // ]
 #if defined (BG_PARAM_SLEEP) // [
   param->sleep=0;

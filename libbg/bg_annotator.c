@@ -22,6 +22,7 @@
 #if defined (_WIN32) // [
 #include <locale.h>
 #else // ] [
+#include <ctype.h>
 #include <wctype.h>
 #include <wchar.h>
 #include <fcntl.h>
@@ -221,7 +222,7 @@ static const ffchar_t *bg_track_out_sfx(const bg_track_t *track,
   else if (track->input.audio.ctx) {
     // we always transcode to FLAC.
     return FFL("flac");
-	}
+  }
   else {
 #if defined (BG_TRACK_AUDIO_SFX) // [
     return bg_track_audio_sfx(track,tree,FFL("mka"));
@@ -253,6 +254,7 @@ static const ffchar_t *bg_track_out_sfx(const bg_track_t *track,
 }
 
 #define BG_TRACK_BASENAME_TRACK
+#if 0 // [
 static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
     ffchar_t **opath, size_t len)
 {
@@ -281,6 +283,11 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
 #endif // ]
   };
 
+#if defined (BG_TRACK_ID) // [
+  int id=tag.track?atoi(tag.track->value):track->album.id;
+#else // ] [
+  int id=tag.track?atoi(tag.track->value):-1;
+#endif // ]
 #if defined (_WIN32) && ! defined (BG_WIN32_CREATE_LOCALE) // [
   const char *locale=NULL;
 #endif // ]
@@ -294,10 +301,8 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
     if (opath) {
       // swprintf() in any case writes a trailing '\0', hence (1+len).
 #if defined (BG_TRACK_BASENAME_TRACK) // [
-      if (tag.track) {
-        len=swprintf(*opath,1+track->target.pfx.len,L"%02d_",
-            atoi(tag.track->value));
-      }
+      if (0<id)
+        len=swprintf(*opath,1+track->target.pfx.len,L"%02d_",id);
       else
         len=0;
 #else // ] [
@@ -402,9 +407,8 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
 #endif // ]
 
 #if defined (BG_TRACK_BASENAME_TRACK) // [
-      if (tag.track) {
-        len=swprintf(NULL,0,L"%02d_",atoi(tag.track->value));
-      }
+      if (0<id)
+        len=swprintf(NULL,0,L"%02d_",id);
       else
         len=0;
 #else // ] [
@@ -420,10 +424,8 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
       // I.e. we assume enough memory is allocated for holding a
       // trailing '\0'.
 #if defined (BG_TRACK_BASENAME_TRACK) // [
-      if (tag.track) {
-        snprintf(*opath,1+track->target.pfx.len,"%02d_",
-            atoi(tag.track->value));
-      }
+      if (0<id)
+        snprintf(*opath,1+track->target.pfx.len,"%02d_",id);
 #else // ] [
       snprintf(*opath,1+track->target.pfx.len,
           track->album.id<100?"%02lu_":"%lu_",track->album.id);
@@ -489,8 +491,8 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
         op[-1]=L'\0';
 
 #if defined (BG_TRACK_BASENAME_TRACK) // [
-      if (tag.track)
-        len=snprintf(NULL,0,"%02d_",atoi(tag.track->value));
+      if (0<id)
+        len=snprintf(NULL,0,"%02d_",id);
       else
         len=0;
 #else // ] [
@@ -526,6 +528,289 @@ static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
 e_path:
   return len;
 }
+#else // ] [
+static int bg_title_next(char *title, int special)
+{
+  int len=0;
+
+  while (*title) {
+    switch (*title) {
+    case '.':
+    case ',':
+    case '/':
+    case '\\':
+    case '(':
+    case ')':
+    case '[':
+    case ']':
+    case '&':
+    case ':':
+    case ' ':
+    case '?':
+    case '\'':
+      if (special)
+        return len;
+
+      break;
+    default:
+      if (!special)
+        return len;
+
+      break;
+    }
+
+    ++len;
+    ++title;
+  }
+
+  return len;
+}
+
+static int bg_title_length(char *title, wchar_t *wtitle, size_t leni)
+{
+  wchar_t *op=wtitle;
+  int leno=0;
+  int next,ch,len;
+
+  for (;;) {
+    if (!*title)
+      break;
+
+    ///////////////////////////////////////////////////////////////////////////
+    next=bg_title_next(title,0);
+    title+=next;
+
+    if (*title) {
+      if (next) {
+        if (wtitle) {
+          *wtitle++=L'_';
+          *wtitle=L'\0';
+          --leni;
+        }
+
+        ++leno;
+      }
+    }
+    else
+      return leno;
+
+    ///////////////////////////////////////////////////////////////////////////
+    next=bg_title_next(title,1);
+    ch=title[next];
+    title[next]=0;
+
+#if defined (_WIN32) // [
+    len=MultiByteToWideChar(
+      CP_UTF8,        // UINT                              CodePage,
+      0ul,            // DWORD                             dwFlags,
+      title,          // _In_NLS_string_(cbMultiByte)LPCCH lpMultiByteStr,
+      next,             // int                               cbMultiByte,
+      wtitle,         // LPWSTR                            lpWideCharStr,
+      leni            // int                               cchWideChar
+    );
+#else // ] [
+    len=mbstowcs(wtitle,title,leni);
+#endif // ]
+
+    if (wtitle) {
+      wtitle+=len;
+      *wtitle=L'\0';
+      leni-=len;
+    }
+
+    leno+=len;
+    title+=next;
+    *title=ch;
+  }
+
+  if (op) {
+    while (*op) {
+#if defined (_WIN32) // [
+#if defined (BG_WIN32_CREATE_LOCALE) // [
+      *op=_towlower_l(*op,tree->param->locale);
+#else // ] [
+          // our system _create_locale() isn't availabe.
+      *op=towlower(*op);
+#endif // ]
+      op=CharNextW(op);
+#else // ] [
+      *op=towlower(*op);
+      ++op;
+#endif // ]
+    }
+  }
+
+  return leno;
+}
+
+static int bg_track_basename(bg_track_t *track, bg_tree_t *tree,
+    ffchar_t **opath, size_t len)
+{
+#if defined (_WIN32) && defined (BG_TRACK_BASENAME_TRACK) // [
+  enum { TRACK_SIZE=64 };
+#endif // ]
+  bg_param_t *param=tree->param;
+  AVDictionary *metadata=track->input.fmt.ctx->metadata;
+
+  struct {
+    const AVDictionaryEntry *title;
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+    const AVDictionaryEntry *track;
+#endif // ]
+  } tag={
+#if 0 // [
+    .title=av_dict_get(metadata,"TITLE",NULL,AV_DICT_IGNORE_SUFFIX),
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+    .track=av_dict_get(metadata,"TRACK",NULL,AV_DICT_IGNORE_SUFFIX),
+#endif // ]
+#else // ] [
+    .title=av_dict_get(metadata,"TITLE",NULL,0),
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+    .track=av_dict_get(metadata,"TRACK",NULL,0),
+#endif // ]
+#endif // ]
+  };
+
+#if defined (BG_TRACK_ID) // [
+  int id=tag.track?atoi(tag.track->value):track->album.id;
+#else // ] [
+  int id=tag.track?atoi(tag.track->value):-1;
+#endif // ]
+#if defined (_WIN32) && ! defined (BG_WIN32_CREATE_LOCALE) // [
+  const char *locale=NULL;
+#endif // ]
+  // NOTE: under Linux sizeof(wchar_t) is 4 bytes and under Windows
+  //   it is 2 bytes.
+#if 0 // [
+  wchar_t *op;
+#endif // ]
+  const ffchar_t *ipath,*sfx,*sp;
+
+  if ((BG_FLAGS_EXT_RENAME&param->flags.extension)&&tag.title) {
+#if defined (_WIN32) // [
+    if (opath) {
+      // swprintf() in any case writes a trailing '\0', hence (1+len).
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+      if (0<id)
+        len=swprintf(*opath,1+track->target.pfx.len,L"%02d_",id);
+      else
+        len=0;
+#else // ] [
+      swprintf(*opath,1+track->target.pfx.len,
+          track->album.id<100?L"%02lu_":L"%lu_",track->album.id);
+#endif // ]
+      wcscpy(*opath+track->target.pfx.len,track->target.title);
+      free(track->target.title);
+      track->target.title=NULL;
+    }
+    else {
+      // claculate the length of the intermediate representation.
+      len=bg_title_length(tag.title->value,NULL,0);
+
+      // allocate sufficient memory to hold the intermediate representatiion.
+      track->target.title=malloc((len+1)*sizeof *track->target.title);
+
+      if (!track->target.title) {
+        DMESSAGE("allocating intermediate path");
+        // set error.
+        len=-1;
+        goto e_path;
+      }
+
+      // transform into the intermediate representation.
+      bg_title_length(tag.title->value,track->target.title,len);
+
+#if ! defined (BG_WIN32_CREATE_LOCALE) // [
+      // we need to switch back locale.
+      setlocale(LC_ALL,locale);
+#endif // ]
+
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+      if (0<id)
+        len=swprintf(NULL,0,L"%02d_",id);
+      else
+        len=0;
+#else // ] [
+      len=swprintf(NULL,0,
+          track->album.id<100?L"%02lu_":L"%lu_",track->album.id);
+#endif // ]
+      track->target.pfx.len=len;
+      len+=wcslen(track->target.title);
+    }
+#else // ] [
+    if (opath) {
+      // snprintf() in any case writes a trailing '\0', hence (1+len).
+      // I.e. we assume enough memory is allocated for holding a
+      // trailing '\0'.
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+      if (0<id)
+        snprintf(*opath,1+track->target.pfx.len,"%02d_",id);
+#else // ] [
+      snprintf(*opath,1+track->target.pfx.len,
+          track->album.id<100?"%02lu_":"%lu_",track->album.id);
+#endif // ]
+      // we convert the intermediate representation back into utf-8.
+      wcstombs(*opath+track->target.pfx.len,track->target.title,
+          len-track->target.pfx.len);
+      free(track->target.title);
+      track->target.title=NULL;
+    }
+    else {
+      // calculate the length for holding the intermediate representation.
+      len=bg_title_length(tag.title->value,NULL,0);
+
+      // allocate sufficient memory  in order to hold the intermediate
+      // representation.
+      track->target.title=malloc((len+1)*sizeof track->target.title[0]);
+
+      if (!track->target.title) {
+        DMESSAGE("allocating intermediate path");
+        // set error.
+        len=-1;
+        goto e_path;
+      }
+
+      bg_title_length(tag.title->value,track->target.title,len);
+
+#if defined (BG_TRACK_BASENAME_TRACK) // [
+      if (0<id)
+        len=snprintf(NULL,0,"%02d_",id);
+      else
+        len=0;
+#else // ] [
+      len=snprintf(NULL,0,track->album.id<100?"%02lu_":"%lu_",track->album.id);
+#endif // ]
+      track->target.pfx.len=len;
+      // add the length for holding the title (transformed to lower case.)
+      len+=wcstombs(NULL,track->target.title,0);
+    }
+#endif // ]
+  }
+  else {
+    if (tree->source.basename) {
+      ipath=tree->source.basename;
+
+      if (opath)
+        memcpy(*opath,ipath,len*sizeof **opath);
+      else {
+        sfx=NULL;
+        sp=FFSTRSTR(ipath,FFL("."));
+
+        while (sp) {
+          sfx=sp;
+          sp=FFSTRSTR(++sp,FFL("."));
+        }
+
+        len=sfx?(size_t)(sfx-ipath):FFSTRLEN(ipath);
+      }
+    }
+    else
+      len=0;
+  }
+e_path:
+  return len;
+}
+#endif // ]
 
 ///////////////////////////////////////////////////////////////////////////////
 int bg_track_annotation_create(bg_tree_t *tree)
@@ -629,7 +914,7 @@ int bg_track_annotation_create(bg_tree_t *tree)
   memcpy(tp,tree->target.path,len1*sizeof tp[0]);
   tp+=len1;
 
-	// Guarding by "len1" proposed by Hadrien Lacour <hadrien.lacour@posteo.net>.
+  // Guarding by "len1" proposed by Hadrien Lacour <hadrien.lacour@posteo.net>.
   if (len1&&FFPATHSEP!=tp[-1])
     *tp++=FFPATHSEP;
 
@@ -790,8 +1075,8 @@ int bg_album_annotation_create(bg_tree_t *tree)
 
       /////////////////////////////////////////////////////////////////////////
       if (!tree->param->overwrite&&ff_mkdir(tree->target.path)<0) {
-  	    DMESSAGE("creating directory");
-  	    goto e_mkdir;
+        DMESSAGE("creating directory");
+        goto e_mkdir;
       }
     }
     else {
@@ -833,7 +1118,7 @@ int bg_root_annotation_create(bg_tree_t *tree)
 
     if (!tree->param->overwrite&&ff_mkdir(tree->target.path)<0) {
       /////////////////////////////////////////////////////////////////////////
-  	  DMESSAGE("creating directory");
+      DMESSAGE("creating directory");
       goto e_mkdir;
     }
 

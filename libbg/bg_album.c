@@ -27,7 +27,6 @@ static bg_tree_vmt_t bg_album_vmt;
 int bg_album_create(bg_tree_t **tree, bg_param_t *param, bg_tree_t *parent,
     const ffchar_t *path)
 {
-
   /////////////////////////////////////////////////////////////////////////////
   *tree=malloc(sizeof **tree);
 
@@ -74,7 +73,7 @@ void bg_album_destroy(bg_tree_t *tree)
   if (tree->parent&&tree!=bg_album_pop(tree->parent))
     DWARNING("tree not at end of list");
 
-  if (!tree->param->process&&1u<tree->album.nchildren) {
+  if (!tree->param->process&&1u<tree->album.nchildren.max) {
     // it's getting bottom-up.
     if (!tree->param->process)
       tree->argv->lift=tree->depth+1;
@@ -90,8 +89,12 @@ int bg_album_content_create(bg_tree_t *tree, bg_tree_vmt_t *vmt)
   bg_album_t *album=&tree->album;
 
   tree->vmt=vmt;
-  album->nchildren=0u;
+  album->nchildren.max=0u;
+  album->nchildren.cur=0u;
   album->nleafs=0u;
+#if defined (BG_TRACK_ID) // [
+  album->track.id=0u;
+#endif // ]
   album->first=NULL;
   album->last=NULL;
 
@@ -125,7 +128,11 @@ int bg_album_push(bg_tree_t *tree, bg_tree_t *child)
     album->first=child;
 
   album->last=child;
-  ++album->nchildren;
+#if defined (BG_TRACK_ID) // [
+  child->vmt->track_id(child,&album->track.id);
+#endif // ]
+  ++album->nchildren.max;
+  ++album->nchildren.cur;
 
   return 0;
 }
@@ -134,6 +141,8 @@ bg_tree_t *bg_album_pop(bg_tree_t *tree)
 {
   bg_album_t *album=&tree->album;
   bg_tree_t *last=album->last;
+
+  --album->nchildren.cur;
 
   if (last) {
     last->parent=NULL;
@@ -147,6 +156,7 @@ bg_tree_t *bg_album_pop(bg_tree_t *tree)
   else
     album->first=NULL;
 
+
   return last;
 }
 
@@ -155,6 +165,12 @@ static int bg_album_accept(bg_tree_t *tree, bg_visitor_t *vis)
 {
   return vis->vmt->dispatch_album(vis,tree);
 }
+
+#if defined (BG_TRACK_ID) // [
+static void bg_album_track_id(bg_tree_t *tree FFUNUSED, int *id FFUNUSED)
+{
+}
+#endif // ]
 
 static bg_tree_vmt_t bg_album_vmt={
 #if defined (PBU_DEBUG) // [
@@ -167,4 +183,7 @@ static bg_tree_vmt_t bg_album_vmt={
     .create=bg_album_annotation_create,
     .destroy=bg_album_annotation_destroy,
   },
+#if defined (BG_TRACK_ID) // [
+  .track_id=bg_album_track_id,
+#endif // ]
 };
