@@ -1,5 +1,5 @@
 /*
- * bs1770gain_oor.c
+ * mux3.c
 
  *
  * This library is free software; you can redistribute it and/or
@@ -17,19 +17,29 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#include <bs1770gain.h>
+#include <ffsox_priv.h>
 
-int bs1770gain_oor(AVPacket *p, const AVFormatContext *ifc,
-    const bs1770gain_options_t *options)
+void ffsox_source_progress(const source_t *si, void *data)
 {
-  AVStream *ist;
+  FILE *f=data;
+  const AVPacket *pkt;
+  const AVStream *st;
+  int64_t duration;
+  double percent;
+  char buf[32];
+  int i;
 
-  if (options->duration==0||AV_NOPTS_VALUE==p->pts)
-    return 0;
-  else {
-    ist=ifc->streams[p->stream_index];
+  pkt=&si->pkt;
+  st=si->f.fc->streams[pkt->stream_index];
+  duration=av_rescale_q(si->f.fc->duration,AV_TIME_BASE_Q,st->time_base);
+  percent=0ll<pkt->dts&&0ll<duration?100.0*pkt->dts/duration:0.0;
+  sprintf(buf,"%.0f%%",percent);
+  fputs(buf,f);
+  fflush(f);
+  i=strlen(buf);
 
-    return options->duration<av_rescale_q(p->pts,ist->time_base,
-        AV_TIME_BASE_Q);
+  while (0<i) {
+    fputc('\b',f);
+    --i;
   }
 }
