@@ -198,9 +198,15 @@ static int bg_muxer_dispatch_track(bg_visitor_t *vis FFUNUSED, bg_tree_t *tree)
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  fprintf(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
-      bg_tree_out_basanamen(tree));
-  fflush(stdout);
+#if defined (BG_PARAM_QUIET) // [
+  if (!param->quiet) {
+#endif // ]
+    fprintf(stdout,"[%lu/%lu] %s\n",track->root.id,param->count.max,
+        bg_tree_out_basanamen(tree));
+    fflush(stdout);
+#if defined (BG_PARAM_QUIET) // [
+  }
+#endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
 #if defined (FF_FLAC_HACK) // [

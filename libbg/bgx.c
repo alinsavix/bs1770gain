@@ -213,6 +213,13 @@ static void bg_usage(const ffchar_t *path, FILE *f)
 #else // ] [
   FFPUTS(" -f <file>,--file=<file>:  write analysis to a log file\n",f);
 #endif // ]
+#if defined (BG_PARAM_QUIET) // [
+  FFPUTS(" --quiet:  supress any output except error messages.\n",f);
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+  FFPUTS(" --parallel=<number of parallel>:  parallelize using <number\n"
+      "     of parallel> threads. implies --quiet.\n",f);
+#endif // ]
 #if defined (BG_LIST) // [
   FFPUTS(" -l,--list:  print FFmpeg format/stream information\n",f);
 #endif // ]
@@ -474,6 +481,12 @@ int main(int argc, char *const *argv)
     BG_ARG_TEMP_PREFIX,
     BG_ARG_SUPPRESS_HIERARCHY,
     BG_ARG_SUPPRESS_PROGRESS,
+#if defined (BG_PARAM_QUIET) // [
+    BG_ARG_QUIET,
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+    BG_ARG_SEMAPHORES,
+#endif // ]
 #if defined (BG_PARAM_SLEEP) // [
     BG_ARG_SLEEP,
 #endif // ]
@@ -552,6 +565,12 @@ int main(int argc, char *const *argv)
     { FFL("audio"),required_argument,NULL,BG_ARG_AUDIO },
     { FFL("ai"),required_argument,NULL,BG_ARG_AUDIO },
     { FFL("drc"),required_argument,NULL,BG_ARG_DRC },
+#if defined (BG_PARAM_QUIET) // [
+    { FFL("quiet"),no_argument,NULL,BG_ARG_QUIET },
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+    { FFL("parallel"),required_argument,NULL,BG_ARG_SEMAPHORES },
+#endif // ]
 #if defined (BG_PARAM_SLEEP) // [
     { FFL("sleep"),required_argument,NULL,BG_ARG_SLEEP },
 #endif // ]
@@ -781,6 +800,16 @@ int main(int argc, char *const *argv)
     case FFL('t'):
       param.flags.aggregate|=BG_FLAGS_AGG_TRUEPEAK;
       break;
+#if defined (BG_PARAM_QUIET) // [
+    case BG_ARG_QUIET:
+      param.quiet=1;
+      break;
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+    case BG_ARG_SEMAPHORES:
+      param.parallel=FFATOI(optarg);
+      break;
+#endif // ]
 #if defined (BG_PARAM_SLEEP) // [
     case BG_ARG_SLEEP:
       param.sleep=FFATOI(optarg);
@@ -1408,6 +1437,32 @@ int main(int argc, char *const *argv)
     goto e_help;
   }
 
+#if defined (BG_PARAM_PARALLEL) // [
+  /////////////////////////////////////////////////////////////////////////////
+  if (param.parallel) {
+    param.quiet=1;
+
+#if defined (_WIN32) // [
+    param.hSem=CreateSemaphoreW(
+      NULL,                 // LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
+      param.parallel,     // LONG                  lInitialCount,
+      param.parallel,     // LONG                  lMaximumCount,
+      NULL                  // LPCSTR                lpName
+    );
+    
+    if (!param.hSem) {
+      DVMESSAGE("creating semaphore (%ld)",GetLastError());
+      goto e_semaphore;
+    }
+#else // ] [
+    if (sem_init(&param.sem,0,param.parallel)<0) {
+      DVMESSAGE("creating semaphore (%d)",errno);
+      goto e_semaphore;
+    }
+#endif // ]
+  }
+#endif // ]
+
   /////////////////////////////////////////////////////////////////////////////
 #if defined (_WIN32) // [
 #if defined (BG_WIN32_CREATE_LOCALE) // [
@@ -1473,13 +1528,21 @@ int main(int argc, char *const *argv)
   }
 
   /////////////////////////////////////////////////////////////////////////////
+#if defined (BG_PARAM_QUIET) // [
+  if (!param.quiet&&!param.suppress.progress) {
+#else // ] [
   if (!param.suppress.progress) {
+#endif // ]
     if (&bg_print_xml_vmt==param.print.vmt)
       fputs("<!-- ",stdout);
 
     fputs("scanning ",stdout);
     fflush(stdout);
+#if ! defined (BG_PARAM_QUIET) // [
   }
+#else // ] [
+  }
+#endif // ]
 
 #if defined (BG_CLOCK) // [
   /////////////////////////////////////////////////////////////////////////////
@@ -1487,14 +1550,16 @@ int main(int argc, char *const *argv)
 #endif // ]
 
   /////////////////////////////////////////////////////////////////////////////
-//DWRITELN("scanning {");
   if (bg_param_loop(&param,argv+optind)<0) {
     DMESSAGE("counting");
     goto e_count;
   }
-//DWRITELN("scanning }");
 
+#if defined (BG_PARAM_QUIET) // [
+  if (!param.quiet&&!param.suppress.progress) {
+#else // ] [
   if (!param.suppress.progress) {
+#endif // ]
     ///////////////////////////////////////////////////////////////////////////
     if (&bg_print_xml_vmt==param.print.vmt)
       fputs(" -->",stdout);
@@ -1511,18 +1576,24 @@ int main(int argc, char *const *argv)
 
     fputc('\n',stdout);
     fflush(stdout);
+#if ! defined (BG_PARAM_QUIET) // [
   }
+#else // ] [
+  }
+#endif // ]
 
   bg_param_set_process(&param);
 
-//DWRITELN("processing {");
   if (bg_param_loop(&param,argv+optind)<0) {
     DMESSAGE("processing");
     goto e_process;
   }
-//DWRITELN("processing }");
 
+#if defined (BG_PARAM_QUIET) // [
+  if (!param.quiet&&!param.suppress.progress) {
+#else // ] [
   if (!param.suppress.progress) {
+#endif // ]
     ///////////////////////////////////////////////////////////////////////////
     if (&bg_print_xml_vmt==param.print.vmt)
       fputs("<!-- ",stdout);
@@ -1534,7 +1605,11 @@ int main(int argc, char *const *argv)
 
     fputc('\n',stdout);
     fflush(stdout);
+#if ! defined (BG_PARAM_QUIET) // [
   }
+#else // ] [
+  }
+#endif // ]
 
 #if defined (BG_CLOCK) // [
   /////////////////////////////////////////////////////////////////////////////
@@ -1579,6 +1654,14 @@ e_file:
 #else // ] [
   if (locale)
     setlocale(LC_ALL,locale);
+#endif // ]
+#if defined (BG_PARAM_PARALLEL) // [
+#if defined (_WIN32) // [
+  CloseHandle(param.hSem);
+#else // ] [
+  sem_destroy(&param.sem);
+#endif // ]
+e_semaphore:
 #endif // ]
 e_help:
 e_versions:

@@ -75,7 +75,11 @@ int bg_track_content_create(bg_tree_t *tree)
   track->root.id=++param->count.cur;
 
   /////////////////////////////////////////////////////////////////////////////
+#if defined (BG_PARAM_QUIET) // [
+  if (!param->quiet&&!param->process&&!param->suppress.progress) {
+#else // ] [
   if (!param->process&&!param->suppress.progress) {
+#endif // ]
     ff_printer_reset(p);
 
 #if defined (_WIN32) // [
@@ -84,7 +88,11 @@ int bg_track_content_create(bg_tree_t *tree)
     else
 #endif // ]
       ff_printer_printf(p,"%d",track->root.id);
+#if ! defined (BG_PARAM_QUIET) // [
   }
+#else // ] [
+  }
+#endif // ]
 
   ++tree->parent->album.nleafs;
   ff_input_close(&track->input);
@@ -174,7 +182,13 @@ static int input_csv(const void *data)
 
 static int input_suppress_progress(const void *data)
 {
+#if defined (BG_PARAM_QUIET) // [
+  bg_param_t *param=((const bg_tree_t *)data)->param;
+
+  return param->quiet||param->suppress.progress;
+#else // ] [
   return ((const bg_tree_t *)data)->param->suppress.progress;
+#endif // ]
 }
 
 static int64_t input_interval_begin(const void *data)
