@@ -1,5 +1,5 @@
 /*
- * ffsox_machine.c
+ * pbu_vwritelnw.c
 
  *
  * This program is free software; you can redistribute it and/or
@@ -17,35 +17,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301  USA
  */
-#include <ffsox_priv.h>
+#include <stdarg.h>
+#include <pbutil.h>
 
-int ffsox_machine_run(machine_t *m, node_t *node)
+#if defined (_WIN32) // [
+void pbu_vwritelnw(FILE *f, const char *path, int line, const char *func,
+    const wchar_t *format, ...)
 {
-  int op;
+  va_list ap;
+  const char *p;
 
-  m->node=node;
-
-  while (NULL!=(node=m->node)) {
-//fprintf(stderr,"%s: RUN\n",node->vmt->name);
-    if ((op=node->vmt->run(node))<0) {
-      DMESSAGE("running machine");
-      return op;
-    }
-
-    switch (op) {
-    case MACHINE_PUSH:
-//fprintf(stderr,"%s: PUSH\n",node->vmt->name);
-      m->node=node->vmt->next(node);
-      break;
-    case MACHINE_POP:
-//fprintf(stderr,"%s: POP\n",node->vmt->name);
-      m->node=node->vmt->prev(node);
-      break;
-    default:
-      DMESSAGE("illegal instruction");
-      return -1;
-    }
+  if (format) {
+    va_start(ap,format);
+    vfwprintf(f,format,ap);
+    va_end(ap);
   }
 
-  return 0;
+  if (path) {
+    if (format)
+      fputs(" (",f);
+
+    p=path+strlen(path);
+
+    while (path<p&&'/'!=p[-1]&&'\\'!=p[-1])
+      --p;
+
+    fprintf(f,"%s:%d:%s",p,line,func);
+
+    if (format)
+      fputc(')',f);
+  }
+
+  fputc('\n',f);
+  fflush(f);
 }
+#endif // ]
