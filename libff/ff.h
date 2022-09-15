@@ -151,7 +151,7 @@ typedef char ffchar_t;
   #define FF_AVFILTER_V PBU_STR(LIBAVFILTER_VERSION_MAJOR)
 #endif // ]
 
-#if defined (_WIN32) // [
+#if defined (_WIN32) // [ /// WINDOWS ////////////////////////////////////////////
 #if defined (FF_AVUTIL_V) // [
 #define FF_AVUTIL L"avutil-" PBU_WIDEN(FF_AVUTIL_V) L".dll"
 #else // ] [
@@ -187,7 +187,43 @@ typedef char ffchar_t;
 #else // ] [
 #define FF_AVFILTER L"avfilter.dll"
 #endif // ]
+#elif defined __APPLE__ // ] [ /// APPLE //////////////////////////////////////////////
+#if defined (FF_AVUTIL_V) // [
+#define FF_AVUTIL "libavutil." FF_AVUTIL_V ".dylib"
 #else // ] [
+#define FF_AVUTIL "libavutil.dylib"
+#endif // ]
+#if defined (FF_AVCODEC_V) // [
+#define FF_AVCODEC "libavcodec." FF_AVCODEC_V  ".dylib"
+#else // ] [
+#define FF_AVCODEC "libavcodec.dylib"
+#endif // ]
+#if defined (FF_AVFORMAT_V) // [
+#define FF_AVFORMAT "libavformat." FF_AVFORMAT_V  ".dylib"
+#else // ] [
+#define FF_AVFORMAT "libavformat.dylib"
+#endif // ]
+#if defined (FF_SWRESAMPLE_V) // [
+#define FF_SWRESAMPLE "libswresample." FF_SWRESAMPLE_V  ".dylib"
+#else // ] [
+#define FF_SWRESAMPLE "libswresample.dylib"
+#endif // ]
+#if defined (FF_SWSCALE_V) // [
+#define FF_SWSCALE "libswscale." FF_SWSCALE_V  ".dylib"
+#else // ] [
+#define FF_SWSCALE "libswscale.dylib"
+#endif // ]
+#if defined (FF_POSTPROC_V) // [
+#define FF_POSTPROC "libpostproc." FF_POSTPROC_V  ".dylib"
+#else // ] [
+#define FF_POSTPROC "libpostproc.dylib"
+#endif // ]
+#if defined (FF_AVFILTER_V) // [
+#define FF_AVFILTER "libavfilter." FF_AVFILTER_V  ".dylib"
+#else // ] [
+#define FF_AVFILTER "libavfilter.dylib"
+#endif // ]
+#else // ] [ /// LINUX //////////////////////////////////////////////////////////////
 #if defined (FF_AVUTIL_V) // [
 #define FF_AVUTIL "libavutil.so." FF_AVUTIL_V
 #else // ] [
